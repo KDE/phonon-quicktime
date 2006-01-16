@@ -16,27 +16,30 @@
     Boston, MA 02110-1301, USA.
 
 */
+#ifndef Kdem2m_FAKE_ABSTRACTVIDEOOUTPUTBASE_H
+#define Kdem2m_FAKE_ABSTRACTVIDEOOUTPUTBASE_H
 
-#ifndef PHONON_FAKE_ABSTRACTVIDEOOUTPUT_H
-#define PHONON_FAKE_ABSTRACTVIDEOOUTPUT_H
+#include <QObject>
+#include "../../ifaces/abstractvideooutput.h"
 
-#include <phonon/experimental/videoframe.h>
-#include "videonode.h"
-
-namespace Phonon
+namespace Kdem2m
 {
 namespace Fake
 {
+	class AbstractVideoOutput : public QObject, virtual public Ifaces::AbstractVideoOutput
+	{
+		Q_OBJECT
+		public:
+			AbstractVideoOutput( QObject* parent );
+			virtual ~AbstractVideoOutput();
 
-class AbstractVideoOutput : public VideoNode
-{
-    public:
-        virtual ~AbstractVideoOutput() {}
-};
+		public:
+			virtual QObject* qobject() { return this; }
+			virtual const QObject* qobject() const { return this; }
 
-}} //namespace Phonon::Fake
+		private:
+	};
+}} //namespace Kdem2m::Fake
 
-Q_DECLARE_INTERFACE(Phonon::Fake::AbstractVideoOutput, "org.kde.Phonon.Fake.AbstractVideoOutput/0.1")
-
-#endif // PHONON_FAKE_ABSTRACTVIDEOOUTPUT_H
-// vim: sw=4 ts=4
+// vim: sw=4 ts=4 tw=80 noet
+#endif // Kdem2m_FAKE_ABSTRACTVIDEOOUTPUTBASE_H

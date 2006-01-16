@@ -19,12 +19,12 @@
 
 #include "abstractaudiooutput.h"
 
-namespace Phonon
+namespace Kdem2m
 {
 namespace Fake
 {
-AbstractAudioOutput::AbstractAudioOutput(QObject *parent)
-    : QObject(parent)
+AbstractAudioOutput::AbstractAudioOutput( QObject* parent )
+	: QObject( parent )
 {
 }
 
@@ -32,7 +32,7 @@ AbstractAudioOutput::~AbstractAudioOutput()
 {
 }
 
-}} //namespace Phonon::Fake
+}} //namespace Kdem2m::Fake
 
-#include "moc_abstractaudiooutput.cpp"
-// vim: sw=4 ts=4
+#include "abstractaudiooutput.moc"
+// vim: sw=4 ts=4 noet

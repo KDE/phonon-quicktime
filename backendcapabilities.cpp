@@ -1,5 +1,5 @@
 /*  This file is part of the KDE project
-    Copyright (C) 2005-2006 Matthias Kretz <kretz@kde.org>
+    Copyright (C) 2005 Matthias Kretz <kretz@kde.org>
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -18,157 +18,91 @@
 */
 
 #include "backendcapabilities.h"
-#include "backendcapabilities_p.h"
+#include "ifaces/backend.h"
+#include "factory.h"
+#include "capturesource.h"
 
-#include "phonondefs_p.h"
-#include "backendinterface.h"
-#include "factory_p.h"
-#include "globalconfig_p.h"
-#include "globalstatic_p.h"
-#include "objectdescription.h"
-
-#include <QtCore/QList>
-#include <QtCore/QSet>
-#include <QtCore/QStringList>
-
-QT_BEGIN_NAMESPACE
-
-PHONON_GLOBAL_STATIC(Phonon::BackendCapabilitiesPrivate, globalBCPrivate)
-
-template<class T>
-static inline bool sortByInitialPreference(const T &o1, const T &o2)
-{
-    // QVariant::toInt() returns 0 if the type() is not convertable to int
-    const int initialPreference1 = o1.property("initialPreference").toInt();
-    const int initialPreference2 = o2.property("initialPreference").toInt();
-    // the higher the number the higher it should appear in the list
-    return initialPreference1 > initialPreference2;
-}
-
-namespace Phonon
+namespace Kdem2m
 {
 
-BackendCapabilities::Notifier *BackendCapabilities::notifier()
+class BackendCapabilities::Private
 {
-    return globalBCPrivate;
-}
+	public:
+		const Ifaces::Backend* backend;
+};
 
-/*
-#define SUPPORTS(foo) \
-bool BackendCapabilities::supports ## foo() \
-{ \
-    if (BackendInterface *backendIface = qobject_cast<BackendInterface *>(Factory::backend())) \
-        return backendIface->supports ## foo(); \
-    else \
-        return false; \
-}
+static ::KStaticDeleter<BackendCapabilities> sd;
 
-SUPPORTS(Video)
-SUPPORTS(OSD)
-SUPPORTS(Subtitles)
-*/
+BackendCapabilities* BackendCapabilities::m_self = 0;
 
-QStringList BackendCapabilities::availableMimeTypes()
+BackendCapabilities* BackendCapabilities::self()
 {
-    if (BackendInterface *backendIface = qobject_cast<BackendInterface *>(Factory::backend()))
-        return backendIface->availableMimeTypes();
-    else
-        return QStringList();
+	if( !m_self )
+		sd.setObject( m_self, m_self = new BackendCapabilities() );
+	return m_self;
 }
 
-bool BackendCapabilities::isMimeTypeAvailable(const QString &mimeType)
+BackendCapabilities::BackendCapabilities()
+	: d( new Private() )
 {
-    QObject *m_backendObject = Factory::backend(false);
-    if (!m_backendObject) {
-        if (!Factory::isMimeTypeAvailable(mimeType)) {
-            return false;
-        }
-        // without loading the backend we found out that the MIME type might be supported, now we
-        // want to know for certain. For that we need to load the backend.
-        m_backendObject = Factory::backend(true);
-    }
-    if (!m_backendObject) {
-        // no backend == no MIME type supported at all
-        return false;
-    }
-    return availableMimeTypes().contains(mimeType);
+	d->backend = Factory::self()->backend();
+	connect( Factory::self(), SIGNAL( backendChanged() ), SLOT( slotBackendChanged() ) );
 }
 
-#define availableDevicesImpl(T) \
-QList<T> BackendCapabilities::available ## T ## s() \
-{ \
-    BackendInterface *backendIface = qobject_cast<BackendInterface *>(Factory::backend()); \
-    QList<T> ret; \
-    if (backendIface) { \
-        QList<int> deviceIndexes = backendIface->objectDescriptionIndexes(Phonon::T ## Type); \
-        foreach (int i, deviceIndexes) \
-            ret.append(T::fromIndex(i)); \
-    } \
-    qSort(ret.begin(), ret.end(), sortByInitialPreference<T>); \
-    return ret; \
-}
-
-#define availableDevicesImpl2(T) \
-QList<T ## Description> BackendCapabilities::available ## T ## s() \
-{ \
-    BackendInterface *backendIface = qobject_cast<BackendInterface *>(Factory::backend()); \
-    QList<T ## Description> ret; \
-    if (backendIface) { \
-        QList<int> deviceIndexes = backendIface->objectDescriptionIndexes(Phonon::T ## Type); \
-        foreach (int i, deviceIndexes) \
-            ret.append(T ## Description::fromIndex(i)); \
-    } \
-    qSort(ret.begin(), ret.end(), sortByInitialPreference<T ## Description>); \
-    return ret; \
-}
-
-QList<AudioOutputDevice> BackendCapabilities::availableAudioOutputDevices()
+BackendCapabilities::~BackendCapabilities()
 {
-    QList<AudioOutputDevice> ret;
-    const QList<int> deviceIndexes = GlobalConfig().audioOutputDeviceListFor(Phonon::NoCategory);
-    foreach (int i, deviceIndexes) {
-        ret.append(AudioOutputDevice::fromIndex(i));
-    }
-    return ret;
 }
 
-QList<AudioCaptureDevice> BackendCapabilities::availableAudioCaptureDevices()
+bool BackendCapabilities::supportsVideo() const
 {
-    QList<AudioCaptureDevice> ret;
-    const QList<int> deviceIndexes = GlobalConfig().audioCaptureDeviceListFor(Phonon::NoCategory);
-    foreach (int i, deviceIndexes) {
-        ret.append(AudioCaptureDevice::fromIndex(i));
-    }
-    return ret;
+	return d->backend ? d->backend->supportsVideo() : false;
 }
 
-/*
-availableDevicesImpl(VideoOutputDevice)
-availableDevicesImpl(VideoCaptureDevice)
-availableDevicesImpl2(Visualization)
-availableDevicesImpl2(AudioCodec)
-availableDevicesImpl2(VideoCodec)
-availableDevicesImpl2(ContainerFormat)*/
-
-QList<EffectDescription> BackendCapabilities::availableAudioEffects()
+bool BackendCapabilities::supportsOSD() const
 {
-    BackendInterface *backendIface = qobject_cast<BackendInterface *>(Factory::backend());
-    QList<EffectDescription> ret;
-    if (backendIface) {
-        QList<int> deviceIndexes = backendIface->objectDescriptionIndexes(Phonon::EffectType);
-        foreach (int i, deviceIndexes) {
-            ret.append(EffectDescription::fromIndex(i));
-        }
-    }
-    return ret;
+	return d->backend ? d->backend->supportsOSD() : false;
 }
 
-} // namespace Phonon
+bool BackendCapabilities::supportsSubtitles() const
+{
+	return d->backend ? d->backend->supportsSubtitles() : false;
+}
 
-QT_END_NAMESPACE
+KMimeType::List BackendCapabilities::knownMimeTypes() const
+{
+	return d->backend ? d->backend->knownMimeTypes() : KMimeType::List();
+}
 
-#include "moc_backendcapabilities.cpp"
-#include "moc_backendcapabilities_p.cpp"
+QList<CaptureSource> BackendCapabilities::availableSoundcardCaptureSources() const
+{
+	if( d->backend )
+	{
+		QList<CaptureSource> ret;
+		for( int i = 1; i <= d->backend->captureSourceCount(); ++i )
+			ret.append( CaptureSource( i,
+						d->backend->captureSourceNameForIndex( i ),
+						d->backend->captureSourceDescriptionForIndex( i ) ) );
+		return ret;
+	}
+	return QList<CaptureSource>();
+}
 
-// vim: sw=4 ts=4
+QStringList BackendCapabilities::availableAudioEffects() const
+{
+	return d->backend ? d->backend->availableAudioEffects() : QStringList();
+}
 
+QStringList BackendCapabilities::availableVideoEffects() const
+{
+	return d->backend ? d->backend->availableVideoEffects() : QStringList();
+}
+
+void BackendCapabilities::slotBackendChanged()
+{
+	d->backend = Factory::self()->backend();
+	emit capabilitesChanged();
+}
+
+} // namespace Kdem2m
+#include "backendcapabilities.moc"
+// vim: sw=4 ts=4 noet

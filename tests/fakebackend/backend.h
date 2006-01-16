@@ -12,69 +12,108 @@
 
     You should have received a copy of the GNU Library General Public License
     along with this library; see the file COPYING.LIB.  If not, write to
-    the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-    Boston, MA 02110-1301, USA.
+    the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+    Boston, MA 02111-1307, USA.
 
 */
 
-#ifndef Phonon_FAKE_BACKEND_H
-#define Phonon_FAKE_BACKEND_H
+#ifndef Kdem2m_FAKE_BACKEND_H
+#define Kdem2m_FAKE_BACKEND_H
 
-#include <phonon/objectdescription.h>
-#include <phonon/backendinterface.h>
+#include "../../ifaces/backend.h"
 
-#include <QtCore/QList>
-#include <QtCore/QPointer>
-#include <QtCore/QStringList>
+class KURL;
 
-class KUrl;
-
-#ifdef MAKE_PHONON_FAKE_LIB /* We are building this library */
-# define PHONON_FAKE_EXPORT Q_DECL_EXPORT
-#else /* We are using this library */
-# define PHONON_FAKE_EXPORT Q_DECL_IMPORT
-#endif
-
-namespace Phonon
+namespace Kdem2m
 {
+namespace Ifaces
+{
+	class MediaObject;
+	class SoundcardCapture;
+	class ByteStream;
+
+	class AudioPath;
+	class AudioEffect;
+	class AudioOutput;
+	class AudioDataOutput;
+	class AudioFftOutput;
+
+	class VideoPath;
+	class VideoEffect;
+}
 namespace Fake
 {
-    class AudioOutput;
 
-    class PHONON_FAKE_EXPORT Backend : public QObject, public BackendInterface
-    {
-        Q_OBJECT
-        Q_INTERFACES(Phonon::BackendInterface)
-        public:
-            Backend(QObject *parent = 0, const QVariantList & = QVariantList());
-            virtual ~Backend();
+	class KDEM2M_EXPORT Backend : public Ifaces::Backend
+	{
+		Q_OBJECT
+		public:
+			Backend( QObject* parent );
+			virtual ~Backend();
 
-            QObject *createObject(BackendInterface::Class, QObject *parent, const QList<QVariant> &args);
+			virtual Ifaces::MediaObject*      createMediaObject( QObject* parent );
+			virtual Ifaces::SoundcardCapture* createSoundcardCapture( QObject* parent );
+			virtual Ifaces::ByteStream*       createByteStream( QObject* parent );
 
-            bool supportsVideo() const;
-            bool supportsOSD() const;
-            bool supportsFourcc(quint32 fourcc) const;
-            bool supportsSubtitles() const;
-            QStringList availableMimeTypes() const;
+			virtual Ifaces::AudioPath*        createAudioPath( QObject* parent );
+			virtual Ifaces::AudioEffect*      createAudioEffect( QObject* parent );
+			virtual Ifaces::AudioOutput*      createAudioOutput( QObject* parent );
+			virtual Ifaces::AudioDataOutput*  createAudioDataOutput( QObject* parent );
+			virtual Ifaces::AudioFftOutput*   createAudioFftOutput( QObject* parent );
 
-            void freeSoundcardDevices();
+			virtual Ifaces::VideoPath*        createVideoPath( QObject* parent );
+			virtual Ifaces::VideoEffect*      createVideoEffect( QObject* parent );
 
-            QList<int> objectDescriptionIndexes(ObjectDescriptionType type) const;
-            QHash<QByteArray, QVariant> objectDescriptionProperties(ObjectDescriptionType type, int index) const;
+			virtual bool supportsVideo() const;
+			virtual bool supportsOSD() const;
+			virtual bool supportsSubtitles() const;
+			virtual const KMimeType::List& knownMimeTypes() const;
 
-            bool startConnectionChange(QSet<QObject *>);
-            bool connectNodes(QObject *, QObject *);
-            bool disconnectNodes(QObject *, QObject *);
-            bool endConnectionChange(QSet<QObject *>);
+			/**
+			 * Returns the number of available capture sources. An associated
+			 * name and description can be found using captureSourceNameForIndex
+			 * and captureSourceDescriptionForIndex.
+			 *
+			 * \return The number of available capture sources.
+			 * \see captureSourceNameForIndex
+			 * \see captureSourceDescriptionForIndex
+			 *
+			 * \test The return value has to be \f$\ge0\f$
+			 */
+			virtual int captureSourceCount() const;
 
-        Q_SIGNALS:
-            void objectDescriptionChanged(ObjectDescriptionType);
+			/**
+			 * Returns the name of the capture source.
+			 *
+			 * \param index \f$0<\mathrm{index}\leq\mathrm{captureSourceCount}\f$
+			 *
+			 * \return The name of this capture source.
+			 *
+			 * \test The return value has to be non-empty.
+			 */
+			virtual QString captureSourceNameForIndex( int index ) const;
 
-        private:
-            QStringList m_supportedMimeTypes;
-            QList<QPointer<AudioOutput> > m_audioOutputs;
-    };
-}} // namespace Phonon::Fake
+			/**
+			 * Returns a description for the capture source.
+			 *
+			 * \param index \f$0<index\leq\f$ captureSourceCount
+			 *
+			 * \return The description for this capture source.
+			 */
+			virtual QString captureSourceDescriptionForIndex( int index ) const;
 
-// vim: sw=4 ts=4 tw=80
-#endif // Phonon_FAKE_BACKEND_H
+			// effects
+			virtual const QStringList& availableAudioEffects() const;
+			virtual const QStringList& availableVideoEffects() const;
+
+			virtual const char* uiLibrary() const;
+			//virtual const char* uiSymbol() const;
+
+		private:
+			KMimeType::List m_supportedMimeTypes;
+			QStringList m_audioEffects, m_videoEffects;
+	};
+}} // namespace Kdem2m::Ifaces
+
+// vim: sw=4 ts=4 noet tw=80
+#endif // Kdem2m_FAKE_BACKEND_H

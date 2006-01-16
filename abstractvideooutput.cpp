@@ -17,18 +17,38 @@
 
 */
 #include "abstractvideooutput.h"
-#include "abstractvideooutput_p.h"
+#include "ifaces/abstractvideooutput.h"
+#include "factory.h"
 
-QT_BEGIN_NAMESPACE
-
-namespace Phonon
+namespace Kdem2m
 {
-
-AbstractVideoOutput::AbstractVideoOutput(AbstractVideoOutputPrivate &d)
-    : MediaNode(d)
+class AbstractVideoOutput::Private
 {
+	public:
+		Private()
+		{ }
+
+		QString name;
+};
+
+KDEM2M_ABSTRACTBASE_IMPL( AbstractVideoOutput )
+
+bool AbstractVideoOutput::aboutToDeleteIface()
+{
+	//if( m_iface )
+	//{
+	//}
+	return true;
 }
 
-} // namespace Phonon
+void AbstractVideoOutput::setupIface()
+{
+	//if( !m_iface )
+		//return;
+}
 
-QT_END_NAMESPACE
+} //namespace Kdem2m
+
+#include "abstractvideooutput.moc"
+
+// vim: sw=4 ts=4 tw=80 noet

@@ -1,5 +1,5 @@
 /*  This file is part of the KDE project
-    Copyright (C) 2004-2007 Matthias Kretz <kretz@kde.org>
+    Copyright (C) 2004-2005 Matthias Kretz <kretz@kde.org>
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -12,379 +12,308 @@
 
     You should have received a copy of the GNU Library General Public License
     along with this library; see the file COPYING.LIB.  If not, write to
-    the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-    Boston, MA 02110-1301, USA.
+    the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+    Boston, MA 02111-1307, USA.
 
 */
 
-#include "factory_p.h"
+#include "factory.h"
+#include "ifaces/audiopath.h"
+#include "ifaces/audioeffect.h"
+#include "ifaces/audiooutput.h"
+#include "ifaces/audiodataoutput.h"
+#include "ifaces/audiofftoutput.h"
+#include "ifaces/videopath.h"
+#include "ifaces/videoeffect.h"
+#include "ifaces/backend.h"
+#include "ifaces/mediaobject.h"
+#include "ifaces/soundcardcapture.h"
+#include "ifaces/bytestream.h"
 
-#include "backendinterface.h"
-#include "medianode_p.h"
-#include "audiooutput.h"
-#include "audiooutput_p.h"
-#include "globalstatic_p.h"
-#include "objectdescription.h"
-#include "platformplugin.h"
-#include "phononnamespace_p.h"
+#include <ktrader.h>
+#include <kservice.h>
+#include <klibloader.h>
+#include <kmessagebox.h>
+#include <QFile>
+#include <QList>
+#include <klocale.h>
+#include <kmimetype.h>
+#include <kdebug.h>
+#include <kstaticdeleter.h>
 
-#include <QtCore/QCoreApplication>
-#include <QtCore/QDir>
-#include <QtCore/QFile>
-#include <QtCore/QLibrary>
-#include <QtCore/QList>
-#include <QtCore/QPluginLoader>
-#include <QtCore/QPointer>
-#include <QtGui/QIcon>
-#ifndef QT_NO_DBUS
-#include <QtDBus/QtDBus>
-#endif
-
-QT_BEGIN_NAMESPACE
-
-namespace Phonon
+namespace Kdem2m
 {
-
-class PlatformPlugin;
-class FactoryPrivate : public Phonon::Factory::Sender
+class Factory::Private
 {
-    friend QObject *Factory::backend(bool);
-    Q_OBJECT
-    public:
-        FactoryPrivate();
-        ~FactoryPrivate();
-        bool createBackend();
-        PlatformPlugin *platformPlugin();
+	public:
+		Private()
+			: backend( 0 )
+		{
+			createBackend();
+		}
 
-        QPointer<QObject> m_backendObject;
-        PlatformPlugin *m_platformPlugin;
-        bool m_noPlatformPlugin;
+		void createBackend()
+		{
+			KTrader::OfferList offers = KTrader::self()->query( "Kdem2mBackend", "Type == 'Service'" );
+			KTrader::OfferListIterator it = offers.begin();
+			KTrader::OfferListIterator end = offers.end();
+			QStringList errormsg;
+			for( ; it != end; ++it )
+			{
+				KService::Ptr ptr = *it;
+				KLibFactory * factory = KLibLoader::self()->factory( QFile::encodeName( ptr->library() ) );
+				if( factory )
+				{
+					backend = ( Ifaces::Backend* )factory->create( 0, "Multimedia Backend", "Kdem2m::Ifaces::Backend" );
+					if( 0 == backend )
+					{
+						QString e = i18n( "create method returned 0" );
+						errormsg.append( e );
+						kdDebug( 600 ) << "Error getting backend from factory for " <<
+							ptr->name() << ":\n" << e << endl;
+					}
+					else
+					{
+						service = ptr;
+						kdDebug( 600 ) << "using backend: " << ptr->name() << endl;
+						break;
+					}
+				}
+				else
+				{
+					QString e = KLibLoader::self()->lastErrorMessage();
+					errormsg.append( e );
+					kdDebug( 600 ) << "Error getting factory for " << ptr->name() <<
+						":\n" << e << endl;
+				}
+			}
+			if( 0 == backend )
+			{
+				if( offers.size() == 0 )
+					KMessageBox::error( 0, i18n( "Unable to find a Multimedia Backend" ) );
+				else
+				{
+					QString details = "<qt><table>";
+					QStringList::Iterator eit = errormsg.begin();
+					QStringList::Iterator eend = errormsg.end();
+					KTrader::OfferListIterator oit = offers.begin();
+					KTrader::OfferListIterator oend = offers.end();
+					for( ; eit != eend || oit != oend; ++eit, ++oit )
+						details += QString( "<tr><td><b>%1</b></td><td>%2</td></tr>" )
+							.arg( ( *oit )->name() ).arg( *eit );
+					details += "</table></qt>";
 
-        QList<QObject *> objects;
-        QList<MediaNodePrivate *> mediaNodePrivateList;
+					KMessageBox::detailedError( 0,
+							i18n( "Unable to use any of the available Multimedia Backends" ), details );
+				}
+			}
+		}
 
-    private Q_SLOTS:
-        /**
-         * This is called via DBUS when the user changes the Phonon Backend.
-         */
-        void phononBackendChanged();
+		Ifaces::Backend * backend;
+		KService::Ptr service;
 
-        /**
-         * unregisters the backend object
-         */
-        void objectDestroyed(QObject *);
-
-        void objectDescriptionChanged(ObjectDescriptionType);
+		QList<QObject*> objects;
 };
 
-PHONON_GLOBAL_STATIC(Phonon::FactoryPrivate, globalFactory)
+static ::KStaticDeleter<Factory> sd;
 
-void Factory::setBackend(QObject *b)
+Factory * Factory::m_self = 0;
+
+Factory * Factory::self()
 {
-    Q_ASSERT(globalFactory->m_backendObject == 0);
-    globalFactory->m_backendObject = b;
+	if( ! m_self )
+		sd.setObject( m_self, m_self = new Factory() );
+	return m_self;
 }
 
-/*void Factory::createBackend(const QString &library, const QString &version)
+Factory::Factory()
+	: DCOPObject( "Kdem2mFactory" )
+	, d( new Private )
 {
-    Q_ASSERT(globalFactory->m_backendObject == 0);
-    PlatformPlugin *f = globalFactory->platformPlugin();
-    if (f) {
-        globalFactory->m_backendObject = f->createBackend(library, version);
-    }
-}*/
-
-bool FactoryPrivate::createBackend()
-{
-    Q_ASSERT(m_backendObject == 0);
-    PlatformPlugin *f = globalFactory->platformPlugin();
-    if (f) {
-        m_backendObject = f->createBackend();
-    }
-    if (!m_backendObject) {
-        // could not load a backend through the platform plugin. Falling back to the default
-        // (finding the first loadable backend).
-        const QLatin1String suffix("/phonon_backend/");
-        foreach (QString libPath, QCoreApplication::libraryPaths()) {
-            libPath += suffix;
-            const QDir dir(libPath);
-            if (!dir.exists()) {
-                pDebug() << Q_FUNC_INFO << dir.absolutePath() << "does not exist";
-                continue;
-            }
-            foreach (const QString &pluginName, dir.entryList(QDir::Files)) {
-                QPluginLoader pluginLoader(libPath + pluginName);
-                if (!pluginLoader.load()) {
-                    pDebug() << Q_FUNC_INFO << "  load failed:"
-                             << pluginLoader.errorString();
-                    continue;
-                }
-                pDebug() << pluginLoader.instance();
-                m_backendObject = pluginLoader.instance();
-                if (m_backendObject) {
-                    break;
-                }
-
-                // no backend found, don't leave an unused plugin in memory
-                pluginLoader.unload();
-            }
-
-            if (m_backendObject) {
-                break;
-            }
-        }
-        if (!m_backendObject) {
-            pWarning() << Q_FUNC_INFO << "phonon backend plugin could not be loaded";
-            return false;
-        }
-    }
-
-    connect(m_backendObject, SIGNAL(objectDescriptionChanged(ObjectDescriptionType)),
-            SLOT(objectDescriptionChanged(ObjectDescriptionType)));
-
-    return true;
+	connectDCOPSignal( 0, 0, "kdem2mBackendChanged()", "kdem2mBackendChanged()", false);
 }
 
-FactoryPrivate::FactoryPrivate()
-    : m_backendObject(0),
-    m_platformPlugin(0),
-    m_noPlatformPlugin(false)
+Factory::~Factory()
 {
-    // Add the post routine to make sure that all other global statics (especially the ones from Qt)
-    // are still available. If the FactoryPrivate dtor is called too late many bad things can happen
-    // as the whole backend might still be alive.
-    qAddPostRoutine(globalFactory.destroy);
-#ifndef QT_NO_DBUS
-    QDBusConnection::sessionBus().connect(QString(), QString(), "org.kde.Phonon.Factory",
-            "phononBackendChanged", this, SLOT(phononBackendChanged()));
+	kdDebug( 600 ) << k_funcinfo << endl;
+	emit deleteYourObjects();
+	foreach( QObject* o, d->objects )
+	{
+		kdDebug( 600 ) << "delete " << o << endl;
+		delete o;
+	}
+	delete d->backend;
+	delete d;
+}
+
+void Factory::kdem2mBackendChanged()
+{
+	if( d->backend )
+	{
+		emit deleteYourObjects();
+		if( d->objects.size() > 0 )
+		{
+			kdWarning( 600 ) << "we were asked to change the backend but the application did\n"
+				"not free all references to objects created by the factory. Therefore we can not\n"
+				"change the backend without crashing. Now we have to wait for a restart to make\n"
+				"backendswitching possible." << endl;
+			// in case there were objects deleted give 'em a chance to recreate
+			// them now
+			emit recreateObjects();
+			return;
+		}
+		delete d->backend;
+		d->backend = 0;
+	}
+	d->createBackend();
+	emit recreateObjects();
+	emit backendChanged();
+}
+
+void Factory::objectDestroyed( QObject * obj )
+{
+	kdDebug( 600 ) << k_funcinfo << obj << endl;
+	d->objects.removeAll( obj );
+}
+
+Ifaces::MediaObject* Factory::createMediaObject( QObject* parent )
+{
+	return d->backend ? registerObject( d->backend->createMediaObject( parent ) ) : 0;
+}
+
+Ifaces::SoundcardCapture* Factory::createSoundcardCapture( QObject* parent )
+{
+	return d->backend ? registerObject( d->backend->createSoundcardCapture( parent ) ) : 0;
+}
+
+Ifaces::ByteStream* Factory::createByteStream( QObject* parent )
+{
+	return d->backend ? registerObject( d->backend->createByteStream( parent ) ) : 0;
+}
+
+Ifaces::AudioPath* Factory::createAudioPath( QObject* parent )
+{
+	return d->backend ? registerObject( d->backend->createAudioPath( parent ) ) : 0;
+}
+
+Ifaces::AudioEffect* Factory::createAudioEffect( QObject* parent )
+{
+	return d->backend ? registerObject( d->backend->createAudioEffect( parent ) ) : 0;
+}
+
+Ifaces::AudioOutput* Factory::createAudioOutput( QObject* parent )
+{
+	return d->backend ? registerObject( d->backend->createAudioOutput( parent ) ) : 0;
+}
+
+Ifaces::AudioDataOutput* Factory::createAudioDataOutput( QObject* parent )
+{
+	return d->backend ? registerObject( d->backend->createAudioDataOutput( parent ) ) : 0;
+}
+
+Ifaces::AudioFftOutput* Factory::createAudioFftOutput( QObject* parent )
+{
+	return d->backend ? registerObject( d->backend->createAudioFftOutput( parent ) ) : 0;
+}
+
+Ifaces::VideoPath* Factory::createVideoPath( QObject* parent )
+{
+	return d->backend ? registerObject( d->backend->createVideoPath( parent ) ) : 0;
+}
+
+Ifaces::VideoEffect* Factory::createVideoEffect( QObject* parent )
+{
+	return d->backend ? registerObject( d->backend->createVideoEffect( parent ) ) : 0;
+}
+
+const Ifaces::Backend* Factory::backend() const
+{
+	return d->backend;
+}
+
+const char* Factory::uiLibrary() const
+{
+	if( !d->backend )
+		return 0;
+	return d->backend->uiLibrary();
+}
+
+const char* Factory::uiSymbol() const
+{
+	if( !d->backend )
+		return 0;
+	return d->backend->uiSymbol();
+}
+
+#if 0
+bool Factory::isMimeTypePlayable( const QString & type ) const
+{
+	if( d->backend )
+	{
+		KMimeType::Ptr mimetype = KMimeType::mimeType( type );
+		QStringList mimetypes = playableMimeTypes();
+		for( QStringList::ConstIterator i=mimetypes.begin(); i!=mimetypes.end(); i++ )
+			if( mimetype->is( *i ) )
+				return true;
+	}
+	return false;
+}
+
+QString Factory::backendName() const
+{
+	if( d->service )
+		return d->service->name();
+	else
+		return QString::null;
+}
+
+QString Factory::backendComment() const
+{
+	if( d->service )
+		return d->service->comment();
+	else
+		return QString::null;
+}
+
+QString Factory::backendVersion() const
+{
+	if( d->service )
+		return d->service->property( "X-KDE-MMBackendInfo-Version" ).toString();
+	else
+		return QString::null;
+}
+
+QString Factory::backendIcon() const
+{
+	if( d->service )
+		return d->service->icon();
+	else
+		return QString::null;
+}
+
+QString Factory::backendWebsite() const
+{
+	if( d->service )
+		return d->service->property( "X-KDE-MMBackendInfo-Website" ).toString();
+	else
+		return QString::null;
+}
 #endif
-}
 
-FactoryPrivate::~FactoryPrivate()
+template<class T> inline T* Factory::registerObject( T* o )
 {
-    foreach (MediaNodePrivate *bp, mediaNodePrivateList) {
-        bp->deleteBackendObject();
-    }
-    if (objects.size() > 0) {
-        pError() << "The backend objects are not deleted as was requested.";
-        qDeleteAll(objects);
-    }
-    delete m_backendObject;
-    delete m_platformPlugin;
+	registerQObject( o->qobject() );
+	return o;
 }
 
-void FactoryPrivate::objectDescriptionChanged(ObjectDescriptionType type)
+void Factory::registerQObject( QObject* o )
 {
-#ifdef PHONON_METHODTEST
-    Q_UNUSED(type);
-#else
-    pDebug() << Q_FUNC_INFO << type;
-    switch (type) {
-    case AudioOutputDeviceType:
-        emit availableAudioOutputDevicesChanged();
-        break;
-    default:
-        break;
-    }
-    //emit capabilitiesChanged();
-#endif // PHONON_METHODTEST
+	connect( o, SIGNAL( destroyed( QObject* ) ), SLOT( objectDestroyed( QObject* ) ) );
+	d->objects.append( o );
 }
 
-Factory::Sender *Factory::sender()
-{
-    return globalFactory;
-}
-
-bool Factory::isMimeTypeAvailable(const QString &mimeType)
-{
-    PlatformPlugin *f = globalFactory->platformPlugin();
-    if (f) {
-        return f->isMimeTypeAvailable(mimeType);
-    }
-    return true; // the MIME type might be supported, let BackendCapabilities find out
-}
-
-void Factory::registerFrontendObject(MediaNodePrivate *bp)
-{
-    globalFactory->mediaNodePrivateList.prepend(bp); // inserted last => deleted first
-}
-
-void Factory::deregisterFrontendObject(MediaNodePrivate *bp)
-{
-    // The Factory can already be cleaned up while there are other frontend objects still alive.
-    // When those are deleted they'll call deregisterFrontendObject through ~BasePrivate
-    if (!globalFactory.isDestroyed()) {
-        globalFactory->mediaNodePrivateList.removeAll(bp);
-    }
-}
-
-void FactoryPrivate::phononBackendChanged()
-{
-    if (m_backendObject) {
-        foreach (MediaNodePrivate *bp, mediaNodePrivateList) {
-            bp->deleteBackendObject();
-        }
-        if (objects.size() > 0) {
-            pDebug() << "WARNING: we were asked to change the backend but the application did\n"
-                "not free all references to objects created by the factory. Therefore we can not\n"
-                "change the backend without crashing. Now we have to wait for a restart to make\n"
-                "backendswitching possible.";
-            // in case there were objects deleted give 'em a chance to recreate
-            // them now
-            foreach (MediaNodePrivate *bp, mediaNodePrivateList) {
-                bp->createBackendObject();
-            }
-            return;
-        }
-        delete m_backendObject;
-        m_backendObject = 0;
-    }
-    createBackend();
-    foreach (MediaNodePrivate *bp, mediaNodePrivateList) {
-        bp->createBackendObject();
-    }
-    emit backendChanged();
-}
-
-//X void Factory::freeSoundcardDevices()
-//X {
-//X     if (globalFactory->backend) {
-//X         globalFactory->backend->freeSoundcardDevices();
-//X     }
-//X }
-
-void FactoryPrivate::objectDestroyed(QObject * obj)
-{
-    //pDebug() << Q_FUNC_INFO << obj;
-    objects.removeAll(obj);
-}
-
-#define FACTORY_IMPL(classname) \
-QObject *Factory::create ## classname(QObject *parent) \
-{ \
-    if (backend()) { \
-        return registerQObject(qobject_cast<BackendInterface *>(backend())->createObject(BackendInterface::classname##Class, parent)); \
-    } \
-    return 0; \
-}
-#define FACTORY_IMPL_1ARG(classname) \
-QObject *Factory::create ## classname(int arg1, QObject *parent) \
-{ \
-    if (backend()) { \
-        return registerQObject(qobject_cast<BackendInterface *>(backend())->createObject(BackendInterface::classname##Class, parent, QList<QVariant>() << arg1)); \
-    } \
-    return 0; \
-}
-
-FACTORY_IMPL(MediaObject)
-FACTORY_IMPL_1ARG(Effect)
-FACTORY_IMPL(VolumeFaderEffect)
-FACTORY_IMPL(AudioOutput)
-FACTORY_IMPL(AudioDataOutput)
-FACTORY_IMPL(Visualization)
-FACTORY_IMPL(VideoDataOutput)
-FACTORY_IMPL(VideoWidget)
-
-#undef FACTORY_IMPL
-
-PlatformPlugin *FactoryPrivate::platformPlugin()
-{
-    if (m_platformPlugin) {
-        return m_platformPlugin;
-    }
-    if (m_noPlatformPlugin) {
-        return 0;
-    }
-#ifndef QT_NO_DBUS
-    if (!QCoreApplication::instance() || QCoreApplication::applicationName().isEmpty()) {
-        pWarning() << "Phonon needs QCoreApplication::applicationName to be set to export audio output names through the DBUS interface";
-    }
-#endif
-    const QString suffix(QLatin1String("/phonon_platform/"));
-    Q_ASSERT(QCoreApplication::instance());
-    foreach (QString libPath, QCoreApplication::libraryPaths()) {
-        libPath += suffix;
-        const QDir dir(libPath);
-        if (!dir.exists()) {
-            pDebug() << Q_FUNC_INFO << dir.absolutePath() << "does not exist";
-            continue;
-        }
-        foreach (const QString &pluginName, dir.entryList(QDir::Files)) {
-            QPluginLoader pluginLoader(libPath + pluginName);
-            if (!pluginLoader.load()) {
-                pDebug() << Q_FUNC_INFO << "  platform plugin load failed:"
-                    << pluginLoader.errorString();
-                continue;
-            }
-            pDebug() << pluginLoader.instance();
-            QObject *qobj = pluginLoader.instance();
-            m_platformPlugin = qobject_cast<PlatformPlugin *>(qobj);
-            pDebug() << m_platformPlugin;
-            if (m_platformPlugin) {
-                connect(qobj, SIGNAL(objectDescriptionChanged(ObjectDescriptionType)),
-                        SLOT(objectDescriptionChanged(ObjectDescriptionType)));
-                return m_platformPlugin;
-            } else {
-                pDebug() << Q_FUNC_INFO << dir.absolutePath() << "exists but the platform plugin was not loadable:" << pluginLoader.errorString();
-                pluginLoader.unload();
-            }
-        }
-    }
-    pDebug() << Q_FUNC_INFO << "phonon_platform/kde plugin could not be loaded";
-    m_noPlatformPlugin = true;
-    return 0;
-}
-
-PlatformPlugin *Factory::platformPlugin()
-{
-    return globalFactory->platformPlugin();
-}
-
-QObject *Factory::backend(bool createWhenNull)
-{
-    if (globalFactory.isDestroyed()) {
-        return 0;
-    }
-    if (createWhenNull && globalFactory->m_backendObject == 0) {
-        globalFactory->createBackend();
-        // XXX: might create "reentrancy" problems:
-        // a method calls this method and is called again because the
-        // backendChanged signal is emitted
-        emit globalFactory->backendChanged();
-    }
-    return globalFactory->m_backendObject;
-}
-
-#define GET_STRING_PROPERTY(name) \
-QString Factory::name() \
-{ \
-    if (globalFactory->m_backendObject) { \
-        return globalFactory->m_backendObject->property(#name).toString(); \
-    } \
-    return QString(); \
-} \
-
-GET_STRING_PROPERTY(identifier)
-GET_STRING_PROPERTY(backendName)
-GET_STRING_PROPERTY(backendComment)
-GET_STRING_PROPERTY(backendVersion)
-GET_STRING_PROPERTY(backendIcon)
-GET_STRING_PROPERTY(backendWebsite)
-
-QObject *Factory::registerQObject(QObject *o)
-{
-    if (o) {
-        QObject::connect(o, SIGNAL(destroyed(QObject *)), globalFactory, SLOT(objectDestroyed(QObject *)), Qt::DirectConnection);
-        globalFactory->objects.append(o);
-    }
-    return o;
-}
-
-} //namespace Phonon
-
-QT_END_NAMESPACE
+} //namespace Kdem2m
 
 #include "factory.moc"
-#include "moc_factory_p.cpp"
 
-// vim: sw=4 ts=4
+// vim: sw=4 ts=4 noet

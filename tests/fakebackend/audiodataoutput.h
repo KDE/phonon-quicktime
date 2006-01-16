@@ -16,51 +16,37 @@
     Boston, MA 02110-1301, USA.
 
 */
-#ifndef Phonon_FAKE_AUDIODATAOUTPUT_H
-#define Phonon_FAKE_AUDIODATAOUTPUT_H
+#ifndef Kdem2m_FAKE_AUDIODATAOUTPUT_H
+#define Kdem2m_FAKE_AUDIODATAOUTPUT_H
 
 #include "abstractaudiooutput.h"
-#include <phonon/experimental/audiodataoutput.h>
-#include <QtCore/QVector>
+#include "../../ifaces/audiodataoutput.h"
 
-namespace Phonon
+namespace Kdem2m
 {
 namespace Fake
 {
-    /**
-     * \author Matthias Kretz <kretz@kde.org>
-     */
-    class AudioDataOutput : public AbstractAudioOutput
-    {
-        Q_OBJECT
-        public:
-            AudioDataOutput(QObject *parent);
-            ~AudioDataOutput();
+	/**
+	 * \author Matthias Kretz <kretz@kde.org>
+	 * \since 4.0
+	 */
+	class AudioDataOutput : virtual public AbstractAudioOutput, virtual public Ifaces::AudioDataOutput
+	{
+		Q_OBJECT
+		public:
+			AudioDataOutput( QObject* parent );
+			virtual ~AudioDataOutput();
 
-        public Q_SLOTS:
-            Phonon::Experimental::AudioDataOutput::Format format() const;
-            int dataSize() const;
-            int sampleRate() const;
-            void setFormat(Phonon::Experimental::AudioDataOutput::Format format);
-            void setDataSize(int size);
+			// Operations:
+			virtual void readBuffer( QVector<float>& buffer );
+			virtual void readBuffer( QVector<int>& buffer );
 
-        public:
-            // Fake specific:
-            virtual void processBuffer(QVector<float> &buffer);
+			// Attributes Getters:
+			virtual int availableSamples() const;
 
-        signals:
-            void dataReady(const QMap<Phonon::Experimental::AudioDataOutput::Channel, QVector<qint16> > &data);
-            void dataReady(const QMap<Phonon::Experimental::AudioDataOutput::Channel, QVector<float> > &data);
-            void endOfMedia(int remainingSamples);
+		private:
+	};
+}} //namespace Kdem2m::Fake
 
-        private:
-            void convertAndEmit(const QVector<float> &buffer);
-
-            Phonon::Experimental::AudioDataOutput::Format m_format;
-            int m_dataSize;
-            QVector<float> m_pendingData;
-    };
-}} //namespace Phonon::Fake
-
-// vim: sw=4 ts=4 tw=80
-#endif // Phonon_FAKE_AUDIODATAOUTPUT_H
+// vim: sw=4 ts=4 tw=80 noet
+#endif // Kdem2m_FAKE_AUDIODATAOUTPUT_H

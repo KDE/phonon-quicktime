@@ -16,25 +16,30 @@
     Boston, MA 02110-1301, USA.
 
 */
-#ifndef Phonon_FAKE_ABSTRACTAUDIOOUTPUTBASE_H
-#define Phonon_FAKE_ABSTRACTAUDIOOUTPUTBASE_H
+#ifndef Kdem2m_FAKE_ABSTRACTAUDIOOUTPUTBASE_H
+#define Kdem2m_FAKE_ABSTRACTAUDIOOUTPUTBASE_H
 
-#include <QtCore/QObject>
-#include "audionode.h"
+#include <QObject>
+#include "../../ifaces/abstractaudiooutput.h"
 
-namespace Phonon
+namespace Kdem2m
 {
 namespace Fake
 {
-    class AbstractAudioOutput : public QObject, public AudioNode
-    {
-        Q_OBJECT
-        Q_INTERFACES(Phonon::Fake::AudioNode)
-        public:
-            AbstractAudioOutput(QObject *parent);
-            virtual ~AbstractAudioOutput();
-    };
-}} //namespace Phonon::Fake
+	class AbstractAudioOutput : public QObject, virtual public Ifaces::AbstractAudioOutput
+	{
+		Q_OBJECT
+		public:
+			AbstractAudioOutput( QObject* parent );
+			virtual ~AbstractAudioOutput();
 
-// vim: sw=4 ts=4 tw=80
-#endif // Phonon_FAKE_ABSTRACTAUDIOOUTPUTBASE_H
+		public:
+			virtual QObject* qobject() { return this; }
+			virtual const QObject* qobject() const { return this; }
+
+		private:
+	};
+}} //namespace Kdem2m::Fake
+
+// vim: sw=4 ts=4 tw=80 noet
+#endif // Kdem2m_FAKE_ABSTRACTAUDIOOUTPUTBASE_H

@@ -1,5 +1,5 @@
 /*  This file is part of the KDE project
-    Copyright (C) 2006-2007 Matthias Kretz <kretz@kde.org>
+    Copyright (C) 2006 Matthias Kretz <kretz@kde.org>
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -18,321 +18,159 @@
 */
 
 #include "backend.h"
-
-#include "audiodataoutput.h"
-#include "audiooutput.h"
-#include "effect.h"
 #include "mediaobject.h"
-#include "videodataoutput.h"
-#include "videowidget.h"
-#include "visualization.h"
-#include "volumefadereffect.h"
+#include "soundcardcapture.h"
+#include "bytestream.h"
+#include "audiopath.h"
+#include "audioeffect.h"
+#include "audiooutput.h"
+#include "audiodataoutput.h"
+#include "audiofftoutput.h"
+#include "videopath.h"
+#include "videoeffect.h"
 
-#include <QtCore/QSet>
-#include <QtCore/QVariant>
-
-namespace Phonon
+namespace Kdem2m
 {
 namespace Fake
 {
 
-Backend::Backend(QObject *parent, const QVariantList &)
-    : QObject(parent)
+Backend::Backend( QObject* parent )
+	: Ifaces::Backend( parent )
 {
-    setProperty("identifier",     QLatin1String("phonon_fake"));
-    setProperty("backendName",    QLatin1String("Fake"));
-    setProperty("backendComment", QLatin1String("Testing Backend"));
-    setProperty("backendVersion", QLatin1String("0.1"));
-    setProperty("backendIcon",    QLatin1String(""));
-    setProperty("backendWebsite", QLatin1String("http://multimedia.kde.org/"));
 }
 
 Backend::~Backend()
 {
 }
 
-QObject *Backend::createObject(BackendInterface::Class c, QObject *parent, const QList<QVariant> &args)
+Ifaces::MediaObject*      Backend::createMediaObject( QObject* parent )
 {
-    switch (c) {
-    case MediaObjectClass:
-        return new MediaObject(parent);
-    case VolumeFaderEffectClass:
-        return new VolumeFaderEffect(parent);
-    case AudioOutputClass:
-        {
-            AudioOutput *ao = new AudioOutput(parent);
-            m_audioOutputs.append(ao);
-            return ao;
-        }
-    case AudioDataOutputClass:
-        return new AudioDataOutput(parent);
-    case VisualizationClass:
-        return new Visualization(parent);
-    case VideoDataOutputClass:
-        return new VideoDataOutput(parent);
-    case EffectClass:
-        return new Effect(args[0].toInt(), parent);
-    case VideoWidgetClass:
-        return new VideoWidget(qobject_cast<QWidget *>(parent));
-    }
-    return 0;
+	return new MediaObject( parent );
+}
+
+Ifaces::SoundcardCapture* Backend::createSoundcardCapture( QObject* parent )
+{
+	//return new SoundcardCapture( parent );
+}
+
+Ifaces::ByteStream*       Backend::createByteStream( QObject* parent )
+{
+	//return new ByteStream( parent );
+}
+
+Ifaces::AudioPath*        Backend::createAudioPath( QObject* parent )
+{
+	return new AudioPath( parent );
+}
+
+Ifaces::AudioEffect*      Backend::createAudioEffect( QObject* parent )
+{
+	//return new AudioEffect( parent );
+}
+
+Ifaces::AudioOutput*      Backend::createAudioOutput( QObject* parent )
+{
+	return new AudioOutput( parent );
+}
+
+Ifaces::AudioDataOutput*  Backend::createAudioDataOutput( QObject* parent )
+{
+	//return new AudioDataOutput( parent );
+}
+
+Ifaces::AudioFftOutput*   Backend::createAudioFftOutput( QObject* parent )
+{
+	//return new AudioFftOutput( parent );
+}
+
+Ifaces::VideoPath*        Backend::createVideoPath( QObject* parent )
+{
+	return new VideoPath( parent );
+}
+
+Ifaces::VideoEffect*      Backend::createVideoEffect( QObject* parent )
+{
+	//return new VideoEffect( parent );
 }
 
 bool Backend::supportsVideo() const
 {
-    return true;
+	return false;
 }
 
 bool Backend::supportsOSD() const
 {
-    return false;
-}
-
-bool Backend::supportsFourcc(quint32 fourcc) const
-{
-    switch(fourcc)
-    {
-    case 0x00000000:
-        return true;
-    default:
-        return false;
-    }
+	return false;
 }
 
 bool Backend::supportsSubtitles() const
 {
-    return false;
+	return false;
 }
 
-QStringList Backend::availableMimeTypes() const
+const KMimeType::List& Backend::knownMimeTypes() const
 {
-    if (m_supportedMimeTypes.isEmpty())
-        const_cast<Backend *>(this)->m_supportedMimeTypes
-            << QLatin1String("audio/x-vorbis+ogg")
-            //<< QLatin1String("audio/mpeg")
-            << QLatin1String("audio/x-wav")
-            << QLatin1String("video/x-ogm+ogg");
-    return m_supportedMimeTypes;
+	if( m_supportedMimeTypes.isEmpty() )
+		const_cast<Backend*>( this )->m_supportedMimeTypes
+			<< KMimeType::mimeType( "audio/vorbis" )
+			<< KMimeType::mimeType( "audio/x-mp3" )
+			<< KMimeType::mimeType( "audio/x-wav" )
+			<< KMimeType::mimeType( "video/x-ogm" );
+	return m_supportedMimeTypes;
 }
 
-QList<int> Backend::objectDescriptionIndexes(ObjectDescriptionType type) const
+int Backend::captureSourceCount() const
 {
-    QList<int> list;
-    switch(type)
-    {
-    case Phonon::AudioOutputDeviceType:
-        list << 10000 << 10001
-            << 10002 << 10003
-            << 10004 << 10005
-            << 10006 << 10007
-            << 10008 << 10009;
-        break;
-    case Phonon::AudioCaptureDeviceType:
-        list << 20000 << 20001;
-        break;
-    /*
-    case Phonon::VideoOutputDeviceType:
-        list << 40000 << 40001 << 40002 << 40003;
-        break;
-    case Phonon::VideoCaptureDeviceType:
-        list << 30000 << 30001;
-        break;
-    case Phonon::VisualizationType:
-    case Phonon::AudioCodecType:
-    case Phonon::VideoCodecType:
-    case Phonon::ContainerFormatType:
-        break;*/
-    case Phonon::EffectType:
-        list << 0x7F000001;
-        break;
-    }
-    return list;
+	return 2;
 }
 
-QHash<QByteArray, QVariant> Backend::objectDescriptionProperties(ObjectDescriptionType type, int index) const
+QString Backend::captureSourceNameForIndex( int index ) const
 {
-    QHash<QByteArray, QVariant> ret;
-    switch (type) {
-    case Phonon::AudioOutputDeviceType:
-        switch (index) {
-        case 10000:
-            ret.insert("name", QLatin1String("internal Soundcard"));
-            ret.insert("icon", QLatin1String("audio-card"));
-            break;
-        case 10001:
-            ret.insert("name", QLatin1String("USB Soundcard"));
-            ret.insert("icon", QLatin1String("audio-card-usb"));
-            break;
-        case 10002:
-            ret.insert("name", QLatin1String("Firewire Soundcard"));
-            ret.insert("icon", QLatin1String("audio-card-firewire"));
-            break;
-        case 10003:
-            ret.insert("name", QLatin1String("Headset"));
-            ret.insert("icon", QLatin1String("audio-headset"));
-            break;
-        case 10004:
-            ret.insert("name", QLatin1String("USB Headset"));
-            ret.insert("icon", QLatin1String("audio-headset-usb"));
-            break;
-        case 10005:
-            ret.insert("name", QLatin1String("Bluetooth Headset"));
-            ret.insert("icon", QLatin1String("audio-headset-bluetooth"));
-            break;
-        case 10006:
-            ret.insert("name", QLatin1String("Jack Audio Connection Kit"));
-            ret.insert("icon", QLatin1String("jackd"));
-            break;
-        case 10007:
-            ret.insert("name", QLatin1String("aRts"));
-            ret.insert("icon", QLatin1String("arts"));
-            break;
-        case 10008:
-            ret.insert("name", QLatin1String("ESD"));
-            ret.insert("icon", QLatin1String("esd"));
-            break;
-        case 10009:
-            ret.insert("name", QLatin1String("Pulseaudio"));
-            ret.insert("icon", QLatin1String("pulseaudio"));
-            break;
-        }
-        break;
-    case Phonon::AudioCaptureDeviceType:
-        switch (index) {
-        case 20000:
-            ret.insert("name", QLatin1String("Soundcard"));
-            ret.insert("description", QLatin1String("first description"));
-            break;
-        case 20001:
-            ret.insert("name", QLatin1String("DV"));
-            ret.insert("description", QLatin1String("second description"));
-            break;
-        }
-        break;
-    /*
-    case Phonon::VideoOutputDeviceType:
-        switch (index) {
-        case 40000:
-            ret.insert("name", QLatin1String("XVideo"));
-            break;
-        case 40001:
-            ret.insert("name", QLatin1String("XShm"));
-            break;
-        case 40002:
-            ret.insert("name", QLatin1String("X11"));
-            break;
-        case 40003:
-            ret.insert("name", QLatin1String("SDL"));
-            break;
-        }
-        break;
-    case Phonon::VideoCaptureDeviceType:
-        switch (index) {
-        case 30000:
-            ret.insert("name", QLatin1String("USB Webcam"));
-            ret.insert("description", QLatin1String("first description"));
-            break;
-        case 30001:
-            ret.insert("name", QLatin1String("DV"));
-            ret.insert("description", QLatin1String("second description"));
-            break;
-        }
-        break;
-    case Phonon::VisualizationType:
-        break;
-    case Phonon::AudioCodecType:
-        break;
-    case Phonon::VideoCodecType:
-        break;
-    case Phonon::ContainerFormatType:
-        break;*/
-    case Phonon::EffectType:
-        switch (index) {
-        case 0x7F000001:
-            ret.insert("name", QLatin1String("Delay"));
-            ret.insert("description", QLatin1String("Simple delay effect with time, feedback and level controls."));
-            break;
-        }
-        break;
-    }
-    return ret;
+	switch( index )
+	{
+		case 1:
+			return "fake1";
+		case 2:
+			return "fake2";
+		default:
+			return QString();
+	}
 }
 
-bool Backend::startConnectionChange(QSet<QObject *> objects)
+QString Backend::captureSourceDescriptionForIndex( int index ) const
 {
-    bool success = true;
-    foreach (QObject *o, objects) {
-        MediaObject *mo = qobject_cast<MediaObject *>(o);
-        if (mo) {
-            success &= mo->wait();
-        }
-    }
-    return success;
+	switch( index )
+	{
+		case 1:
+			return "first description";
+		case 2:
+			return "second description";
+		default:
+			return QString();
+	}
 }
 
-bool Backend::connectNodes(QObject *source, QObject *sink)
+const QStringList& Backend::availableAudioEffects() const
 {
-    MediaObject *mo = qobject_cast<MediaObject *>(source);
-    AudioNode *an = qobject_cast<AudioNode *>(sink);
-    if (an && !an->hasInput()) {
-        if (mo)
-            mo->addAudioNode(an);
-        else if (Effect *ae = qobject_cast<Effect *>(source))
-            ae->setAudioSink(an);
-        else
-            return false;
-        return true;
-    }
-    VideoNode *vn = qobject_cast<VideoNode *>(sink);
-    if (vn && !vn->hasInput()) {
-        if (mo)
-            mo->addVideoNode(vn);
-        else
-            return false;
-        return true;
-    }
-    return false;
+	if( m_audioEffects.isEmpty() )
+		const_cast<Backend*>( this )->m_audioEffects << "audioEffect1" << "audioEffect2";
+	return m_audioEffects;
 }
 
-bool Backend::disconnectNodes(QObject *source, QObject *sink)
+const QStringList& Backend::availableVideoEffects() const
 {
-    MediaObject *mo = qobject_cast<MediaObject *>(source);
-
-    AudioNode *an = qobject_cast<AudioNode *>(sink);
-    if (an) {
-        if (mo)
-            return mo->removeAudioNode(an);
-        else if (Effect *ae = qobject_cast<Effect *>(source))
-            return ae->setAudioSink(0);
-        else
-            return false;
-    }
-    VideoNode *vn = qobject_cast<VideoNode *>(sink);
-    if (vn && mo) {
-        return mo->removeVideoNode(vn);
-    }
-    return false;
+	if( m_videoEffects.isEmpty() )
+		const_cast<Backend*>( this )->m_videoEffects << "videoEffect1" << "videoEffect2";
+	return m_videoEffects;
 }
 
-bool Backend::endConnectionChange(QSet<QObject *> objects)
+const char* Backend::uiLibrary() const
 {
-    bool success = true;
-    foreach (QObject *o, objects) {
-        MediaObject *mo = qobject_cast<MediaObject *>(o);
-        if (mo) {
-            success &= mo->done();
-        }
-    }
-    return success;
-}
-
-void Backend::freeSoundcardDevices()
-{
-    foreach (QPointer<AudioOutput> ao, m_audioOutputs)
-        if (ao)
-            ao->closeDevice();
+	return "kdem2m_fakeui";
 }
 
 }}
 
-#include "moc_backend.cpp"
+#include "backend.moc"
+
+// vim: sw=4 ts=4 noet

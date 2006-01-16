@@ -16,51 +16,39 @@
     Boston, MA 02110-1301, USA.
 
 */
-#ifndef Phonon_FAKE_AUDIOOUTPUT_H
-#define Phonon_FAKE_AUDIOOUTPUT_H
+#ifndef Kdem2m_FAKE_AUDIOOUTPUT_H
+#define Kdem2m_FAKE_AUDIOOUTPUT_H
 
 #include "abstractaudiooutput.h"
-#include <QtCore/QFile>
-#include <phonon/audiooutputinterface.h>
+#include "../../ifaces/audiooutput.h"
 
-namespace Phonon
+namespace Kdem2m
 {
 namespace Fake
 {
-    class AudioOutput : public AbstractAudioOutput, public AudioOutputInterface
-    {
-        Q_OBJECT
-        Q_INTERFACES(Phonon::AudioOutputInterface)
-        public:
-            AudioOutput(QObject *parent);
-            ~AudioOutput();
+	class AudioOutput : virtual public AbstractAudioOutput, virtual public Ifaces::AudioOutput
+	{
+		Q_OBJECT
+		public:
+			AudioOutput( QObject* parent );
+			virtual ~AudioOutput();
 
-            // Attributes Getters:
-            qreal volume() const;
-            int outputDevice() const;
+			// Attributes Getters:
+			virtual QString name() const;
+			virtual float volume() const;
 
-        public Q_SLOTS:
-            // Attributes Setters:
-            void setVolume(qreal newVolume);
-            bool setOutputDevice(int newDevice);
-            bool setOutputDevice(const Phonon::AudioOutputDevice &);
+			// Attributes Setters:
+			virtual QString setName( const QString& newName );
+			virtual float setVolume( float newVolume );
 
-        public:
-            virtual void processBuffer(QVector<float> &buffer);
+		signals:
+			void volumeChanged( float newVolume );
 
-            void openDevice();
-            void closeDevice();
+		private:
+			float m_volume;
+			QString m_name;
+	};
+}} //namespace Kdem2m::Fake
 
-        Q_SIGNALS:
-            void volumeChanged(qreal newVolume);
-            void audioDeviceFailed();
-
-        private:
-            qreal m_volume;
-            int m_device;
-            QFile m_dsp;
-    };
-}} //namespace Phonon::Fake
-
-// vim: sw=4 ts=4 tw=80
-#endif // Phonon_FAKE_AUDIOOUTPUT_H
+// vim: sw=4 ts=4 tw=80 noet
+#endif // Kdem2m_FAKE_AUDIOOUTPUT_H

@@ -18,15 +18,14 @@
 */
 
 #include "audiodataoutput.h"
-#include <QtCore/QVector>
-#include <QtCore/QMap>
+#include <QVector>
 
-namespace Phonon
+namespace Kdem2m
 {
 namespace Fake
 {
-AudioDataOutput::AudioDataOutput(QObject *parent)
-    : AbstractAudioOutput(parent)
+AudioDataOutput::AudioDataOutput( QObject* parent )
+	: AbstractAudioOutput( parent )
 {
 }
 
@@ -34,80 +33,22 @@ AudioDataOutput::~AudioDataOutput()
 {
 }
 
-Phonon::Experimental::AudioDataOutput::Format AudioDataOutput::format() const
+void AudioDataOutput::readBuffer( QVector<float>& buffer )
 {
-    return m_format;
+	buffer.clear();
 }
 
-int AudioDataOutput::dataSize() const
+void AudioDataOutput::readBuffer( QVector<int>& buffer )
 {
-    return m_dataSize;
+	buffer.clear();
 }
 
-int AudioDataOutput::sampleRate() const
+int AudioDataOutput::availableSamples() const
 {
-    return 44100;
+	return 0;
 }
 
-void AudioDataOutput::setFormat(Phonon::Experimental::AudioDataOutput::Format format)
-{
-    m_format = format;
-}
+}} //namespace Kdem2m::Fake
 
-void AudioDataOutput::setDataSize(int size)
-{
-    m_dataSize = size;
-}
-
-typedef QMap<Phonon::Experimental::AudioDataOutput::Channel, QVector<float> > FloatMap;
-typedef QMap<Phonon::Experimental::AudioDataOutput::Channel, QVector<qint16> > IntMap;
-
-inline void AudioDataOutput::convertAndEmit(const QVector<float> &buffer)
-{
-    if (m_format == Phonon::Experimental::AudioDataOutput::FloatFormat)
-    {
-        FloatMap map;
-        map.insert(Phonon::Experimental::AudioDataOutput::LeftChannel, buffer);
-        map.insert(Phonon::Experimental::AudioDataOutput::RightChannel, buffer);
-        emit dataReady(map);
-    }
-    else
-    {
-        IntMap map;
-        QVector<qint16> intBuffer(m_dataSize);
-        for (int i = 0; i < m_dataSize; ++i)
-            intBuffer[i] = static_cast<qint16>(buffer[i] * static_cast<float>(0x7FFF));
-        map.insert(Phonon::Experimental::AudioDataOutput::LeftChannel, intBuffer);
-        map.insert(Phonon::Experimental::AudioDataOutput::RightChannel, intBuffer);
-        emit dataReady(map);
-    }
-}
-
-void AudioDataOutput::processBuffer(QVector<float> &_buffer)
-{
-    const QVector<float> &buffer(_buffer);
-    // TODO emit endOfMedia
-    m_pendingData += buffer;
-    if (m_pendingData.size() < m_dataSize)
-        return;
-
-    if (m_pendingData.size() == m_dataSize)
-        convertAndEmit(buffer);
-    else
-    {
-        QVector<float> floatBuffer(m_dataSize);
-        while (m_pendingData.size() >= m_dataSize)
-        {
-            memcpy(floatBuffer.data(), m_pendingData.constData(), m_dataSize * sizeof(float));
-            convertAndEmit(floatBuffer);
-            int newSize = m_pendingData.size() - m_dataSize;
-            memmove(m_pendingData.data(), m_pendingData.constData() + m_dataSize, newSize * sizeof(float));
-            m_pendingData.resize(newSize);
-        }
-    }
-}
-
-}} //namespace Phonon::Fake
-
-#include "moc_audiodataoutput.cpp"
-// vim: sw=4 ts=4
+#include "audiodataoutput.moc"
+// vim: sw=4 ts=4 noet

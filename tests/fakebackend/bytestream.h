@@ -16,67 +16,43 @@
     Boston, MA 02110-1301, USA.
 
 */
-#ifndef Phonon_FAKE_BYTESTREAM_H
-#define Phonon_FAKE_BYTESTREAM_H
+#ifndef Kdem2m_FAKE_BYTESTREAM_H
+#define Kdem2m_FAKE_BYTESTREAM_H
 
-#include "mediaproducer.h"
-#include <phonon/bytestreaminterface.h>
-class QTimer;
+#include "abstractmediaproducer.h"
+#include "../../ifaces/bytestream.h"
 
-namespace Phonon
+namespace Kdem2m
 {
 namespace Fake
 {
-    class ByteStream : public MediaProducer, public Phonon::ByteStreamInterface
-    {
-        Q_OBJECT
-        Q_INTERFACES(Phonon::ByteStreamInterface)
-        public:
-            ByteStream(QObject *parent);
-            ~ByteStream();
+	class ByteStream : virtual public AbstractMediaProducer, virtual public Ifaces::ByteStream
+	{
+		Q_OBJECT
+		public:
+			ByteStream( QObject* parent );
+			virtual ~ByteStream();
 
-            qint64 currentTime() const;
-            qint64 totalTime() const;
-            Q_INVOKABLE qint32 aboutToFinishTime() const;
-            Q_INVOKABLE qint64 streamSize() const;
-            Q_INVOKABLE bool streamSeekable() const;
-            bool isSeekable() const;
+			//virtual void writeBuffer( const QByteArray& buffer );
 
-            Q_INVOKABLE void setStreamSeekable(bool);
-            void writeData(const QByteArray &data);
-            Q_INVOKABLE void setStreamSize(qint64);
-            void endOfData();
-            Q_INVOKABLE void setAboutToFinishTime(qint32);
+			/**
+			 * Called when there will be no more calls to writeBuffer
+			 */
+			//virtual void endOfData();
 
-            void play();
-            void pause();
-            void seek(qint64 time);
+			/**
+			 * Sets the total number of bytes that will be streamed via
+			 * writeBuffer
+			 */
+			//virtual void toBeWritten();
 
-        public Q_SLOTS:
-            virtual void stop();
+		//signals:
+			//void bufferUnderrun();
 
-        Q_SIGNALS:
-            void finished();
-            void aboutToFinish(qint32);
-            void length(qint64);
-            void needData();
-            void enoughData();
-            void seekStream(qint64);
+		private:
+			//QTimer* m_decBufferTimer;
+	};
+}} //namespace Kdem2m::Fake
 
-        private Q_SLOTS:
-            void consumeStream();
-
-        private:
-            qint64 m_aboutToFinishBytes;
-            qint64 m_streamSize;
-            qint64 m_bufferSize;
-            qint64 m_streamPosition;
-            bool m_streamSeekable;
-            bool m_eof;
-            bool m_aboutToFinishEmitted;
-            QTimer *m_streamConsumeTimer;
-    };
-}} //namespace Phonon::Fake
-
-// vim: sw=4 ts=4 tw=80
-#endif // Phonon_FAKE_BYTESTREAM_H
+// vim: sw=4 ts=4 tw=80 noet
+#endif // Kdem2m_FAKE_BYTESTREAM_H
