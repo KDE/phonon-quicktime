@@ -1,5 +1,5 @@
 /*  This file is part of the KDE project
-    Copyright (C) 2006 Matthias Kretz <kretz@kde.org>
+    Copyright (C) 2006 Tim Beaulen <tbscope@gmail.com>
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -23,7 +23,7 @@
 
 namespace Phonon
 {
-namespace Fake
+namespace Xine
 {
 AudioEffect::AudioEffect( int effectId, QObject* parent )
 	: QObject( parent )
@@ -68,7 +68,7 @@ void AudioEffect::processBuffer( QVector<float>& buffer )
 		m_effect->processBuffer( buffer );
 }
 
-}} //namespace Phonon::Fake
+}} //namespace Phonon::Xine
 
 #include "audioeffect.moc"
 // vim: sw=4 ts=4 noet

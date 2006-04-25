@@ -1,5 +1,5 @@
 /*  This file is part of the KDE project
-    Copyright (C) 2006 Matthias Kretz <kretz@kde.org>
+    Copyright (C) 2006 Tim Beaulen <tbscope@gmail.com>
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -28,7 +28,7 @@
 
 namespace Phonon
 {
-namespace Fake
+namespace Xine
 {
 ByteStream::ByteStream( QObject* parent )
 	: AbstractMediaProducer( parent )
@@ -217,7 +217,7 @@ void ByteStream::consumeStream()
 	}
 }
 
-}} //namespace Phonon::Fake
+}} //namespace Phonon::Xine
 
 #include "bytestream.moc"
 // vim: sw=4 ts=4 noet

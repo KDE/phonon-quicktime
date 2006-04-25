@@ -1,5 +1,5 @@
 /*  This file is part of the KDE project
-    Copyright (C) 2006 Matthias Kretz <kretz@kde.org>
+    Copyright (C) 2006 Tim Beaulen <tbscope@gmail.com>
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -16,16 +16,16 @@
     Boston, MA 02110-1301, USA.
 
 */
-#ifndef Phonon_FAKE_AUDIOPATH_H
-#define Phonon_FAKE_AUDIOPATH_H
+#ifndef Phonon_XINE_AUDIOPATH_H
+#define Phonon_XINE_AUDIOPATH_H
 
 #include <QObject>
-#include "../../ifaces/audiopath.h"
+#include <phonon/ifaces/audiopath.h>
 #include <QList>
 
 namespace Phonon
 {
-namespace Fake
+namespace Xine
 {
 	class AudioEffect;
 	class AbstractAudioOutput;
@@ -57,7 +57,7 @@ namespace Fake
 			QList<AudioEffect*> m_effects;
 			QList<AbstractAudioOutput*> m_outputs;
 	};
-}} //namespace Phonon::Fake
+}} //namespace Phonon::Xine
 
 // vim: sw=4 ts=4 tw=80 noet
-#endif // Phonon_FAKE_AUDIOPATH_H
+#endif // Phonon_XINE_AUDIOPATH_H

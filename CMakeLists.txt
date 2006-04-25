@@ -1,10 +1,12 @@
 kde4_header()
 
-add_subdirectory( ui ) 
+include_directories( ${KDE4_INCLUDE_DIR} ${QT_INCLUDES} )
+
+# add_subdirectory( ui ) 
 
 ########### next target ###############
 
-set(phonon_fake_PART_SRCS 
+set(phonon_xine_PART_SRCS 
    abstractmediaproducer.cpp 
    abstractaudiooutput.cpp 
    audiodataoutput.cpp 
@@ -20,19 +22,19 @@ set(phonon_fake_PART_SRCS
    backend.cpp 
    volumefadereffect.cpp )
 
-kde4_automoc(${phonon_fake_PART_SRCS})
+kde4_automoc(${phonon_xine_PART_SRCS})
 
-kde4_add_plugin(phonon_fake ${phonon_fake_PART_SRCS})
+kde4_add_plugin(phonon_fake ${phonon_xine_PART_SRCS})
 
-kde4_install_libtool_file( ${PLUGIN_INSTALL_DIR} phonon_fake )
+kde4_install_libtool_file( ${PLUGIN_INSTALL_DIR} phonon_xine )
 
-target_link_libraries(phonon_fake  ${KDE4_KDECORE_LIBS} phononcore kio )
+target_link_libraries(phonon_xine ${KDE4_KDECORE_LIBS} phononcore xine )
 
-install_targets(${PLUGIN_INSTALL_DIR} phonon_fake )
+install_targets(${PLUGIN_INSTALL_DIR} phonon_xine )
 
 
 ########### install files ###############
 
-install_files( ${SERVICES_INSTALL_DIR}/phononbackends FILES  fake.desktop )
+install_files( ${SERVICES_INSTALL_DIR}/phononbackends FILES xine.desktop )
 
 kde4_footer()
