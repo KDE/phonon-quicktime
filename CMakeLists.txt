@@ -24,7 +24,7 @@ set(phonon_xine_PART_SRCS
 
 kde4_automoc(${phonon_xine_PART_SRCS})
 
-kde4_add_plugin(phonon_fake ${phonon_xine_PART_SRCS})
+kde4_add_plugin(phonon_xine ${phonon_xine_PART_SRCS})
 
 kde4_install_libtool_file( ${PLUGIN_INSTALL_DIR} phonon_xine )
 
