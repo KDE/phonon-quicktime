@@ -32,6 +32,8 @@
 #include "volumefadereffect.h"
 #include <QSet>
 
+#include <kdebug.h>
+
 typedef KGenericFactory<Phonon::Xine::Backend, Phonon::Ifaces::Backend> XineBackendFactory;
 K_EXPORT_COMPONENT_FACTORY( phonon_xine, XineBackendFactory( "xinebackend" ) )
 
@@ -43,6 +45,14 @@ namespace Xine
 Backend::Backend( QObject* parent, const char*, const QStringList& )
 	: Ifaces::Backend( parent )
 {
+	char configfile[2048];
+
+	m_xine = xine_new();
+	sprintf(configfile, "%s%s", xine_get_homedir(), "/.xine/config");
+	xine_config_load(m_xine, configfile);
+	xine_init(m_xine);
+
+	kDebug() << "Using Xine version " << xine_get_version_string() << endl;
 }
 
 Backend::~Backend()
@@ -119,11 +129,15 @@ bool Backend::supportsSubtitles() const
 const QStringList& Backend::knownMimeTypes() const
 {
 	if( m_supportedMimeTypes.isEmpty() )
-		const_cast<Backend*>( this )->m_supportedMimeTypes
-			<< QLatin1String( "audio/vorbis" )
-			//<< QLatin1String( "audio/x-mp3" )
-			<< QLatin1String( "audio/x-wav" )
-			<< QLatin1String( "video/x-ogm" );
+	{
+		QString mimeTypes = xine_get_mime_types(m_xine);
+		QStringList lstMimeTypes = mimeTypes.split(";", QString::SkipEmptyParts);
+		foreach(QString mimeType, lstMimeTypes)
+		{
+			const_cast<Backend*>( this )->m_supportedMimeTypes << mimeType.split(":")[0].toLatin1();
+		}
+	}
+
 	return m_supportedMimeTypes;
 }
 
