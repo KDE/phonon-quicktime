@@ -25,6 +25,9 @@
 #include <QPointer>
 #include <QStringList>
 
+#include <xine.h>
+#include <xine/xineutils.h>
+
 class KUrl;
 
 namespace Phonon
@@ -104,6 +107,7 @@ namespace Xine
 		private:
 			QStringList m_supportedMimeTypes;
 			QList<QPointer<AudioOutput> > m_audioOutputs;
+			xine_t *m_xine;
 	};
 }} // namespace Phonon::Ifaces
 
