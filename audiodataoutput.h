@@ -1,5 +1,5 @@
 /*  This file is part of the KDE project
-    Copyright (C) 2006 Matthias Kretz <kretz@kde.org>
+    Copyright (C) 2006 Tim Beaulen <tbscope@gmail.com>
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -16,20 +16,17 @@
     Boston, MA 02110-1301, USA.
 
 */
-#ifndef Phonon_FAKE_AUDIODATAOUTPUT_H
-#define Phonon_FAKE_AUDIODATAOUTPUT_H
+#ifndef Phonon_XINE_AUDIODATAOUTPUT_H
+#define Phonon_XINE_AUDIODATAOUTPUT_H
 
 #include "abstractaudiooutput.h"
-#include "../../ifaces/audiodataoutput.h"
+#include <phonon/ifaces/audiodataoutput.h>
 #include <QVector>
 
 namespace Phonon
 {
-namespace Fake
+namespace Xine
 {
-	/**
-	 * \author Matthias Kretz <kretz@kde.org>
-	 */
 	class AudioDataOutput : public AbstractAudioOutput, virtual public Ifaces::AudioDataOutput
 	{
 		Q_OBJECT
@@ -58,7 +55,7 @@ namespace Fake
 			int m_dataSize;
 			QVector<float> m_pendingData;
 	};
-}} //namespace Phonon::Fake
+}} //namespace Phonon::Xine
 
 // vim: sw=4 ts=4 tw=80 noet
-#endif // Phonon_FAKE_AUDIODATAOUTPUT_H
+#endif // Phonon_XINE_AUDIODATAOUTPUT_H

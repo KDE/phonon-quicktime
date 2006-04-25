@@ -1,5 +1,5 @@
 /*  This file is part of the KDE project
-    Copyright (C) 2006 Matthias Kretz <kretz@kde.org>
+    Copyright (C) 2006 Tim Beaulen <tbscope@gmail.com>
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -16,16 +16,16 @@
     Boston, MA 02110-1301, USA.
 
 */
-#ifndef Phonon_FAKE_VIDEOPATH_H
-#define Phonon_FAKE_VIDEOPATH_H
+#ifndef Phonon_XINE_VIDEOPATH_H
+#define Phonon_XINE_VIDEOPATH_H
 
 #include <QObject>
-#include <../../ifaces/videopath.h>
+#include <phonon/ifaces/videopath.h>
 #include <QList>
 
 namespace Phonon
 {
-namespace Fake
+namespace Xine
 {
 	class VideoEffect;
 	class AbstractVideoOutput;
@@ -51,7 +51,7 @@ namespace Fake
 			QList<VideoEffect*> m_effects;
 			QList<Ifaces::AbstractVideoOutput*> m_outputs;
 	};
-}} //namespace Phonon::Fake
+}} //namespace Phonon::Xine
 
 // vim: sw=4 ts=4 tw=80 noet
-#endif // Phonon_FAKE_VIDEOPATH_H
+#endif // Phonon_XINE_VIDEOPATH_H

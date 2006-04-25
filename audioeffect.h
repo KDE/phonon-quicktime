@@ -1,5 +1,5 @@
 /*  This file is part of the KDE project
-    Copyright (C) 2006 Matthias Kretz <kretz@kde.org>
+    Copyright (C) 2006 Tim Beaulen <tbscope@gmail.com>
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -16,21 +16,18 @@
     Boston, MA 02110-1301, USA.
 
 */
-#ifndef Phonon_FAKE_AUDIOEFFECT_H
-#define Phonon_FAKE_AUDIOEFFECT_H
+#ifndef Phonon_XINE_AUDIOEFFECT_H
+#define Phonon_XINE_AUDIOEFFECT_H
 
 #include <QObject>
-#include "../../ifaces/audioeffect.h"
+#include <phonon/ifaces/audioeffect.h>
 
 namespace Phonon
 {
-namespace Fake
+namespace Xine
 {
 	class EffectInterface;
 
-	/**
-	 * \author Matthias Kretz <kretz@kde.org>
-	 */
 	class AudioEffect : public QObject, virtual public Ifaces::AudioEffect
 	{
 		Q_OBJECT
@@ -50,7 +47,7 @@ namespace Fake
 		private:
 			EffectInterface* m_effect;
 	};
-}} //namespace Phonon::Fake
+}} //namespace Phonon::Xine
 
 // vim: sw=4 ts=4 tw=80 noet
-#endif // Phonon_FAKE_AUDIOEFFECT_H
+#endif // Phonon_XINE_AUDIOEFFECT_H

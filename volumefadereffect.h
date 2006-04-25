@@ -1,5 +1,5 @@
 /*  This file is part of the KDE project
-    Copyright (C) 2006 Matthias Kretz <kretz@kde.org>
+    Copyright (C) 2006 Tim Beaulen <tbscope@gmail.com>
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -16,20 +16,17 @@
     Boston, MA 02110-1301, USA.
 
 */
-#ifndef Phonon_FAKE_VOLUMEFADEREFFECT_H
-#define Phonon_FAKE_VOLUMEFADEREFFECT_H
+#ifndef Phonon_XINE_VOLUMEFADEREFFECT_H
+#define Phonon_XINE_VOLUMEFADEREFFECT_H
 
-#include "../../ifaces/volumefadereffect.h"
+#include <phonon/ifaces/volumefadereffect.h>
 #include <QTime>
 #include "audioeffect.h"
 
 namespace Phonon
 {
-namespace Fake
+namespace Xine
 {
-	/**
-	 * \author Matthias Kretz <kretz@kde.org>
-	 */
 	class VolumeFaderEffect : public AudioEffect, virtual public Ifaces::VolumeFaderEffect
 	{
 		Q_OBJECT
@@ -47,7 +44,7 @@ namespace Fake
 			int m_fadeTime;
 			QTime m_fadeStart;
 	};
-}} //namespace Phonon::Fake
+}} //namespace Phonon::Xine
 
 // vim: sw=4 ts=4 tw=80 noet
-#endif // Phonon_FAKE_VOLUMEFADEREFFECT_H
+#endif // Phonon_XINE_VOLUMEFADEREFFECT_H

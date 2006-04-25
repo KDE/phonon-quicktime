@@ -1,5 +1,5 @@
 /*  This file is part of the KDE project
-    Copyright (C) 2006 Matthias Kretz <kretz@kde.org>
+    Copyright (C) 2006 Tim Beaulen <tbscope@gmail.com>
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -16,16 +16,16 @@
     Boston, MA 02110-1301, USA.
 
 */
-#ifndef Phonon_FAKE_AUDIOOUTPUT_H
-#define Phonon_FAKE_AUDIOOUTPUT_H
+#ifndef Phonon_XINE_AUDIOOUTPUT_H
+#define Phonon_XINE_AUDIOOUTPUT_H
 
 #include "abstractaudiooutput.h"
-#include "../../ifaces/audiooutput.h"
+#include <phonon/ifaces/audiooutput.h>
 #include <QFile>
 
 namespace Phonon
 {
-namespace Fake
+namespace Xine
 {
 	class AudioOutput : public AbstractAudioOutput, virtual public Ifaces::AudioOutput
 	{
@@ -58,7 +58,7 @@ namespace Fake
 			int m_device;
 			QFile m_dsp;
 	};
-}} //namespace Phonon::Fake
+}} //namespace Phonon::Xine
 
 // vim: sw=4 ts=4 tw=80 noet
-#endif // Phonon_FAKE_AUDIOOUTPUT_H
+#endif // Phonon_XINE_AUDIOOUTPUT_H

@@ -1,5 +1,5 @@
 /*  This file is part of the KDE project
-    Copyright (C) 2006 Matthias Kretz <kretz@kde.org>
+    Copyright (C) 2006 Tim Beaulen <tbscope@gmail.com>
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -32,12 +32,12 @@
 #include "volumefadereffect.h"
 #include <QSet>
 
-typedef KGenericFactory<Phonon::Fake::Backend, Phonon::Ifaces::Backend> FakeBackendFactory;
-K_EXPORT_COMPONENT_FACTORY( phonon_fake, FakeBackendFactory( "fakebackend" ) )
+typedef KGenericFactory<Phonon::Xine::Backend, Phonon::Ifaces::Backend> XineBackendFactory;
+K_EXPORT_COMPONENT_FACTORY( phonon_xine, XineBackendFactory( "xinebackend" ) )
 
 namespace Phonon
 {
-namespace Fake
+namespace Xine
 {
 
 Backend::Backend( QObject* parent, const char*, const QStringList& )
@@ -108,12 +108,12 @@ bool Backend::supportsVideo() const
 
 bool Backend::supportsOSD() const
 {
-	return false;
+	return true;
 }
 
 bool Backend::supportsSubtitles() const
 {
-	return false;
+	return true;
 }
 
 const QStringList& Backend::knownMimeTypes() const
@@ -296,7 +296,7 @@ QString Backend::videoEffectDescription( int index ) const
 
 const char* Backend::uiLibrary() const
 {
-	return "phonon_fakeui";
+	return "phonon_xineui";
 }
 
 void Backend::freeSoundcardDevices()

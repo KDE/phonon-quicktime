@@ -21,7 +21,7 @@
 
 namespace Phonon
 {
-namespace Fake
+namespace Xine
 {
 AbstractAudioOutput::AbstractAudioOutput( QObject* parent )
 	: QObject( parent )
@@ -32,7 +32,7 @@ AbstractAudioOutput::~AbstractAudioOutput()
 {
 }
 
-}} //namespace Phonon::Fake
+}} //namespace Phonon::Xine
 
 #include "abstractaudiooutput.moc"
 // vim: sw=4 ts=4 noet

@@ -1,5 +1,5 @@
 /*  This file is part of the KDE project
-    Copyright (C) 2004-2006 Matthias Kretz <kretz@kde.org>
+    Copyright (C) 2006 Tim Beaulen <tbscope@gmail.com>
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -17,10 +17,10 @@
 
 */
 
-#ifndef Phonon_FAKE_BACKEND_H
-#define Phonon_FAKE_BACKEND_H
+#ifndef Phonon_XINE_BACKEND_H
+#define Phonon_XINE_BACKEND_H
 
-#include "../../ifaces/backend.h"
+#include <phonon/ifaces/backend.h>
 #include <QList>
 #include <QPointer>
 #include <QStringList>
@@ -44,11 +44,11 @@ namespace Ifaces
 	class VideoPath;
 	class VideoEffect;
 }
-namespace Fake
+namespace Xine
 {
 	class AudioOutput;
 
-	class PHONON_FAKE_EXPORT Backend : public Ifaces::Backend
+	class Backend : public Ifaces::Backend
 	{
 		Q_OBJECT
 		public:
@@ -108,4 +108,4 @@ namespace Fake
 }} // namespace Phonon::Ifaces
 
 // vim: sw=4 ts=4 noet tw=80
-#endif // Phonon_FAKE_BACKEND_H
+#endif // Phonon_XINE_BACKEND_H

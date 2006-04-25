@@ -1,5 +1,5 @@
 /*  This file is part of the KDE project
-    Copyright (C) 2006 Matthias Kretz <kretz@kde.org>
+    Copyright (C) 2006 Tim Beaulen <tbscope@gmail.com>
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -17,18 +17,15 @@
 
 */
 
-#ifndef PHONON_FAKE_EFFECTINTERFACE_H
-#define PHONON_FAKE_EFFECTINTERFACE_H
+#ifndef PHONON_XINE_EFFECTINTERFACE_H
+#define PHONON_XINE_EFFECTINTERFACE_H
 
 #include <QQueue>
 
 namespace Phonon
 {
-namespace Fake
+namespace Xine
 {
-	/**
-	 * \author Matthias Kretz <kretz@kde.org>
-	 */
 	class EffectInterface
 	{
 		public:
@@ -37,7 +34,7 @@ namespace Fake
 			virtual void setValue( int parameterId, float newValue ) = 0;
 			virtual void processBuffer( QVector<float>& buffer ) = 0;
 	};
-}} //namespace Phonon::Fake
+}} //namespace Phonon::Xine
 
 // vim: sw=4 ts=4 tw=80 noet
-#endif // PHONON_FAKE_EFFECTINTERFACE_H
+#endif // PHONON_XINE_EFFECTINTERFACE_H
