@@ -1,5 +1,5 @@
 /*  This file is part of the KDE project
-    Copyright (C) 2006 Matthias Kretz <kretz@kde.org>
+    Copyright (C) 2004-2006 Matthias Kretz <kretz@kde.org>
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -17,31 +17,33 @@
 
 */
 
-#include "videoeffect.h"
+#ifndef Phonon_FAKE_UI_BACKEND_H
+#define Phonon_FAKE_UI_BACKEND_H
+
+#include <QObject>
+#include <kdelibs_export.h>
+#include <phonon/ui/ifaces/backend.h>
 
 namespace Phonon
 {
+namespace Ui
+{
+namespace Ifaces
+{
+	class VideoWidget;
+}
 namespace Fake
 {
-VideoEffect::VideoEffect( int effectId, QObject* parent )
-	: QObject( parent )
-{
-}
+	class PHONON_FAKEUI_EXPORT Backend : public Ui::Ifaces::Backend
+	{
+		Q_OBJECT
+		public:
+			Backend( QObject* parent, const char*, const QStringList& args );
+			virtual ~Backend();
 
-VideoEffect::~VideoEffect()
-{
-}
+			virtual Ifaces::VideoWidget*  createVideoWidget( QWidget* parent );
+	};
+}}} // namespace Phonon::Ui::Fake
 
-float VideoEffect::value( int parameterId ) const
-{
-	return 0.0f;
-}
-
-void VideoEffect::setValue( int parameterId, float newValue )
-{
-}
-
-}} //namespace Phonon::Fake
-
-#include "videoeffect.moc"
-// vim: sw=4 ts=4 noet
+// vim: sw=4 ts=4 noet tw=80
+#endif // Phonon_FAKE_UI_BACKEND_H

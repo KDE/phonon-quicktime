@@ -16,49 +16,28 @@
     Boston, MA 02110-1301, USA.
 
 */
-#ifndef Phonon_FAKE_AUDIOOUTPUT_H
-#define Phonon_FAKE_AUDIOOUTPUT_H
 
-#include "abstractaudiooutput.h"
-#include "../../ifaces/audiooutput.h"
-#include <QFile>
+#ifndef PHONON_FAKE_EFFECTINTERFACE_H
+#define PHONON_FAKE_EFFECTINTERFACE_H
+
+#include <QQueue>
 
 namespace Phonon
 {
 namespace Fake
 {
-	class AudioOutput : public AbstractAudioOutput, virtual public Ifaces::AudioOutput
+	/**
+	 * \author Matthias Kretz <kretz@kde.org>
+	 */
+	class EffectInterface
 	{
-		Q_OBJECT
 		public:
-			AudioOutput( QObject* parent );
-			virtual ~AudioOutput();
-
-			// Attributes Getters:
-			virtual QString name() const;
-			virtual float volume() const;
-			virtual int outputDevice() const;
-
-			// Attributes Setters:
-			virtual void setName( const QString& newName );
-			virtual void setVolume( float newVolume );
-			virtual void setOutputDevice( int newDevice );
-
-			virtual void processBuffer( const QVector<float>& buffer );
-
-			void openDevice();
-			void closeDevice();
-
-		Q_SIGNALS:
-			void volumeChanged( float newVolume );
-
-		private:
-			float m_volume;
-			QString m_name;
-			int m_device;
-			QFile m_dsp;
+			virtual ~EffectInterface() {}
+			virtual float value( int parameterId ) const = 0;
+			virtual void setValue( int parameterId, float newValue ) = 0;
+			virtual void processBuffer( QVector<float>& buffer ) = 0;
 	};
 }} //namespace Phonon::Fake
 
 // vim: sw=4 ts=4 tw=80 noet
-#endif // Phonon_FAKE_AUDIOOUTPUT_H
+#endif // PHONON_FAKE_EFFECTINTERFACE_H

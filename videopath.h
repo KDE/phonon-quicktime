@@ -16,49 +16,42 @@
     Boston, MA 02110-1301, USA.
 
 */
-#ifndef Phonon_FAKE_AUDIOOUTPUT_H
-#define Phonon_FAKE_AUDIOOUTPUT_H
+#ifndef Phonon_FAKE_VIDEOPATH_H
+#define Phonon_FAKE_VIDEOPATH_H
 
-#include "abstractaudiooutput.h"
-#include "../../ifaces/audiooutput.h"
-#include <QFile>
+#include <QObject>
+#include <../../ifaces/videopath.h>
+#include <QList>
 
 namespace Phonon
 {
 namespace Fake
 {
-	class AudioOutput : public AbstractAudioOutput, virtual public Ifaces::AudioOutput
+	class VideoEffect;
+	class AbstractVideoOutput;
+
+	class VideoPath : public QObject, virtual public Ifaces::VideoPath
 	{
 		Q_OBJECT
 		public:
-			AudioOutput( QObject* parent );
-			virtual ~AudioOutput();
+			VideoPath( QObject* parent );
+			virtual ~VideoPath();
 
-			// Attributes Getters:
-			virtual QString name() const;
-			virtual float volume() const;
-			virtual int outputDevice() const;
+			// Operations:
+			virtual bool addOutput( Ifaces::AbstractVideoOutput* videoOutput );
+			virtual bool removeOutput( Ifaces::AbstractVideoOutput* videoOutput );
+			virtual bool insertEffect( Ifaces::VideoEffect* newEffect, Ifaces::VideoEffect* insertBefore = 0 );
+			virtual bool removeEffect( Ifaces::VideoEffect* effect );
 
-			// Attributes Setters:
-			virtual void setName( const QString& newName );
-			virtual void setVolume( float newVolume );
-			virtual void setOutputDevice( int newDevice );
-
-			virtual void processBuffer( const QVector<float>& buffer );
-
-			void openDevice();
-			void closeDevice();
-
-		Q_SIGNALS:
-			void volumeChanged( float newVolume );
+		public:
+			virtual QObject* qobject() { return this; }
+			virtual const QObject* qobject() const { return this; }
 
 		private:
-			float m_volume;
-			QString m_name;
-			int m_device;
-			QFile m_dsp;
+			QList<VideoEffect*> m_effects;
+			QList<Ifaces::AbstractVideoOutput*> m_outputs;
 	};
 }} //namespace Phonon::Fake
 
 // vim: sw=4 ts=4 tw=80 noet
-#endif // Phonon_FAKE_AUDIOOUTPUT_H
+#endif // Phonon_FAKE_VIDEOPATH_H

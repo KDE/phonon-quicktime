@@ -17,31 +17,35 @@
 
 */
 
-#include "videoeffect.h"
+#include "backend.h"
+#include "videowidget.h"
+#include <kgenericfactory.h>
+
+typedef KGenericFactory<Phonon::Ui::Fake::Backend, Phonon::Ui::Ifaces::Backend> FakeUiBackendFactory;
+K_EXPORT_COMPONENT_FACTORY( phonon_fakeui, FakeUiBackendFactory( "fakeuibackend" ) )
 
 namespace Phonon
 {
+namespace Ui
+{
 namespace Fake
 {
-VideoEffect::VideoEffect( int effectId, QObject* parent )
-	: QObject( parent )
+
+Backend::Backend( QObject* parent, const char*, const QStringList& )
+	: Ui::Ifaces::Backend( parent )
 {
 }
 
-VideoEffect::~VideoEffect()
+Backend::~Backend()
 {
 }
 
-float VideoEffect::value( int parameterId ) const
+Ifaces::VideoWidget* Backend::createVideoWidget( QWidget* parent )
 {
-	return 0.0f;
+	return new Fake::VideoWidget( parent );
 }
 
-void VideoEffect::setValue( int parameterId, float newValue )
-{
-}
+}}}
 
-}} //namespace Phonon::Fake
-
-#include "videoeffect.moc"
+#include "backend.moc"
 // vim: sw=4 ts=4 noet

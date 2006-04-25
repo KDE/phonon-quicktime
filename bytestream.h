@@ -1,11 +1,9 @@
 /*  This file is part of the KDE project
-    Copyright (C) 2006 Tim Beaulen <tbscope@gmail.com>
-    Copyright (C) 2006-2007 Matthias Kretz <kretz@kde.org>
+    Copyright (C) 2006 Matthias Kretz <kretz@kde.org>
 
-    This program is free software; you can redistribute it and/or
+    This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
-    License as published by the Free Software Foundation; either
-    version 2 of the License, or (at your option) any later version.
+    License version 2 as published by the Free Software Foundation.
 
     This library is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,104 +16,66 @@
     Boston, MA 02110-1301, USA.
 
 */
-#ifndef PHONON_XINE_BYTESTREAM_H
-#define PHONON_XINE_BYTESTREAM_H
+#ifndef Phonon_FAKE_BYTESTREAM_H
+#define Phonon_FAKE_BYTESTREAM_H
 
-#include "mediaobject.h"
-
-#include <xine.h>
-
-#include "xineengine.h"
-#include <Phonon/StreamInterface>
-#include <QByteArray>
-#include <QSharedData>
-#include <QQueue>
-#include <kdebug.h>
-#include <QCoreApplication>
-#include <QMutex>
-#include <QWaitCondition>
-#include <pthread.h>
-#include <cstdlib>
-#include <QObject>
-
-extern const char Error__off_t_needs_to_have_64_bits[sizeof(off_t) == 8 ? 1 : -1];
+#include "abstractmediaproducer.h"
+#include "../../ifaces/bytestream.h"
+class QTimer;
 
 namespace Phonon
 {
-namespace Xine
+namespace Fake
 {
-class MediaObject;
-class ByteStream : public QObject, public StreamInterface, public QSharedData
-{
-    Q_OBJECT
-    public:
-        static ByteStream *fromMrl(const QByteArray &mrl);
-        ByteStream(const MediaSource &, MediaObject *parent);
-        ~ByteStream();
+	class ByteStream : public AbstractMediaProducer, virtual public Ifaces::ByteStream
+	{
+		Q_OBJECT
+		public:
+			ByteStream( QObject* parent );
+			virtual ~ByteStream();
 
-        QByteArray mrl() const;
+			virtual long currentTime() const;
+			virtual long totalTime() const;
+			virtual long aboutToFinishTime() const;
+			virtual long streamSize() const;
+			virtual bool streamSeekable() const;
+			virtual bool seekable() const;
 
-        // does not block, but might change later
-        bool streamSeekable() const { return m_seekable; }
+			virtual void setStreamSeekable( bool );
+			virtual void writeData( const QByteArray& data );
+			virtual void setStreamSize( long );
+			virtual void endOfData();
+			virtual void setAboutToFinishTime( long );
 
-        // blocks until the size is known
-        qint64 streamSize() const;
+			virtual void play();
+			virtual void pause();
+			virtual void seek( long time );
 
-        void stop();
+		public Q_SLOTS:
+			virtual void stop();
 
-        void reset();
+		Q_SIGNALS:
+			void finished();
+			void aboutToFinish( long );
+			void length( long );
+			void needData();
+			void enoughData();
+			void seekStream( long );
 
-    public slots:
-        void writeData(const QByteArray &data);
-        void endOfData();
-        void setStreamSeekable(bool);
-        void setStreamSize(qint64);
+		private Q_SLOTS:
+			void consumeStream();
 
-        void setPauseForBuffering(bool);
+		private:
+			long m_aboutToFinishBytes;
+			long m_streamSize;
+			long m_bufferSize;
+			long m_streamPosition;
+			bool m_streamSeekable;
+			bool m_eof;
+			bool m_aboutToFinishEmitted;
+			QTimer* m_streamConsumeTimer;
+	};
+}} //namespace Phonon::Fake
 
-        // for the xine input plugin:
-        int peekBuffer(void *buf);
-        qint64 readFromBuffer(void *buf, size_t count);
-        off_t seekBuffer(qint64 offset);
-        off_t currentPosition() const;
-
-    signals:
-        void resetQueued();
-        void needDataQueued();
-        void seekStreamQueued(qint64);
-
-    private slots:
-        void callStreamInterfaceReset();
-        void syncSeekStream(qint64 offset);
-        void needData() { StreamInterface::needData(); }
-
-    private:
-//X             void setMrl();
-        void pullBuffer(char *buf, int len);
-
-        MediaObject *m_mediaObject;
-        QByteArray m_preview;
-        QMutex m_mutex;
-        QMutex m_seekMutex;
-        mutable QMutex m_streamSizeMutex;
-        mutable QWaitCondition m_waitForStreamSize;
-        QWaitCondition m_waitingForData;
-        QWaitCondition m_seekWaitCondition;
-        QQueue<QByteArray> m_buffers;
-
-        //pthread_t m_mainThread;
-        qint64 m_streamSize;
-        qint64 m_currentPosition;
-        size_t m_buffersize;
-        int m_offset;
-
-        bool m_seekable : 1;
-        bool m_stopped : 1;
-        bool m_eod : 1;
-        bool m_buffering : 1;
-        bool m_firstReset : 1;
-};
-}} //namespace Phonon::Xine
-
-// vim: sw=4 ts=4 sts=4 et tw=100
-#endif // PHONON_XINE_BYTESTREAM_H
+// vim: sw=4 ts=4 tw=80 noet
+#endif // Phonon_FAKE_BYTESTREAM_H

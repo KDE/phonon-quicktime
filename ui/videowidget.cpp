@@ -17,31 +17,28 @@
 
 */
 
-#include "videoeffect.h"
+#include "videowidget.h"
+#include <QPalette>
 
 namespace Phonon
 {
+namespace Ui
+{
 namespace Fake
 {
-VideoEffect::VideoEffect( int effectId, QObject* parent )
-	: QObject( parent )
+
+VideoWidget::VideoWidget( QWidget* parent )
+	: QWidget( parent )
 {
+	QPalette p = palette();
+	p.setColor( QPalette::Window, Qt::blue );
+	setPalette( p );
+	setBackgroundRole( QPalette::Window );
+	setAutoFillBackground( true );
+	setMinimumSize( 100, 100 );
 }
 
-VideoEffect::~VideoEffect()
-{
-}
+}}} //namespace Phonon::Ui::Fake
 
-float VideoEffect::value( int parameterId ) const
-{
-	return 0.0f;
-}
-
-void VideoEffect::setValue( int parameterId, float newValue )
-{
-}
-
-}} //namespace Phonon::Fake
-
-#include "videoeffect.moc"
+#include "videowidget.moc"
 // vim: sw=4 ts=4 noet

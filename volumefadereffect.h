@@ -1,11 +1,9 @@
 /*  This file is part of the KDE project
-    Copyright (C) 2006 Tim Beaulen <tbscope@gmail.com>
-    Copyright (C) 2006-2007 Matthias Kretz <kretz@kde.org>
+    Copyright (C) 2006 Matthias Kretz <kretz@kde.org>
 
-    This program is free software; you can redistribute it and/or
+    This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
-    License as published by the Free Software Foundation; either
-    version 2 of the License, or (at your option) any later version.
+    License version 2 as published by the Free Software Foundation.
 
     This library is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,66 +16,38 @@
     Boston, MA 02110-1301, USA.
 
 */
-#ifndef Phonon_XINE_VOLUMEFADEREFFECT_H
-#define Phonon_XINE_VOLUMEFADEREFFECT_H
+#ifndef Phonon_FAKE_VOLUMEFADEREFFECT_H
+#define Phonon_FAKE_VOLUMEFADEREFFECT_H
 
+#include "../../ifaces/volumefadereffect.h"
 #include <QTime>
-#include "effect.h"
-#include <QList>
-
-#include <xine.h>
-#include <Phonon/VolumeFaderEffect>
-#include <Phonon/VolumeFaderInterface>
+#include "audioeffect.h"
 
 namespace Phonon
 {
-namespace Xine
+namespace Fake
 {
-class VolumeFaderEffect;
+	/**
+	 * \author Matthias Kretz <kretz@kde.org>
+	 */
+	class VolumeFaderEffect : public AudioEffect, virtual public Ifaces::VolumeFaderEffect
+	{
+		Q_OBJECT
+		public:
+			VolumeFaderEffect( QObject* parent );
+			virtual ~VolumeFaderEffect();
 
-struct PluginParameters
-{
-    Phonon::VolumeFaderEffect::FadeCurve fadeCurve;
-    double currentVolume;
-    double fadeTo;
-    int fadeTime;
-    PluginParameters(Phonon::VolumeFaderEffect::FadeCurve a, double b, double c, int d)
-        : fadeCurve(a), currentVolume(b), fadeTo(c), fadeTime(d) {}
-};
+			virtual float volume() const;
+			virtual void setVolume( float volume );
+			virtual void fadeTo( float volume, int fadeTime );
 
-class VolumeFaderEffectXT : public EffectXT
-{
-    friend class VolumeFaderEffect;
-    public:
-        VolumeFaderEffectXT();
-        virtual void createInstance();
-        void rewireTo(SourceNodeXT *source);
+		private:
+			float m_volume;
+			float m_endvolume;
+			int m_fadeTime;
+			QTime m_fadeStart;
+	};
+}} //namespace Phonon::Fake
 
-    private:
-        mutable PluginParameters m_parameters;
-};
-
-class VolumeFaderEffect : public Effect, public Phonon::VolumeFaderInterface
-{
-    Q_OBJECT
-    Q_INTERFACES(Phonon::VolumeFaderInterface)
-    public:
-        VolumeFaderEffect(QObject *parent);
-        ~VolumeFaderEffect();
-
-        float volume() const;
-        void setVolume(float volume);
-        Phonon::VolumeFaderEffect::FadeCurve fadeCurve() const;
-        void setFadeCurve(Phonon::VolumeFaderEffect::FadeCurve curve);
-        void fadeTo(float volume, int fadeTime);
-
-        QVariant parameterValue(const EffectParameter &p) const;
-        void setParameterValue(const EffectParameter &p, const QVariant &newValue);
-
-    private:
-        void getParameters() const;
-};
-}} //namespace Phonon::Xine
-
-// vim: sw=4 ts=4 tw=80
-#endif // Phonon_XINE_VOLUMEFADEREFFECT_H
+// vim: sw=4 ts=4 tw=80 noet
+#endif // Phonon_FAKE_VOLUMEFADEREFFECT_H

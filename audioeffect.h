@@ -16,49 +16,41 @@
     Boston, MA 02110-1301, USA.
 
 */
-#ifndef Phonon_FAKE_AUDIOOUTPUT_H
-#define Phonon_FAKE_AUDIOOUTPUT_H
+#ifndef Phonon_FAKE_AUDIOEFFECT_H
+#define Phonon_FAKE_AUDIOEFFECT_H
 
-#include "abstractaudiooutput.h"
-#include "../../ifaces/audiooutput.h"
-#include <QFile>
+#include <QObject>
+#include "../../ifaces/audioeffect.h"
 
 namespace Phonon
 {
 namespace Fake
 {
-	class AudioOutput : public AbstractAudioOutput, virtual public Ifaces::AudioOutput
+	class EffectInterface;
+
+	/**
+	 * \author Matthias Kretz <kretz@kde.org>
+	 */
+	class AudioEffect : public QObject, virtual public Ifaces::AudioEffect
 	{
 		Q_OBJECT
 		public:
-			AudioOutput( QObject* parent );
-			virtual ~AudioOutput();
+			AudioEffect( int effectId, QObject* parent );
+			virtual ~AudioEffect();
+			virtual float value( int parameterId ) const;
+			virtual void setValue( int parameterId, float newValue );
 
-			// Attributes Getters:
-			virtual QString name() const;
-			virtual float volume() const;
-			virtual int outputDevice() const;
+			// Fake specific:
+			virtual void processBuffer( QVector<float>& buffer );
 
-			// Attributes Setters:
-			virtual void setName( const QString& newName );
-			virtual void setVolume( float newVolume );
-			virtual void setOutputDevice( int newDevice );
-
-			virtual void processBuffer( const QVector<float>& buffer );
-
-			void openDevice();
-			void closeDevice();
-
-		Q_SIGNALS:
-			void volumeChanged( float newVolume );
+		public:
+			virtual QObject* qobject() { return this; }
+			virtual const QObject* qobject() const { return this; }
 
 		private:
-			float m_volume;
-			QString m_name;
-			int m_device;
-			QFile m_dsp;
+			EffectInterface* m_effect;
 	};
 }} //namespace Phonon::Fake
 
 // vim: sw=4 ts=4 tw=80 noet
-#endif // Phonon_FAKE_AUDIOOUTPUT_H
+#endif // Phonon_FAKE_AUDIOEFFECT_H

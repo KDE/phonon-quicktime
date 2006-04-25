@@ -16,49 +16,35 @@
     Boston, MA 02110-1301, USA.
 
 */
-#ifndef Phonon_FAKE_AUDIOOUTPUT_H
-#define Phonon_FAKE_AUDIOOUTPUT_H
 
-#include "abstractaudiooutput.h"
-#include "../../ifaces/audiooutput.h"
-#include <QFile>
+#ifndef PHONON_FAKE_DELAYAUDIOEFFECT_H
+#define PHONON_FAKE_DELAYAUDIOEFFECT_H
+
+#include <QQueue>
+#include "effectinterface.h"
 
 namespace Phonon
 {
 namespace Fake
 {
-	class AudioOutput : public AbstractAudioOutput, virtual public Ifaces::AudioOutput
+	/**
+	 * \author Matthias Kretz <kretz@kde.org>
+	 */
+	class DelayAudioEffect : public EffectInterface
 	{
-		Q_OBJECT
 		public:
-			AudioOutput( QObject* parent );
-			virtual ~AudioOutput();
+			DelayAudioEffect();
+			~DelayAudioEffect();
 
-			// Attributes Getters:
-			virtual QString name() const;
-			virtual float volume() const;
-			virtual int outputDevice() const;
-
-			// Attributes Setters:
-			virtual void setName( const QString& newName );
-			virtual void setVolume( float newVolume );
-			virtual void setOutputDevice( int newDevice );
-
-			virtual void processBuffer( const QVector<float>& buffer );
-
-			void openDevice();
-			void closeDevice();
-
-		Q_SIGNALS:
-			void volumeChanged( float newVolume );
+			virtual float value( int parameterId ) const;
+			virtual void setValue( int parameterId, float newValue );
+			virtual void processBuffer( QVector<float>& buffer );
 
 		private:
-			float m_volume;
-			QString m_name;
-			int m_device;
-			QFile m_dsp;
+			QQueue<float> m_delayBuffer;
+			float m_feedback, m_level;
 	};
 }} //namespace Phonon::Fake
 
 // vim: sw=4 ts=4 tw=80 noet
-#endif // Phonon_FAKE_AUDIOOUTPUT_H
+#endif // PHONON_FAKE_DELAYAUDIOEFFECT_H

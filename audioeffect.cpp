@@ -1,6 +1,5 @@
 /*  This file is part of the KDE project
-    Copyright (C) 2006 Tim Beaulen <tbscope@gmail.com>
-    Copyright (C) 2006-2007 Matthias Kretz <kretz@kde.org>
+    Copyright (C) 2006 Matthias Kretz <kretz@kde.org>
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -20,236 +19,56 @@
 
 #include "audioeffect.h"
 #include <klocale.h>
-#include <QVariant>
-#include "xineengine.h"
-#include <QMutexLocker>
+#include "delayaudioeffect.h"
 
 namespace Phonon
 {
-namespace Xine
+namespace Fake
 {
 AudioEffect::AudioEffect( int effectId, QObject* parent )
-    : QObject(parent),
-    m_pluginName(0),
-    m_pluginParams(0)
+	: QObject( parent )
+	, m_effect( 0 )
 {
-    const char *const *postPlugins = xine_list_post_plugins_typed(XineEngine::xine(), XINE_POST_TYPE_AUDIO_FILTER);
-    if (effectId >= 0x7F000000) {
-        effectId -= 0x7F000000;
-        for(int i = 0; postPlugins[i]; ++i) {
-            if (i == effectId) {
-                // found it
-                m_pluginName = postPlugins[i];
-                break;
-            }
-        }
-    }
-}
-
-AudioEffect::AudioEffect(const char *name, QObject *parent)
-    : QObject(parent),
-    m_pluginName(name),
-    m_pluginParams(0)
-{
+	switch( effectId )
+	{
+		case 0x7F000001:
+			m_effect = new DelayAudioEffect;
+			addParameter( 1, i18n( "time" ), EffectParameter::BoundedBelowHint | EffectParameter::BoundedAboveHint,
+					m_effect->value( 1 ), 1.0f, 15000.0f,
+					i18n( "Set's the delay in milliseconds" ) );
+			addParameter( 2, i18n( "feedback" ), EffectParameter::BoundedBelowHint | EffectParameter::BoundedAboveHint,
+					m_effect->value( 2 ), 0.0f, 1.0f );
+			addParameter( 3, i18n( "level" ), EffectParameter::BoundedBelowHint | EffectParameter::BoundedAboveHint,
+					m_effect->value( 3 ), 0.0f, 1.0f );
+	}
 }
 
 AudioEffect::~AudioEffect()
 {
-    foreach (xine_post_t *post, m_plugins) {
-        xine_post_dispose(XineEngine::xine(), post);
-    }
-    free(m_pluginParams);
+	delete m_effect;
+	m_effect = 0;
 }
 
-bool AudioEffect::isValid() const
+float AudioEffect::value( int parameterId ) const
 {
-    return m_pluginName != 0;
+	if( m_effect )
+		return m_effect->value( parameterId );
+	return 0.0f;
 }
 
-QList<EffectParameter> AudioEffect::allDescriptions()
+void AudioEffect::setValue( int parameterId, float newValue )
 {
-    ensureParametersReady();
-    return m_parameterList;
+	if( m_effect )
+		m_effect->setValue( parameterId, newValue );
 }
 
-EffectParameter AudioEffect::description(int parameterIndex)
+void AudioEffect::processBuffer( QVector<float>& buffer )
 {
-    ensureParametersReady();
-    if (parameterIndex >= m_parameterList.size()) {
-        return EffectParameter();
-    }
-    return m_parameterList[parameterIndex];
+	if( m_effect )
+		m_effect->processBuffer( buffer );
 }
 
-int AudioEffect::parameterCount()
-{
-    ensureParametersReady();
-    return m_parameterList.size();
-}
-
-void AudioEffect::ensureParametersReady()
-{
-    if (m_parameterList.isEmpty() && m_plugins.isEmpty()) {
-        newInstance(XineEngine::nullPort());
-        if (!m_plugins.isEmpty()) {
-            xine_post_dispose(XineEngine::xine(), m_plugins.first());
-            m_plugins.clear();
-        }
-    }
-}
-
-xine_post_t *AudioEffect::newInstance(xine_audio_port_t *audioPort)
-{
-    QMutexLocker lock(&m_mutex);
-    if (m_pluginName) {
-        xine_post_t *x = xine_post_init(XineEngine::xine(), m_pluginName, 1, &audioPort, 0);
-        m_plugins << x;
-        xine_post_in_t *paraInput = xine_post_input(x, "parameters");
-        if (paraInput) {
-            Q_ASSERT(paraInput->type == XINE_POST_DATA_PARAMETERS);
-            Q_ASSERT(paraInput->data);
-            xine_post_api_t *api = reinterpret_cast<xine_post_api_t *>(paraInput->data);
-            m_pluginApis << api;
-            if (m_parameterList.isEmpty()) {
-                xine_post_api_descr_t *desc = api->get_param_descr();
-                Q_ASSERT(0 == m_pluginParams);
-                m_pluginParams = static_cast<char *>(malloc(desc->struct_size));
-                api->get_parameters(x, m_pluginParams);
-                for (int i = 0; desc->parameter[i].type != POST_PARAM_TYPE_LAST; ++i) {
-                    xine_post_api_parameter_t &p = desc->parameter[i];
-                    switch (p.type) {
-                    case POST_PARAM_TYPE_INT:          /* integer (or vector of integers)    */
-                        addParameter(EffectParameter(i, p.name, EffectParameter::IntegerHint,
-                                    *reinterpret_cast<int *>(m_pluginParams + p.offset),
-                                    static_cast<int>(p.range_min), static_cast<int>(p.range_max), p.description));
-                        break;
-                    case POST_PARAM_TYPE_DOUBLE:       /* double (or vector of doubles)      */
-                        addParameter(EffectParameter(i, p.name, 0,
-                                    *reinterpret_cast<double *>(m_pluginParams + p.offset),
-                                    p.range_min, p.range_max, p.description));
-                        break;
-                    case POST_PARAM_TYPE_CHAR:         /* char (or vector of chars = string) */
-                    case POST_PARAM_TYPE_STRING:       /* (char *), ASCIIZ                   */
-                    case POST_PARAM_TYPE_STRINGLIST:   /* (char **) list, NULL terminated    */
-                        kWarning(610) << "char/string/stringlist parameter '" << p.name << "' not supported.";
-                        break;
-                    case POST_PARAM_TYPE_BOOL:         /* integer (0 or 1)                   */
-                        addParameter(EffectParameter(i, p.name, EffectParameter::ToggledHint,
-                                    static_cast<bool>(*reinterpret_cast<int *>(m_pluginParams + p.offset)),
-                                    QVariant(), QVariant(), p.description));
-                        break;
-                    case POST_PARAM_TYPE_LAST:         /* terminator of parameter list       */
-                    default:
-                        abort();
-                    }
-                }
-            }
-        } else {
-            m_pluginApis << 0;
-        }
-        return x;
-    }
-    return 0;
-}
-
-QVariant AudioEffect::parameterValue(int parameterIndex) const
-{
-    QMutexLocker lock(&m_mutex);
-    if (m_plugins.isEmpty() || m_pluginApis.isEmpty()) {
-        return QVariant(); // invalid
-    }
-
-    xine_post_t *post = m_plugins.first();
-    xine_post_api_t *api = m_pluginApis.first();
-    if (!post || !api) {
-        return QVariant(); // invalid
-    }
-
-    xine_post_api_descr_t *desc = api->get_param_descr();
-    Q_ASSERT(m_pluginParams);
-    api->get_parameters(post, m_pluginParams);
-    int i = 0;
-    for (; i < parameterIndex && desc->parameter[i].type != POST_PARAM_TYPE_LAST; ++i);
-    if (i == parameterIndex) {
-        xine_post_api_parameter_t &p = desc->parameter[i];
-        switch (p.type) {
-            case POST_PARAM_TYPE_INT:          /* integer (or vector of integers)    */
-                return *reinterpret_cast<int *>(m_pluginParams + p.offset);
-            case POST_PARAM_TYPE_DOUBLE:       /* double (or vector of doubles)      */
-                return *reinterpret_cast<double *>(m_pluginParams + p.offset);
-            case POST_PARAM_TYPE_CHAR:         /* char (or vector of chars = string) */
-            case POST_PARAM_TYPE_STRING:       /* (char *), ASCIIZ                   */
-            case POST_PARAM_TYPE_STRINGLIST:   /* (char **) list, NULL terminated    */
-                kWarning(610) << "char/string/stringlist parameter '" << p.name << "' not supported.";
-                return QVariant();
-            case POST_PARAM_TYPE_BOOL:         /* integer (0 or 1)                   */
-                return static_cast<bool>(*reinterpret_cast<int *>(m_pluginParams + p.offset));
-            case POST_PARAM_TYPE_LAST:         /* terminator of parameter list       */
-                break;
-            default:
-                abort();
-        }
-    }
-    kError(610) << "invalid parameterIndex passed to AudioEffect::value" << endl;
-    return QVariant();
-}
-
-void AudioEffect::setParameterValue(int parameterIndex, const QVariant &newValue)
-{
-    QMutexLocker lock(&m_mutex);
-    if (m_plugins.isEmpty() || m_pluginApis.isEmpty()) {
-        return;
-    }
-
-    xine_post_t *post = m_plugins.first();
-    xine_post_api_t *api = m_pluginApis.first();
-    if (!post || !api) {
-        return;
-    }
-
-    xine_post_api_descr_t *desc = api->get_param_descr();
-    Q_ASSERT(m_pluginParams);
-    int i = 0;
-    for (; i < parameterIndex && desc->parameter[i].type != POST_PARAM_TYPE_LAST; ++i);
-    if (i == parameterIndex) {
-        xine_post_api_parameter_t &p = desc->parameter[i];
-        switch (p.type) {
-            case POST_PARAM_TYPE_INT:          /* integer (or vector of integers)    */
-                {
-                    int *value = reinterpret_cast<int *>(m_pluginParams + p.offset);
-                    *value = newValue.toInt();
-                }
-                break;
-            case POST_PARAM_TYPE_DOUBLE:       /* double (or vector of doubles)      */
-                {
-                    double *value = reinterpret_cast<double *>(m_pluginParams + p.offset);
-                    *value = newValue.toDouble();
-                }
-                break;
-            case POST_PARAM_TYPE_CHAR:         /* char (or vector of chars = string) */
-            case POST_PARAM_TYPE_STRING:       /* (char *), ASCIIZ                   */
-            case POST_PARAM_TYPE_STRINGLIST:   /* (char **) list, NULL terminated    */
-                kWarning(610) << "char/string/stringlist parameter '" << p.name << "' not supported.";
-                return;
-            case POST_PARAM_TYPE_BOOL:         /* integer (0 or 1)                   */
-                {
-                   int *value = reinterpret_cast<int *>(m_pluginParams + p.offset);
-                   *value = newValue.toBool() ? 1 : 0;
-                }
-                break;
-            case POST_PARAM_TYPE_LAST:         /* terminator of parameter list       */
-                kError(610) << "invalid parameterIndex passed to AudioEffect::setValue" << endl;
-                break;
-            default:
-                abort();
-        }
-        api->set_parameters(post, m_pluginParams);
-    } else {
-        kError(610) << "invalid parameterIndex passed to AudioEffect::setValue" << endl;
-    }
-}
-
-}} //namespace Phonon::Xine
+}} //namespace Phonon::Fake
 
 #include "audioeffect.moc"
-// vim: sw=4 ts=4
+// vim: sw=4 ts=4 noet

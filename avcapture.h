@@ -16,49 +16,31 @@
     Boston, MA 02110-1301, USA.
 
 */
-#ifndef Phonon_FAKE_AUDIOOUTPUT_H
-#define Phonon_FAKE_AUDIOOUTPUT_H
+#ifndef Phonon_FAKE_AVCAPTURECAPTURE_H
+#define Phonon_FAKE_AVCAPTURECAPTURE_H
 
-#include "abstractaudiooutput.h"
-#include "../../ifaces/audiooutput.h"
-#include <QFile>
+#include "abstractmediaproducer.h"
+#include "../../ifaces/avcapture.h"
 
 namespace Phonon
 {
 namespace Fake
 {
-	class AudioOutput : public AbstractAudioOutput, virtual public Ifaces::AudioOutput
+	class AvCapture : public AbstractMediaProducer, virtual public Ifaces::AvCapture
 	{
 		Q_OBJECT
 		public:
-			AudioOutput( QObject* parent );
-			virtual ~AudioOutput();
+			AvCapture( QObject* parent );
+			virtual ~AvCapture();
 
-			// Attributes Getters:
-			virtual QString name() const;
-			virtual float volume() const;
-			virtual int outputDevice() const;
-
-			// Attributes Setters:
-			virtual void setName( const QString& newName );
-			virtual void setVolume( float newVolume );
-			virtual void setOutputDevice( int newDevice );
-
-			virtual void processBuffer( const QVector<float>& buffer );
-
-			void openDevice();
-			void closeDevice();
-
-		Q_SIGNALS:
-			void volumeChanged( float newVolume );
+			virtual int audioCaptureDevice() const;
+			virtual int setAudioCaptureDevice( int index );
+			virtual int videoCaptureDevice() const;
+			virtual int setVideoCaptureDevice( int index );
 
 		private:
-			float m_volume;
-			QString m_name;
-			int m_device;
-			QFile m_dsp;
 	};
 }} //namespace Phonon::Fake
 
 // vim: sw=4 ts=4 tw=80 noet
-#endif // Phonon_FAKE_AUDIOOUTPUT_H
+#endif // Phonon_FAKE_AVCAPTURECAPTURE_H

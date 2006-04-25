@@ -17,31 +17,44 @@
 
 */
 
-#include "videoeffect.h"
+#include "avcapture.h"
 
 namespace Phonon
 {
 namespace Fake
 {
-VideoEffect::VideoEffect( int effectId, QObject* parent )
-	: QObject( parent )
+AvCapture::AvCapture( QObject* parent )
+	: AbstractMediaProducer( parent )
 {
 }
 
-VideoEffect::~VideoEffect()
+AvCapture::~AvCapture()
 {
 }
 
-float VideoEffect::value( int parameterId ) const
+int AvCapture::audioCaptureDevice() const
 {
-	return 0.0f;
+	return 1;
 }
 
-void VideoEffect::setValue( int parameterId, float newValue )
+int AvCapture::setAudioCaptureDevice( int index )
 {
+	Q_UNUSED( index );
+	return 1;
+}
+
+int AvCapture::videoCaptureDevice() const
+{
+	return 1;
+}
+
+int AvCapture::setVideoCaptureDevice( int index )
+{
+	Q_UNUSED( index );
+	return 1;
 }
 
 }} //namespace Phonon::Fake
 
-#include "videoeffect.moc"
+#include "avcapture.moc"
 // vim: sw=4 ts=4 noet
