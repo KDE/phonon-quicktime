@@ -23,6 +23,10 @@
 #include <phonon/ifaces/mediaobject.h>
 #include <kurl.h>
 
+#include <xine.h>
+
+#include "backend.h"
+
 class KUrl;
 
 namespace Phonon
@@ -34,6 +38,7 @@ namespace Xine
 		Q_OBJECT
 		public:
 			MediaObject( QObject* parent );
+			MediaObject( QObject* parent, xine_t* xe );
 			virtual ~MediaObject();
 			virtual KUrl url() const;
 			virtual long totalTime() const;
@@ -45,6 +50,7 @@ namespace Xine
 			virtual void play();
 			virtual void pause();
 			virtual void seek( long time );
+			//void setXineEngine(xine_t* xe) {m_xine = xe;}
 
 		public Q_SLOTS:
 			virtual void stop();
@@ -58,6 +64,7 @@ namespace Xine
 			virtual void emitTick();
 
 		private:
+			xine_t* m_xine;
 			KUrl m_url;
 			long m_aboutToFinishTime;
 			bool m_aboutToFinishNotEmitted;

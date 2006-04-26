@@ -31,7 +31,7 @@ namespace Phonon
 {
 namespace Xine
 {
-	class KDE_EXPORT AbstractMediaProducer : public QObject, virtual public Ifaces::AbstractMediaProducer
+	class /*KDE_EXPORT*/ AbstractMediaProducer : public QObject, virtual public Ifaces::AbstractMediaProducer
 	{
 		Q_OBJECT
 		public:
