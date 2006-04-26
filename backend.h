@@ -104,10 +104,12 @@ namespace Xine
 			virtual const char* uiLibrary() const;
 			//virtual const char* uiSymbol() const;
 
+			//xine_t* getXineEngine() {return m_xine;}
+
 		private:
-			QStringList m_supportedMimeTypes;
-			QList<QPointer<AudioOutput> > m_audioOutputs;
 			xine_t *m_xine;
+			QStringList m_supportedMimeTypes;
+			QList<QPointer<AudioOutput> > m_audioOutputs;			
 	};
 }} // namespace Phonon::Ifaces
 

@@ -32,6 +32,14 @@ MediaObject::MediaObject( QObject* parent )
 	//kDebug( 604 ) << k_funcinfo << endl;
 }
 
+MediaObject::MediaObject( QObject* parent, xine_t* xe )
+	: AbstractMediaProducer( parent )
+	, m_aboutToFinishNotEmitted( true )
+{
+	//kDebug( 604 ) << k_funcinfo << endl;
+	m_xine = xe;
+}
+
 MediaObject::~MediaObject()
 {
 	//kDebug( 604 ) << k_funcinfo << endl;
@@ -58,6 +66,7 @@ long MediaObject::aboutToFinishTime() const
 void MediaObject::setUrl( const KUrl& url )
 {
 	//kDebug( 604 ) << k_funcinfo << endl;
+//kDebug() << *xine_list_demuxer_plugins(m_xine) << endl;
 	stop();
 	m_url = url;
 	emit length( totalTime() );
@@ -74,6 +83,7 @@ void MediaObject::setAboutToFinishTime( long newAboutToFinishTime )
 void MediaObject::play()
 {
 	//kDebug( 604 ) << k_funcinfo << endl;
+	//xine_play( m_stream, 0, 0 )
 	AbstractMediaProducer::play();
 }
 
