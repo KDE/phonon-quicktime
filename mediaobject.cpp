@@ -38,6 +38,10 @@ MediaObject::MediaObject( QObject* parent, xine_t* xe )
 {
 	//kDebug( 604 ) << k_funcinfo << endl;
 	m_xine = xe;
+	// testing
+	//xine_video_port_t* m_videoPort = xine_open_video_driver( m_xine, "auto", 1, NULL );
+	m_audioPort = xine_open_audio_driver( m_xine, "alsa", NULL );
+	m_stream = xine_stream_new( m_xine, m_audioPort, NULL /*m_videoPort*/ );
 }
 
 MediaObject::~MediaObject()
@@ -66,9 +70,10 @@ long MediaObject::aboutToFinishTime() const
 void MediaObject::setUrl( const KUrl& url )
 {
 	//kDebug( 604 ) << k_funcinfo << endl;
-//kDebug() << *xine_list_demuxer_plugins(m_xine) << endl;
 	stop();
 	m_url = url;
+	kDebug() << "url = " << m_url.url() << endl;
+	xine_open( m_stream, "/" + m_url.url().toLocal8Bit() );
 	emit length( totalTime() );
 }
 
@@ -83,7 +88,8 @@ void MediaObject::setAboutToFinishTime( long newAboutToFinishTime )
 void MediaObject::play()
 {
 	//kDebug( 604 ) << k_funcinfo << endl;
-	//xine_play( m_stream, 0, 0 )
+
+	xine_play( m_stream, 0, 0 );
 	AbstractMediaProducer::play();
 }
 
@@ -99,6 +105,8 @@ void MediaObject::pause()
 void MediaObject::stop()
 {
 	//kDebug( 604 ) << k_funcinfo << endl;
+
+	xine_stop( m_stream );
 	AbstractMediaProducer::stop();
 	m_aboutToFinishNotEmitted = true;
 }

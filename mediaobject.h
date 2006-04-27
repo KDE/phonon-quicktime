@@ -65,6 +65,8 @@ namespace Xine
 
 		private:
 			xine_t* m_xine;
+			xine_stream_t* m_stream;
+			xine_audio_port_t* m_audioPort;
 			KUrl m_url;
 			long m_aboutToFinishTime;
 			bool m_aboutToFinishNotEmitted;
