@@ -62,7 +62,7 @@ Backend::~Backend()
 
 Ifaces::MediaObject*      Backend::createMediaObject( QObject* parent )
 {
-return new MediaObject( parent/*, m_xine*/ );
+	return new MediaObject( parent, m_xine );
 }
 
 Ifaces::AvCapture*        Backend::createAvCapture( QObject* parent )
