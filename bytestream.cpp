@@ -30,8 +30,9 @@ namespace Phonon
 {
 namespace Xine
 {
-ByteStream::ByteStream( QObject* parent )
-	: AbstractMediaProducer( parent )
+ByteStream::ByteStream( QObject* parent, XineEngine* xe )
+	: AbstractMediaProducer( parent, xe )
+	, m_xine_engine( xe )
 	, m_bufferSize( 0 )
 	, m_streamPosition( 0 )
 	, m_eof( false )

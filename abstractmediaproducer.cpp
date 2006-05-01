@@ -34,8 +34,9 @@ namespace Xine
 static const int SAMPLE_RATE = 44100;
 static const float SAMPLE_RATE_FLOAT = 44100.0f;
 
-AbstractMediaProducer::AbstractMediaProducer( QObject* parent )
+AbstractMediaProducer::AbstractMediaProducer( QObject* parent, XineEngine* xe )
 	: QObject( parent )
+	, m_xine_engine( xe )
 	, m_state( Phonon::LoadingState )
 	, m_tickTimer( new QTimer( this ) )
 	, m_bufferSize( 512 )
@@ -108,7 +109,7 @@ bool AbstractMediaProducer::hasVideo() const
 bool AbstractMediaProducer::seekable() const
 {
 	//kDebug() << k_funcinfo << endl;
-	return true;
+	return xine_get_stream_info( m_xine_engine->m_stream, XINE_STREAM_INFO_SEEKABLE );
 }
 
 long AbstractMediaProducer::currentTime() const

@@ -21,6 +21,9 @@
 
 #include "abstractmediaproducer.h"
 #include <phonon/ifaces/bytestream.h>
+
+#include "xine_engine.h"
+
 class QTimer;
 
 namespace Phonon
@@ -31,7 +34,7 @@ namespace Xine
 	{
 		Q_OBJECT
 		public:
-			ByteStream( QObject* parent );
+			ByteStream( QObject* parent, XineEngine* xe );
 			virtual ~ByteStream();
 
 			virtual long currentTime() const;
@@ -66,6 +69,7 @@ namespace Xine
 			void consumeStream();
 
 		private:
+			XineEngine* m_xine_engine;
 			long m_aboutToFinishBytes;
 			long m_streamSize;
 			long m_bufferSize;
