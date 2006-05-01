@@ -22,9 +22,6 @@
 #include <kdebug.h>
 
 #include <config.h>
-#ifdef HAVE_SYS_SOUNDCARD_H
-#include <sys/soundcard.h>
-#endif
 #include <sys/ioctl.h>
 #include <iostream>
 
@@ -37,6 +34,7 @@ AudioOutput::AudioOutput( QObject* parent )
 	, m_device( 1 )
 	, m_dsp( "/dev/dsp" )
 {
+	//m_xine = xe;
 }
 
 AudioOutput::~AudioOutput()
@@ -84,7 +82,7 @@ void AudioOutput::processBuffer( const QVector<float>& buffer )
 	//static QFile outdump( "outdump" );
 	//if( !outdump.isOpen() )
 		//outdump.open( QIODevice::WriteOnly );
-	openDevice();
+	/*openDevice();
 	if( !m_dsp.isOpen() )
 		return;
 
@@ -117,12 +115,12 @@ void AudioOutput::processBuffer( const QVector<float>& buffer )
 	}
 
 	pcm -= 2*buffer.size();
-	delete[] pcm;
+	delete[] pcm;*/
 }
 
 void AudioOutput::openDevice()
 {
-	if( m_dsp.isOpen() )
+	/*if( m_dsp.isOpen() )
 		return;
 
 #ifdef HAVE_SYS_SOUNDCARD_H
@@ -138,7 +136,7 @@ void AudioOutput::openDevice()
 		ioctl( fd, SNDCTL_DSP_STEREO, &stereo );
 		ioctl( fd, SNDCTL_DSP_SPEED, &samplingRate );
 	}
-#endif
+#endif*/
 }
 
 void AudioOutput::closeDevice()

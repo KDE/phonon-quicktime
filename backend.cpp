@@ -47,22 +47,25 @@ Backend::Backend( QObject* parent, const char*, const QStringList& )
 {
 	char configfile[2048];
 
-	m_xine = xine_new();
+	m_xine_engine = new XineEngine();
+
+	m_xine_engine->m_xine = xine_new();
+	xine_engine_set_param( m_xine_engine->m_xine, XINE_ENGINE_PARAM_VERBOSITY, 99 );
 	sprintf(configfile, "%s%s", xine_get_homedir(), "/.xine/config");
-	xine_config_load(m_xine, configfile);
-	xine_init(m_xine);
+	xine_config_load( m_xine_engine->m_xine, configfile );
+	xine_init( m_xine_engine->m_xine );
 
 	kDebug() << "Using Xine version " << xine_get_version_string() << endl;
 }
 
 Backend::~Backend()
 {
-	if(m_xine) xine_exit(m_xine);
+	if( m_xine_engine->m_xine) xine_exit( m_xine_engine->m_xine);
 }
 
 Ifaces::MediaObject*      Backend::createMediaObject( QObject* parent )
 {
-	return new MediaObject( parent, m_xine );
+	return new MediaObject( parent, m_xine_engine );
 }
 
 Ifaces::AvCapture*        Backend::createAvCapture( QObject* parent )
@@ -131,11 +134,11 @@ const QStringList& Backend::knownMimeTypes() const
 {
 	if( m_supportedMimeTypes.isEmpty() )
 	{
-		QString mimeTypes = xine_get_mime_types(m_xine);
-		QStringList lstMimeTypes = mimeTypes.split(";", QString::SkipEmptyParts);
-		foreach(QString mimeType, lstMimeTypes)
+		QString mimeTypes = xine_get_mime_types( m_xine_engine->m_xine );
+		QStringList lstMimeTypes = mimeTypes.split( ";", QString::SkipEmptyParts );
+		foreach( QString mimeType, lstMimeTypes )
 		{
-			const_cast<Backend*>( this )->m_supportedMimeTypes << mimeType.split(":")[0].toLatin1();
+			const_cast<Backend*>( this )->m_supportedMimeTypes << mimeType.split( ":" )[0].toLatin1();
 		}
 	}
 
@@ -144,12 +147,12 @@ const QStringList& Backend::knownMimeTypes() const
 
 QSet<int> Backend::audioOutputDeviceIndexes() const
 {
-	const char* const* outputPlugins = xine_list_audio_output_plugins(m_xine);
+	const char* const* outputPlugins = xine_list_audio_output_plugins( m_xine_engine->m_xine );
 	int i = 0;
 
 	QSet<int> set;
 
-	while(outputPlugins[i])
+	while( outputPlugins[i] )
 	{
 		kDebug() << 10000 + i << " = " << outputPlugins[i] << endl;
 		set << 10000 + i;
@@ -161,12 +164,12 @@ QSet<int> Backend::audioOutputDeviceIndexes() const
 
 QString Backend::audioOutputDeviceName( int index ) const
 {
-	const char* const* outputPlugins = xine_list_audio_output_plugins(m_xine);
+	const char* const* outputPlugins = xine_list_audio_output_plugins( m_xine_engine->m_xine );
 	int i = 0;
 
-	while(outputPlugins[i])
+	while( outputPlugins[i] )
 	{
-		if(10000 + i == index)
+		if( 10000 + i == index )
 		{
 			QString name = outputPlugins[i];
 			return name.toLatin1();
@@ -179,14 +182,14 @@ QString Backend::audioOutputDeviceName( int index ) const
 
 QString Backend::audioOutputDeviceDescription( int index ) const
 {
-	const char* const* outputPlugins = xine_list_audio_output_plugins(m_xine);
+	const char* const* outputPlugins = xine_list_audio_output_plugins( m_xine_engine->m_xine );
 	int i = 0;
 
-	while(outputPlugins[i])
+	while( outputPlugins[i] )
 	{
-		if(10000 + i == index)
+		if( 10000 + i == index )
 		{
-			QString description = xine_get_audio_driver_plugin_description(m_xine, outputPlugins[i]);
+			QString description = xine_get_audio_driver_plugin_description( m_xine_engine->m_xine, outputPlugins[i] );
 			return description.toLatin1();
 		}
 		++i;
