@@ -103,7 +103,7 @@ State AbstractMediaProducer::state() const
 bool AbstractMediaProducer::hasVideo() const
 {
 	//kDebug() << k_funcinfo << endl;
-	return false;
+	return xine_get_stream_info( m_xine_engine->m_stream, XINE_STREAM_INFO_HAS_VIDEO );
 }
 
 bool AbstractMediaProducer::seekable() const
@@ -254,7 +254,7 @@ void AbstractMediaProducer::fillBuffer( QVector<float>* buffer )
 	//if( !createdump.isOpen() )
 		//createdump.open( QIODevice::WriteOnly );
 
-	m_frequency *= 1.059463094359f;
+/*	m_frequency *= 1.059463094359f;
 	if( m_frequency > maxFrequency )
 		m_frequency = minFrequency;
 	float delta = frequencyToDelta * m_frequency;
@@ -270,7 +270,7 @@ void AbstractMediaProducer::fillBuffer( QVector<float>* buffer )
 		m_position += delta;
 		if( m_position > TWOPI )
 			m_position -= TWOPI;
-	}
+	}*/
 }
 
 }}
