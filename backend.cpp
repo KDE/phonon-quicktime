@@ -70,12 +70,12 @@ Ifaces::MediaObject*      Backend::createMediaObject( QObject* parent )
 
 Ifaces::AvCapture*        Backend::createAvCapture( QObject* parent )
 {
-	return new AvCapture( parent );
+	return new AvCapture( parent, m_xine_engine );
 }
 
 Ifaces::ByteStream*       Backend::createByteStream( QObject* parent )
 {
-	return new ByteStream( parent );
+	return new ByteStream( parent, m_xine_engine );
 }
 
 Ifaces::AudioPath*        Backend::createAudioPath( QObject* parent )

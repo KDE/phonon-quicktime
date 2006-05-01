@@ -25,17 +25,20 @@
 #include <QList>
 #include "audiopath.h"
 
+#include <xine.h>
+#include "xine_engine.h"
+
 class QTimer;
 
 namespace Phonon
 {
 namespace Xine
 {
-	class /*KDE_EXPORT*/ AbstractMediaProducer : public QObject, virtual public Ifaces::AbstractMediaProducer
+	class AbstractMediaProducer : public QObject, virtual public Ifaces::AbstractMediaProducer
 	{
 		Q_OBJECT
 		public:
-			AbstractMediaProducer( QObject* parent );
+			AbstractMediaProducer( QObject* parent, XineEngine* xe );
 			virtual ~AbstractMediaProducer();
 			virtual bool addVideoPath( Ifaces::VideoPath* videoPath );
 			virtual bool addAudioPath( Ifaces::AudioPath* audioPath );
@@ -70,6 +73,7 @@ namespace Xine
 			virtual void emitTick();
 
 		private:
+			XineEngine* m_xine_engine;
 			State m_state;
 			QTimer* m_tickTimer;
 			long m_tickInterval;

@@ -28,7 +28,7 @@ namespace Phonon
 namespace Xine
 {
 MediaObject::MediaObject( QObject* parent, XineEngine* xe )
-	: AbstractMediaProducer( parent )
+	: AbstractMediaProducer( parent, xe )
 	, m_aboutToFinishNotEmitted( true )
 {
 	//kDebug() << k_funcinfo << endl;
@@ -83,7 +83,6 @@ void MediaObject::setUrl( const KUrl& url )
 	m_url = url;
 	kDebug() << "url = " << m_url.url() << endl;
 	xine_open( m_xine_engine->m_stream, "/" + m_url.url().toLocal8Bit() );
-	//kDebug() << "media seekable = " << xine_get_stream_info( m_stream, XINE_STREAM_INFO_SEEKABLE ) << endl;
 	emit length( totalTime() );
 }
 
@@ -124,6 +123,9 @@ void MediaObject::stop()
 void MediaObject::seek( long time )
 {
 	//kDebug() << k_funcinfo << endl;
+
+	//xine_trick_mode( m_xine_engine->m_stream, XINE_TRICK_MODE_SEEK_TO_TIME, time );
+
 	AbstractMediaProducer::seek( time );
 
 	if( currentTime() < totalTime() - m_aboutToFinishTime ) // not about to finish
