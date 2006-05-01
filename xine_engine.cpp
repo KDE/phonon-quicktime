@@ -17,29 +17,32 @@
 
 */
 
-#ifndef xine_engine
-#define xine_engine
+#include "xine_engine.h"
 
-#include <xine.h>
+#include <kdebug.h>
 
 namespace Phonon
 {
 namespace Xine
 {
-
-	class XineEngine
+	XineEngine::XineEngine()
 	{
-		public:
-			XineEngine();
+		m_xine = 0;
+		m_stream = 0;
+		m_audioPort = 0;
+		m_eventQueue = 0;
+	}
 
-			static void xineEventListener( void*, const xine_event_t* );
-			xine_t* m_xine;
-			xine_stream_t* m_stream;
-			xine_audio_port_t* m_audioPort;
-			xine_event_queue_t* m_eventQueue;
-	};
+	void XineEngine::xineEventListener( void *p, const xine_event_t* xineEvent )
+	{
+		if( !p )
+			return;
 
+		/*switch( xineEvent->type ) 
+		{
+		}*/
+
+		kDebug() << "Xine event: " << xineEvent->type << endl;
+	}
 }
 }
-
-#endif //xine_engine

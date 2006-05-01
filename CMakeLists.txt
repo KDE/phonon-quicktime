@@ -7,6 +7,7 @@ include_directories( ${KDE4_INCLUDE_DIR} ${QT_INCLUDES} )
 ########### next target ###############
 
 set(phonon_xine_PART_SRCS 
+   xine_engine.cpp
    abstractmediaproducer.cpp 
    abstractaudiooutput.cpp 
    audiodataoutput.cpp 

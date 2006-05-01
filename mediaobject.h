@@ -49,7 +49,6 @@ namespace Xine
 			virtual void play();
 			virtual void pause();
 			virtual void seek( long time );
-			//void setXineEngine(xine_t* xe) {m_xine = xe;}
 
 		public Q_SLOTS:
 			virtual void stop();
@@ -63,7 +62,6 @@ namespace Xine
 			virtual void emitTick();
 
 		private:
-			//static void xineEventListener( void*, const xine_event_t* );
 			XineEngine* m_xine_engine;
 			KUrl m_url;
 			long m_aboutToFinishTime;
