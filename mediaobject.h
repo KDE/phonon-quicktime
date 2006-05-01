@@ -25,7 +25,7 @@
 
 #include <xine.h>
 
-#include "backend.h"
+#include "xine_engine.h"
 
 class KUrl;
 
@@ -37,8 +37,7 @@ namespace Xine
 	{
 		Q_OBJECT
 		public:
-			MediaObject( QObject* parent );
-			MediaObject( QObject* parent, xine_t* xe );
+			MediaObject( QObject* parent, XineEngine* xe );
 			virtual ~MediaObject();
 			virtual KUrl url() const;
 			virtual long totalTime() const;
@@ -64,9 +63,8 @@ namespace Xine
 			virtual void emitTick();
 
 		private:
-			xine_t* m_xine;
-			xine_stream_t* m_stream;
-			xine_audio_port_t* m_audioPort;
+			//static void xineEventListener( void*, const xine_event_t* );
+			XineEngine* m_xine_engine;
 			KUrl m_url;
 			long m_aboutToFinishTime;
 			bool m_aboutToFinishNotEmitted;

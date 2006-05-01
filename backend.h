@@ -28,6 +28,8 @@
 #include <xine.h>
 #include <xine/xineutils.h>
 
+#include "xine_engine.h"
+
 class KUrl;
 
 namespace Phonon
@@ -104,10 +106,8 @@ namespace Xine
 			virtual const char* uiLibrary() const;
 			//virtual const char* uiSymbol() const;
 
-			//xine_t* getXineEngine() {return m_xine;}
-
 		private:
-			xine_t *m_xine;
+			XineEngine* m_xine_engine;
 			QStringList m_supportedMimeTypes;
 			QList<QPointer<AudioOutput> > m_audioOutputs;			
 	};
