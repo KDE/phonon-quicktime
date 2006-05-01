@@ -57,7 +57,17 @@ KUrl MediaObject::url() const
 long MediaObject::totalTime() const
 {
 	//kDebug() << k_funcinfo << endl;
-	return 1000*60*3; // 3 minutes
+
+	int positionstream = 0;
+	int positiontime = 0;
+	int lengthtime = 0;
+
+	if( xine_get_pos_length( m_xine_engine->m_stream, &positionstream, &positiontime, &lengthtime ) == 1 )
+	{
+		return lengthtime;
+	}
+	else
+		return 0;
 }
 
 long MediaObject::aboutToFinishTime() const
