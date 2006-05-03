@@ -83,29 +83,6 @@ inline void AudioDataOutput::convertAndEmit( const QVector<float>& buffer )
 	}
 }
 
-void AudioDataOutput::processBuffer( const QVector<float>& buffer )
-{
-	// TODO emit endOfMedia
-	m_pendingData += buffer;
-	if( m_pendingData.size() < m_dataSize )
-		return;
-
-	if( m_pendingData.size() == m_dataSize )
-		convertAndEmit( buffer );
-	else
-	{
-		QVector<float> floatBuffer( m_dataSize );
-		while( m_pendingData.size() >= m_dataSize )
-		{
-			memcpy( floatBuffer.data(), m_pendingData.constData(), m_dataSize * sizeof( float ) );
-			convertAndEmit( floatBuffer );
-			int newSize = m_pendingData.size() - m_dataSize;
-			memmove( m_pendingData.data(), m_pendingData.constData() + m_dataSize, newSize * sizeof( float ) );
-			m_pendingData.resize( newSize );
-		}
-	}
-}
-
 }} //namespace Phonon::Xine
 
 #include "audiodataoutput.moc"
