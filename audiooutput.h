@@ -47,11 +47,6 @@ namespace Xine
 			virtual void setVolume( float newVolume );
 			virtual void setOutputDevice( int newDevice );
 
-			virtual void processBuffer( const QVector<float>& buffer );
-
-			void openDevice();
-			void closeDevice();
-
 		Q_SIGNALS:
 			void volumeChanged( float newVolume );
 
@@ -60,7 +55,6 @@ namespace Xine
 			float m_volume;
 			QString m_name;
 			int m_device;
-			QFile m_dsp;
 	};
 }} //namespace Phonon::Xine
 
