@@ -29,12 +29,12 @@ namespace Phonon
 {
 namespace Xine
 {
-AudioOutput::AudioOutput( QObject* parent )
+AudioOutput::AudioOutput( QObject* parent, XineEngine* xe )
 	: AbstractAudioOutput( parent )
+	, m_xine_engine( xe )
 	, m_device( 1 )
 	, m_dsp( "/dev/dsp" )
 {
-	//m_xine = xe;
 }
 
 AudioOutput::~AudioOutput()
@@ -64,6 +64,13 @@ void AudioOutput::setName( const QString& newName )
 void AudioOutput::setVolume( float newVolume )
 {
 	m_volume = newVolume;
+
+	int xinevolume = int(m_volume * 100);
+	if( xinevolume > 200) xinevolume = 200;
+	if( xinevolume < 0) xinevolume = 0;
+
+	xine_set_param( m_xine_engine->m_stream, XINE_PARAM_AUDIO_AMP_LEVEL, xinevolume );
+
 	emit volumeChanged( m_volume );
 }
 

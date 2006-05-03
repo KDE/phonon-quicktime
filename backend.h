@@ -108,8 +108,7 @@ namespace Xine
 
 		private:
 			XineEngine* m_xine_engine;
-			QStringList m_supportedMimeTypes;
-			QList<QPointer<AudioOutput> > m_audioOutputs;			
+			QStringList m_supportedMimeTypes;	
 	};
 }} // namespace Phonon::Ifaces
 
