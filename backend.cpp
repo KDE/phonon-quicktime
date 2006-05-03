@@ -56,6 +56,11 @@ Backend::Backend( QObject* parent, const char*, const QStringList& )
 	xine_init( m_xine_engine->m_xine );
 
 	kDebug() << "Using Xine version " << xine_get_version_string() << endl;
+
+	// testing
+	//xine_video_port_t* m_videoPort = xine_open_video_driver( m_xine, "auto", 1, NULL );
+	m_xine_engine->m_audioPort = xine_open_audio_driver( m_xine_engine->m_xine, "auto", NULL );
+	m_xine_engine->m_stream = xine_stream_new( m_xine_engine->m_xine, m_xine_engine->m_audioPort, NULL /*m_videoPort*/ );
 }
 
 Backend::~Backend()
