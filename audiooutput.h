@@ -23,6 +23,9 @@
 #include <phonon/ifaces/audiooutput.h>
 #include <QFile>
 
+#include "xine_engine.h"
+#include <xine.h>
+
 namespace Phonon
 {
 namespace Xine
@@ -31,7 +34,7 @@ namespace Xine
 	{
 		Q_OBJECT
 		public:
-			AudioOutput( QObject* parent );
+			AudioOutput( QObject* parent, XineEngine* xe );
 			virtual ~AudioOutput();
 
 			// Attributes Getters:
@@ -53,6 +56,7 @@ namespace Xine
 			void volumeChanged( float newVolume );
 
 		private:
+			XineEngine* m_xine_engine;
 			float m_volume;
 			QString m_name;
 			int m_device;

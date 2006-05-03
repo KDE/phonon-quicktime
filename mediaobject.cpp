@@ -82,7 +82,7 @@ void MediaObject::setUrl( const KUrl& url )
 	stop();
 	m_url = url;
 	kDebug() << "url = " << m_url.url() << endl;
-	xine_open( m_xine_engine->m_stream, "/" + m_url.url().toLocal8Bit() );
+	xine_open( m_xine_engine->m_stream, m_url.url().toUtf8() );
 	emit length( totalTime() );
 }
 

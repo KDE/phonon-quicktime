@@ -95,9 +95,7 @@ Ifaces::VolumeFaderEffect*      Backend::createVolumeFaderEffect( QObject* paren
 
 Ifaces::AudioOutput*      Backend::createAudioOutput( QObject* parent )
 {
-	AudioOutput* ao = new AudioOutput( parent );
-	m_audioOutputs.append( ao );
-	return ao;
+	return new AudioOutput( parent, m_xine_engine );
 }
 
 Ifaces::AudioDataOutput*  Backend::createAudioDataOutput( QObject* parent )
@@ -347,9 +345,6 @@ const char* Backend::uiLibrary() const
 
 void Backend::freeSoundcardDevices()
 {
-	foreach( QPointer<AudioOutput> ao, m_audioOutputs )
-		if( ao )
-			ao->closeDevice();
 }
 
 }}
