@@ -35,10 +35,6 @@ MediaObject::MediaObject( QObject* parent, XineEngine* xe )
 
 	m_xine_engine = xe;
 
-	// testing
-	//xine_video_port_t* m_videoPort = xine_open_video_driver( m_xine, "auto", 1, NULL );
-	m_xine_engine->m_audioPort = xine_open_audio_driver( m_xine_engine->m_xine, "auto", NULL );
-	m_xine_engine->m_stream = xine_stream_new( m_xine_engine->m_xine, m_xine_engine->m_audioPort, NULL /*m_videoPort*/ );
 	xine_event_create_listener_thread( m_xine_engine->m_eventQueue = xine_event_new_queue( m_xine_engine->m_stream ), &m_xine_engine->xineEventListener, (void*)this );
 
 }
