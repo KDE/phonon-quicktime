@@ -33,8 +33,6 @@ namespace Xine
 			AbstractAudioOutput( QObject* parent );
 			virtual ~AbstractAudioOutput();
 
-			virtual void processBuffer( const QVector<float>& buffer ) = 0;
-
 		public:
 			virtual QObject* qobject() { return this; }
 			virtual const QObject* qobject() const { return this; }

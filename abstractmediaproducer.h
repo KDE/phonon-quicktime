@@ -55,8 +55,6 @@ namespace Xine
 			virtual void stop();
 			virtual void seek( long time );
 
-			void setBufferSize( int size );
-
 		Q_SIGNALS:
 			void stateChanged( Phonon::State newstate, Phonon::State oldstate );
 			void tick( long time );
@@ -66,7 +64,6 @@ namespace Xine
 			virtual const QObject* qobject() const { return this; }
 
 		protected:
-			void fillBuffer( QVector<float>* buffer );
 			void setState( State );
 
 		protected Q_SLOTS:
@@ -80,10 +77,6 @@ namespace Xine
 			QTime m_startTime, m_pauseTime;
 			int m_bufferSize;
 			QList<AudioPath*> m_audioPathList;
-			int m_lastSamplesMissing;
-
-			// for sound synthesis
-			float m_position, m_frequency;
 	};
 }} //namespace Phonon::Xine
 

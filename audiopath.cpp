@@ -109,15 +109,6 @@ bool AudioPath::removeEffect( Ifaces::AudioEffect* effect )
 	return false;
 }
 
-void AudioPath::processBuffer( const QVector<float>& _buffer )
-{
-	QVector<float> buffer( _buffer );
-	foreach( AudioEffect* effect, m_effects )
-		effect->processBuffer( buffer ); //modifies the buffer
-	foreach( AbstractAudioOutput* output, m_outputs )
-		output->processBuffer( buffer );
-}
-
 }}
 
 #include "audiopath.moc"

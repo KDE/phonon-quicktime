@@ -11,7 +11,6 @@ set(phonon_xine_PART_SRCS
    abstractmediaproducer.cpp 
    abstractaudiooutput.cpp 
    audiodataoutput.cpp 
-   delayaudioeffect.cpp
    audioeffect.cpp 
    audiooutput.cpp 
    audiopath.cpp 

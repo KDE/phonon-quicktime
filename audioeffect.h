@@ -37,15 +37,9 @@ namespace Xine
 			virtual float value( int parameterId ) const;
 			virtual void setValue( int parameterId, float newValue );
 
-			// Fake specific:
-			virtual void processBuffer( QVector<float>& buffer );
-
 		public:
 			virtual QObject* qobject() { return this; }
 			virtual const QObject* qobject() const { return this; }
-
-		private:
-			EffectInterface* m_effect;
 	};
 }} //namespace Phonon::Xine
 

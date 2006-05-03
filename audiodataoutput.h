@@ -40,9 +40,6 @@ namespace Xine
 			virtual void setFormat( Phonon::AudioDataOutput::Format format );
 			virtual void setDataSize( int size );
 
-			// Fake specific:
-			virtual void processBuffer( const QVector<float>& buffer );
-
 		signals:
 			void dataReady( const QMap<Phonon::AudioDataOutput::Channel, QVector<qint16> >& data );
 			void dataReady( const QMap<Phonon::AudioDataOutput::Channel, QVector<float> >& data );

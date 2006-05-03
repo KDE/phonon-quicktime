@@ -39,10 +39,6 @@ AbstractMediaProducer::AbstractMediaProducer( QObject* parent, XineEngine* xe )
 	, m_xine_engine( xe )
 	, m_state( Phonon::LoadingState )
 	, m_tickTimer( new QTimer( this ) )
-	, m_bufferSize( 512 )
-	, m_lastSamplesMissing( 0 )
-	, m_position( 0.0f )
-	, m_frequency( 440.0f )
 {
 	//kDebug() << k_funcinfo << endl;
 	connect( m_tickTimer, SIGNAL( timeout() ), SLOT( emitTick() ) );
@@ -51,11 +47,6 @@ AbstractMediaProducer::AbstractMediaProducer( QObject* parent, XineEngine* xe )
 AbstractMediaProducer::~AbstractMediaProducer()
 {
 	//kDebug() << k_funcinfo << endl;
-}
-
-void AbstractMediaProducer::setBufferSize( int size )
-{
-	m_bufferSize = size;
 }
 
 bool AbstractMediaProducer::addVideoPath( Ifaces::VideoPath* videoPath )
@@ -167,8 +158,6 @@ void AbstractMediaProducer::stop()
 	//kDebug() << k_funcinfo << endl;
 	m_tickTimer->stop();
 	setState( Phonon::StoppedState );
-	m_position = 0.0f;
-	m_frequency = 440.0f;
 }
 
 void AbstractMediaProducer::seek( long time )
@@ -230,47 +219,6 @@ void AbstractMediaProducer::emitTick()
 		emit tick( currentTime() );
 		tickInterval = m_tickInterval;
 	}
-	QVector<float> buffer( m_bufferSize );
-
-	const int availableSamples = tickInterval * SAMPLE_RATE / 1000 + m_lastSamplesMissing;
-	const int bufferCount = availableSamples / m_bufferSize;
-	m_lastSamplesMissing = availableSamples - bufferCount * m_bufferSize;
-	for( int i = 0; i < bufferCount; ++i )
-	{
-		fillBuffer( &buffer );
-		foreach( AudioPath* ap, m_audioPathList )
-			ap->processBuffer( buffer );
-	}
-}
-
-static const float TWOPI = 6.28318530718f;
-static const float maxFrequency = 1760.0f;
-static const float minFrequency = 440.0f;
-static const float frequencyToDelta = TWOPI / SAMPLE_RATE_FLOAT;
-
-void AbstractMediaProducer::fillBuffer( QVector<float>* buffer )
-{
-	//static QFile createdump( "createdump" );
-	//if( !createdump.isOpen() )
-		//createdump.open( QIODevice::WriteOnly );
-
-/*	m_frequency *= 1.059463094359f;
-	if( m_frequency > maxFrequency )
-		m_frequency = minFrequency;
-	float delta = frequencyToDelta * m_frequency;
-
-	float* data = buffer->data();
-	const float * const end = data + m_bufferSize;
-
-	while( data != end )
-	{
-		const float sample = sinf( m_position );
-		//createdump.write( QByteArray::number( sample ) + "\n" );
-		*( data++ ) = sample;
-		m_position += delta;
-		if( m_position > TWOPI )
-			m_position -= TWOPI;
-	}*/
 }
 
 }}
