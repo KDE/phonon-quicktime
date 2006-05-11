@@ -24,6 +24,8 @@
 #include <QTime>
 #include <QList>
 #include "audiopath.h"
+#include "videopath.h"
+#include <QHash>
 
 #include <xine.h>
 #include "xine_engine.h"
@@ -32,6 +34,12 @@ class QTimer;
 
 namespace Phonon
 {
+
+namespace Ifaces
+{
+	class VideoPath;
+	class AudioPath;
+}
 namespace Xine
 {
 	class AbstractMediaProducer : public QObject, virtual public Ifaces::AbstractMediaProducer
@@ -49,6 +57,19 @@ namespace Xine
 			virtual bool seekable() const;
 			virtual long currentTime() const;
 			virtual long tickInterval() const;
+
+			virtual QStringList availableAudioStreams() const;
+			virtual QStringList availableVideoStreams() const;
+			virtual QStringList availableSubtitleStreams() const;
+
+			virtual QString selectedAudioStream( const Ifaces::AudioPath* audioPath ) const;
+			virtual QString selectedVideoStream( const Ifaces::VideoPath* videoPath ) const;
+			virtual QString selectedSubtitleStream( const Ifaces::VideoPath* videoPath ) const;
+
+			virtual void selectAudioStream( const QString& streamName, const Ifaces::AudioPath* audioPath );
+			virtual void selectVideoStream( const QString& streamName, const Ifaces::VideoPath* videoPath );
+			virtual void selectSubtitleStream( const QString& streamName, const Ifaces::VideoPath* videoPath );
+
 			virtual long setTickInterval( long newTickInterval );
 			virtual void play();
 			virtual void pause();
@@ -77,6 +98,11 @@ namespace Xine
 			QTime m_startTime, m_pauseTime;
 			int m_bufferSize;
 			QList<AudioPath*> m_audioPathList;
+			QList<VideoPath*> m_videoPathList;
+
+			QHash<const Ifaces::AudioPath*, QString> m_selectedAudioStream;
+			QHash<const Ifaces::VideoPath*, QString> m_selectedVideoStream;
+			QHash<const Ifaces::VideoPath*, QString> m_selectedSubtitleStream;
 	};
 }} //namespace Phonon::Xine
 

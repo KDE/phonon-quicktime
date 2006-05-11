@@ -21,6 +21,7 @@
 
 #include <QObject>
 #include <phonon/ifaces/videopath.h>
+#include <phonon/videoframe.h>
 #include <QList>
 
 namespace Phonon
@@ -49,7 +50,7 @@ namespace Xine
 
 		private:
 			QList<VideoEffect*> m_effects;
-			QList<Ifaces::AbstractVideoOutput*> m_outputs;
+			QList<AbstractVideoOutput*> m_outputs;
 	};
 }} //namespace Phonon::Xine
 

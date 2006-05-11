@@ -2,24 +2,25 @@ kde4_header()
 
 include_directories( ${KDE4_INCLUDE_DIR} ${QT_INCLUDES} )
 
-# add_subdirectory( ui ) 
+# add_subdirectory( ui )
 
 ########### next target ###############
 
-set(phonon_xine_PART_SRCS 
+set(phonon_xine_PART_SRCS
    xine_engine.cpp
-   abstractmediaproducer.cpp 
-   abstractaudiooutput.cpp 
-   audiodataoutput.cpp 
-   audioeffect.cpp 
-   audiooutput.cpp 
-   audiopath.cpp 
-   bytestream.cpp 
-   mediaobject.cpp 
-   avcapture.cpp 
-   videoeffect.cpp 
-   videopath.cpp 
-   backend.cpp 
+   abstractmediaproducer.cpp
+   abstractaudiooutput.cpp
+   audiodataoutput.cpp
+   audioeffect.cpp
+   audiooutput.cpp
+   audiopath.cpp
+   bytestream.cpp
+   mediaobject.cpp
+   avcapture.cpp
+   videoeffect.cpp
+   videopath.cpp
+   videodataoutput.cpp
+   backend.cpp
    volumefadereffect.cpp )
 
 kde4_automoc(${phonon_xine_PART_SRCS})

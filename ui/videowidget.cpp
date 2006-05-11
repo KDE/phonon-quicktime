@@ -19,6 +19,9 @@
 
 #include "videowidget.h"
 #include <QPalette>
+#include <QImage>
+#include <QPainter>
+#include <kdebug.h>
 
 namespace Phonon
 {
