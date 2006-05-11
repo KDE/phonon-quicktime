@@ -21,6 +21,9 @@
 
 #include <QWidget>
 #include <phonon/ui/ifaces/videowidget.h>
+#include <phonon/videoframe.h>
+#include "../abstractvideooutput.h"
+#include <QPixmap>
 
 class QString;
 
@@ -30,18 +33,17 @@ namespace Ui
 {
 namespace Fake
 {
-	class VideoWidget : public QWidget, virtual public Ui::Ifaces::VideoWidget
+	class VideoWidget : public QWidget, virtual public Ui::Ifaces::VideoWidget, public Phonon::Fake::AbstractVideoOutput
 	{
 		Q_OBJECT
 		public:
 			VideoWidget( QWidget* parent = 0 );
 
+			virtual void* internal1( void* = 0 ) { return static_cast<Phonon::Fake::AbstractVideoOutput*>( this ); }
+
 		public:
 			virtual QObject* qobject() { return this; }
 			virtual const QObject* qobject() const { return this; }
-
-		private:
-			bool m_fullscreen;
 	};
 }}} //namespace Phonon::Ui::Fake
 
