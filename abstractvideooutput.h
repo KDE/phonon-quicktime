@@ -17,48 +17,23 @@
 
 */
 
-#include "videodataoutput.h"
-#include <kdebug.h>
+#ifndef PHONON_XINE_ABSTRACTVIDEOOUTPUT_H
+#define PHONON_XINE_ABSTRACTVIDEOOUTPUT_H
+
+#include <phonon/videoframe.h>
 
 namespace Phonon
 {
 namespace Xine
 {
-VideoDataOutput::VideoDataOutput( QObject* parent )
-	: QObject( parent )
+
+class AbstractVideoOutput
 {
-}
+	public:
+		virtual ~AbstractVideoOutput() {}
+};
 
-VideoDataOutput::~VideoDataOutput()
-{
-}
+}} //namespace Phonon::Fake
 
-Phonon::VideoDataOutput::Format VideoDataOutput::format() const
-{
-	return m_format;
-}
-
-int VideoDataOutput::displayLatency() const
-{
-	return m_latency;
-}
-
-int VideoDataOutput::frameRate() const
-{
-	return 25;
-}
-
-void VideoDataOutput::setFormat( Phonon::VideoDataOutput::Format format )
-{
-	m_format = format;
-}
-
-void VideoDataOutput::setDisplayLatency( int milliseconds )
-{
-	m_latency = milliseconds;
-}
-
-}} //namespace Phonon::Xine
-
-#include "videodataoutput.moc"
+#endif // PHONON_XINE_ABSTRACTVIDEOOUTPUT_H
 // vim: sw=4 ts=4 noet

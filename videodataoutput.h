@@ -1,10 +1,9 @@
 /*  This file is part of the KDE project
-    Copyright (C) 2006,2008 Matthias Kretz <kretz@kde.org>
+    Copyright (C) 2006 Matthias Kretz <kretz@kde.org>
 
-    This program is free software; you can redistribute it and/or
+    This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
-    License as published by the Free Software Foundation; either
-    version 2 of the License, or (at your option) any later version.
+    License version 2 as published by the Free Software Foundation.
 
     This library is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -17,40 +16,51 @@
     Boston, MA 02110-1301, USA.
 
 */
-#ifndef PHONON_XINE_VIDEODATAOUTPUT_H
-#define PHONON_XINE_VIDEODATAOUTPUT_H
+#ifndef Phonon_XINE_VIDEODATAOUTPUT_H
+#define Phonon_XINE_VIDEODATAOUTPUT_H
 
-#include "sinknode.h"
-
-#include <Phonon/Experimental/VideoDataOutputInterface>
-#include <Phonon/Experimental/VideoFrame>
-
-#include <QtCore/QByteArray>
-#include <QtCore/QList>
-#include <QtCore/QObject>
-#include <QtCore/QSize>
-#include <QtCore/QVector>
-
-#include <xine.h>
+#include "abstractvideooutput.h"
+#include <phonon/ifaces/videodataoutput.h>
+#include <phonon/videoframe.h>
+#include <QVector>
+#include <QByteArray>
+#include <QObject>
 
 namespace Phonon
 {
 namespace Xine
 {
+	/**
+	 * \author Matthias Kretz <kretz@kde.org>
+	 */
+	class VideoDataOutput : public QObject, virtual public Ifaces::VideoDataOutput, public Phonon::Xine::AbstractVideoOutput
+	{
+		Q_OBJECT
+		public:
+			VideoDataOutput( QObject* parent );
+			~VideoDataOutput();
 
-class VideoDataOutput : public QObject, public Phonon::Experimental::VideoDataOutputInterface, public Phonon::Xine::SinkNode
-{
-    Q_OBJECT
-    Q_INTERFACES(Phonon::Experimental::VideoDataOutputInterface Phonon::Xine::SinkNode)
-    public:
-        VideoDataOutput(QObject *parent);
-        ~VideoDataOutput();
+			virtual Phonon::VideoDataOutput::Format format() const;
+			virtual int displayLatency() const;
+			virtual int frameRate() const;
+			virtual void setFormat( Phonon::VideoDataOutput::Format format );
+			virtual void setDisplayLatency( int milliseconds );
 
-        MediaStreamTypes inputMediaStreamTypes() const { return Phonon::Xine::Video; }
+			virtual void* internal1( void* = 0 ) { return static_cast<Phonon::Xine::AbstractVideoOutput*>( this ); }
 
-        Experimental::AbstractVideoDataOutput *frontendObject() const;
-        void setFrontendObject(Experimental::AbstractVideoDataOutput *);
-};
+		signals:
+			void frameReady( const Phonon::VideoFrame& frame );
+			void endOfMedia();
+
+		public:
+			virtual QObject* qobject() { return this; }
+			virtual const QObject* qobject() const { return this; }
+
+		private:
+			Phonon::VideoDataOutput::Format m_format;
+			int m_latency;
+	};
 }} //namespace Phonon::Xine
 
-#endif // PHONON_XINE_VIDEODATAOUTPUT_H
+// vim: sw=4 ts=4 tw=80 noet
+#endif // Phonon_XINE_VIDEODATAOUTPUT_H
