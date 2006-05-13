@@ -1,4 +1,4 @@
-kde4_header()
+
 
 include_directories( ${KDE4_INCLUDE_DIR} ${QT_INCLUDES} )
 
@@ -38,4 +38,4 @@ install_targets(${PLUGIN_INSTALL_DIR} phonon_xine )
 
 install_files( ${SERVICES_INSTALL_DIR}/phononbackends FILES xine.desktop )
 
-kde4_footer()
+

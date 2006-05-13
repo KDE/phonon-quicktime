@@ -1,4 +1,4 @@
-kde4_header()
+
 
 ########### next target ###############
 
@@ -17,4 +17,4 @@ install_targets(${PLUGIN_INSTALL_DIR} phonon_fakeui )
 
 ########### install files ###############
 
-kde4_footer()
+
