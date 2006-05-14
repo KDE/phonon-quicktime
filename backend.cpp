@@ -351,55 +351,107 @@ int Backend::videoCaptureDeviceAudioIndex( int index ) const
 
 QSet<int> Backend::audioEffectIndexes() const
 {
-	QSet<int> ret;
-	ret << 0x7F000001;
-	return ret;
+	const char* const* postPlugins = xine_list_post_plugins_typed( m_xine_engine->m_xine, XINE_POST_TYPE_AUDIO_FILTER );
+	int i = 0;
+
+	QSet<int> set;
+
+	while( postPlugins[i] )
+	{
+		kDebug() << 0x7F000000 + i << " = " << postPlugins[i] << endl;
+		set << 0x7F000000 + i;
+		++i;
+	}
+
+	return set;
 }
 
 QString Backend::audioEffectName( int index ) const
 {
-	switch( index )
+	const char* const* postPlugins = xine_list_post_plugins_typed( m_xine_engine->m_xine, XINE_POST_TYPE_AUDIO_FILTER );
+	int i = 0;
+
+	while( postPlugins[i] )
 	{
-		case 0x7F000001:
-			return "Delay";
+		if( 0x7F000000 + i == index )
+		{
+			QString name = postPlugins[i];
+			return name.toLatin1();
+		}
+		++i;
 	}
+
 	return QString();
 }
 
 QString Backend::audioEffectDescription( int index ) const
 {
-	switch( index )
+	const char* const* postPlugins = xine_list_post_plugins_typed( m_xine_engine->m_xine, XINE_POST_TYPE_AUDIO_FILTER );
+	int i = 0;
+
+	while( postPlugins[i] )
 	{
-		case 0x7F000001:
-			return "Simple delay effect with time, feedback and level controls.";
+		if( 0x7F000000 + i == index )
+		{
+			QString description = xine_get_post_plugin_description( m_xine_engine->m_xine, postPlugins[i] );
+			return description.toLatin1();
+		}
+		++i;
 	}
+
 	return QString();
 }
 
 QSet<int> Backend::videoEffectIndexes() const
 {
-	QSet<int> ret;
-	ret << 0x7E000001;
-	return ret;
+	const char* const* postPlugins = xine_list_post_plugins_typed( m_xine_engine->m_xine, XINE_POST_TYPE_VIDEO_FILTER );
+	int i = 0;
+
+	QSet<int> set;
+
+	while( postPlugins[i] )
+	{
+		kDebug() << 0x7E000000 + i << " = " << postPlugins[i] << endl;
+		set << 0x7E000000 + i;
+		++i;
+	}
+
+	return set;
 }
 
 QString Backend::videoEffectName( int index ) const
 {
-	switch( index )
+	const char* const* postPlugins = xine_list_post_plugins_typed( m_xine_engine->m_xine, XINE_POST_TYPE_VIDEO_FILTER );
+	int i = 0;
+
+	while( postPlugins[i] )
 	{
-		case 0x7E000001:
-			return "VideoEffect1";
+		if( 0x7E000000 + i == index )
+		{
+			QString name = postPlugins[i];
+			return name.toLatin1();
+		}
+		++i;
 	}
+
 	return QString();
 }
 
 QString Backend::videoEffectDescription( int index ) const
 {
-	switch( index )
+	const char* const* postPlugins = xine_list_post_plugins_typed( m_xine_engine->m_xine, XINE_POST_TYPE_VIDEO_FILTER );
+	int i = 0;
+
+	while( postPlugins[i] )
 	{
-		case 0x7E000001:
-			return "Description 1";
+		if( 0x7E000000 + i == index )
+		{
+			QString name = postPlugins[i];
+			return name.toLatin1();
+		}
+		++i;
 	}
+
 	return QString();
 }
 
