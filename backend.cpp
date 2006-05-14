@@ -156,6 +156,7 @@ const QStringList& Backend::knownMimeTypes() const
 
 QSet<int> Backend::audioOutputDeviceIndexes() const
 {
+	// This will list the audio drivers, not the actual devices.
 	const char* const* outputPlugins = xine_list_audio_output_plugins( m_xine_engine->m_xine );
 	int i = 0;
 
@@ -253,31 +254,55 @@ int Backend::audioCaptureDeviceVideoIndex( int index ) const
 
 QSet<int> Backend::videoOutputDeviceIndexes() const
 {
+	const char* const* outputPlugins = xine_list_video_output_plugins( m_xine_engine->m_xine );
+	int i = 0;
+
 	QSet<int> set;
-	set << 40000 << 40001 << 40002 << 40003;
+
+	while( outputPlugins[i] )
+	{
+		kDebug() << 40000 + i << " = " << outputPlugins[i] << endl;
+		set << 40000 + i;
+		++i;
+	}
+
 	return set;
 }
 
 QString Backend::videoOutputDeviceName( int index ) const
 {
-	switch( index )
+	const char* const* outputPlugins = xine_list_video_output_plugins( m_xine_engine->m_xine );
+	int i = 0;
+
+	while( outputPlugins[i] )
 	{
-		case 40000:
-			return "XVideo";
-		case 40001:
-			return "XShm";
-		case 40002:
-			return "X11";
-		case 40003:
-			return "SDL";
+		if( 40000 + i == index )
+		{
+			QString name = outputPlugins[i];
+			return name.toLatin1();
+		}
+		++i;
 	}
+
 	return QString();
 }
 
 QString Backend::videoOutputDeviceDescription( int index ) const
 {
-	Q_UNUSED( index );
-	return QString(); // no description
+	const char* const* outputPlugins = xine_list_video_output_plugins( m_xine_engine->m_xine );
+	int i = 0;
+
+	while( outputPlugins[i] )
+	{
+		if( 40000 + i == index )
+		{
+			QString description = xine_get_video_driver_plugin_description( m_xine_engine->m_xine, outputPlugins[i] );
+			return description.toLatin1();
+		}
+		++i;
+	}
+
+	return QString();
 }
 
 QSet<int> Backend::videoCaptureDeviceIndexes() const
