@@ -21,14 +21,14 @@
 #include "videowidget.h"
 #include <kgenericfactory.h>
 
-typedef KGenericFactory<Phonon::Ui::Fake::Backend, Phonon::Ui::Ifaces::Backend> FakeUiBackendFactory;
-K_EXPORT_COMPONENT_FACTORY( phonon_fakeui, FakeUiBackendFactory( "fakeuibackend" ) )
+typedef KGenericFactory<Phonon::Ui::Xine::Backend, Phonon::Ui::Ifaces::Backend> XineUiBackendFactory;
+K_EXPORT_COMPONENT_FACTORY( phonon_fakeui, XineUiBackendFactory( "fakeuibackend" ) )
 
 namespace Phonon
 {
 namespace Ui
 {
-namespace Fake
+namespace Xine
 {
 
 Backend::Backend( QObject* parent, const QStringList& )
@@ -42,7 +42,7 @@ Backend::~Backend()
 
 Ifaces::VideoWidget* Backend::createVideoWidget( QWidget* parent )
 {
-	return new Fake::VideoWidget( parent );
+	return new Xine::VideoWidget( parent );
 }
 
 }}}

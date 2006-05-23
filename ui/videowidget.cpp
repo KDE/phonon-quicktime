@@ -27,7 +27,7 @@ namespace Phonon
 {
 namespace Ui
 {
-namespace Fake
+namespace Xine
 {
 
 VideoWidget::VideoWidget( QWidget* parent )
@@ -41,7 +41,7 @@ VideoWidget::VideoWidget( QWidget* parent )
 	setMinimumSize( 100, 100 );
 }
 
-}}} //namespace Phonon::Ui::Fake
+}}} //namespace Phonon::Ui::Xine
 
 #include "videowidget.moc"
 // vim: sw=4 ts=4 noet

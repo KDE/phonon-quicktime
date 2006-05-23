@@ -16,8 +16,8 @@
     Boston, MA 02110-1301, USA.
 
 */
-#ifndef Phonon_UI_FAKE_VIDEOWIDGET_H
-#define Phonon_UI_FAKE_VIDEOWIDGET_H
+#ifndef Phonon_UI_XINE_VIDEOWIDGET_H
+#define Phonon_UI_XINE_VIDEOWIDGET_H
 
 #include <QWidget>
 #include <phonon/ui/ifaces/videowidget.h>
@@ -31,21 +31,21 @@ namespace Phonon
 {
 namespace Ui
 {
-namespace Fake
+namespace Xine
 {
-	class VideoWidget : public QWidget, virtual public Ui::Ifaces::VideoWidget, public Phonon::Fake::AbstractVideoOutput
+	class VideoWidget : public QWidget, virtual public Ui::Ifaces::VideoWidget, public Phonon::Xine::AbstractVideoOutput
 	{
 		Q_OBJECT
 		public:
 			VideoWidget( QWidget* parent = 0 );
 
-			virtual void* internal1( void* = 0 ) { return static_cast<Phonon::Fake::AbstractVideoOutput*>( this ); }
+			virtual void* internal1( void* = 0 ) { return static_cast<Phonon::Xine::AbstractVideoOutput*>( this ); }
 
 		public:
 			virtual QObject* qobject() { return this; }
 			virtual const QObject* qobject() const { return this; }
 	};
-}}} //namespace Phonon::Ui::Fake
+}}} //namespace Phonon::Ui::Xine
 
 // vim: sw=4 ts=4 tw=80 noet
-#endif // Phonon_UI_FAKE_VIDEOWIDGET_H
+#endif // Phonon_UI_XINE_VIDEOWIDGET_H
