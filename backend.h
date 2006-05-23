@@ -45,6 +45,7 @@ namespace Ifaces
 	class VolumeFaderEffect;
 	class AudioOutput;
 	class AudioDataOutput;
+	class Visualization;
 
 	class VideoPath;
 	class VideoEffect;
@@ -70,6 +71,7 @@ namespace Xine
 			virtual Ifaces::VolumeFaderEffect* createVolumeFaderEffect( QObject* parent );
 			virtual Ifaces::AudioOutput*      createAudioOutput( QObject* parent );
 			virtual Ifaces::AudioDataOutput*  createAudioDataOutput( QObject* parent );
+			virtual Ifaces::Visualization*    createVisualization( QObject* parent );
 
 			virtual Ifaces::VideoPath*        createVideoPath( QObject* parent );
 			virtual Ifaces::VideoEffect*      createVideoEffect( int effectId, QObject* parent );
@@ -77,6 +79,7 @@ namespace Xine
 
 			virtual bool supportsVideo() const;
 			virtual bool supportsOSD() const;
+			virtual bool supportsFourcc( quint32 fourcc ) const;
 			virtual bool supportsSubtitles() const;
 			virtual const QStringList& knownMimeTypes() const;
 
@@ -100,7 +103,10 @@ namespace Xine
 			virtual QString videoCaptureDeviceDescription( int index ) const;
 			virtual int videoCaptureDeviceAudioIndex( int index ) const;
 
-			// effects
+			virtual QSet<int> visualizationIndexes() const;
+			virtual QString visualizationName( int index ) const;
+			virtual QString visualizationDescription( int index ) const;
+
 			virtual QSet<int> audioEffectIndexes() const;
 			virtual QString audioEffectName( int index ) const;
 			virtual QString audioEffectDescription( int index ) const;
@@ -108,6 +114,18 @@ namespace Xine
 			virtual QSet<int> videoEffectIndexes() const;
 			virtual QString videoEffectName( int index ) const;
 			virtual QString videoEffectDescription( int index ) const;
+
+			virtual QSet<int> audioCodecIndexes() const;
+			virtual QString audioCodecName( int index ) const;
+			virtual QString audioCodecDescription( int index ) const;
+
+			virtual QSet<int> videoCodecIndexes() const;
+			virtual QString videoCodecName( int index ) const;
+			virtual QString videoCodecDescription( int index ) const;
+
+			virtual QSet<int> containerFormatIndexes() const;
+			virtual QString containerFormatName( int index ) const;
+			virtual QString containerFormatDescription( int index ) const;
 
 			virtual const char* uiLibrary() const;
 			//virtual const char* uiSymbol() const;

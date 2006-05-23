@@ -110,7 +110,7 @@ bool AbstractMediaProducer::seekable() const
 	return xine_get_stream_info( m_xine_engine->m_stream, XINE_STREAM_INFO_SEEKABLE );
 }
 
-long AbstractMediaProducer::currentTime() const
+qint64 AbstractMediaProducer::currentTime() const
 {
 	//kDebug() << k_funcinfo << endl;
 	switch( state() )
@@ -129,13 +129,13 @@ long AbstractMediaProducer::currentTime() const
 	return -1;
 }
 
-long AbstractMediaProducer::tickInterval() const
+qint32 AbstractMediaProducer::tickInterval() const
 {
 	//kDebug() << k_funcinfo << endl;
 	return m_tickInterval;
 }
 
-long AbstractMediaProducer::setTickInterval( long newTickInterval )
+void AbstractMediaProducer::setTickInterval( qint32 newTickInterval )
 {
 	//kDebug() << k_funcinfo << endl;
 	m_tickInterval = newTickInterval;
@@ -143,7 +143,6 @@ long AbstractMediaProducer::setTickInterval( long newTickInterval )
 		m_tickTimer->setInterval( 50 );
 	else
 		m_tickTimer->setInterval( newTickInterval );
-	return m_tickInterval;
 }
 
 QStringList AbstractMediaProducer::availableAudioStreams() const
@@ -221,7 +220,7 @@ void AbstractMediaProducer::stop()
 	setState( Phonon::StoppedState );
 }
 
-void AbstractMediaProducer::seek( long time )
+void AbstractMediaProducer::seek( qint64 time )
 {
 	//kDebug() << k_funcinfo << endl;
 	if( seekable() )

@@ -25,6 +25,7 @@
 #include "audioeffect.h"
 #include "audiooutput.h"
 #include "audiodataoutput.h"
+#include "visualization.h"
 #include "videopath.h"
 #include "videoeffect.h"
 
@@ -109,6 +110,11 @@ Ifaces::AudioDataOutput*  Backend::createAudioDataOutput( QObject* parent )
 	return new AudioDataOutput( parent );
 }
 
+Ifaces::Visualization*    Backend::createVisualization( QObject* parent )
+{
+	return new Visualization( parent );
+}
+
 Ifaces::VideoPath*        Backend::createVideoPath( QObject* parent )
 {
 	return new VideoPath( parent );
@@ -132,6 +138,17 @@ bool Backend::supportsVideo() const
 bool Backend::supportsOSD() const
 {
 	return true;
+}
+
+bool Backend::supportsFourcc( quint32 fourcc ) const
+{
+	switch( fourcc )
+	{
+		case 0x00000000:
+			return true;
+		default:
+			return false;
+	}
 }
 
 bool Backend::supportsSubtitles() const
@@ -349,6 +366,22 @@ int Backend::videoCaptureDeviceAudioIndex( int index ) const
 	}
 }
 
+QSet<int> Backend::visualizationIndexes() const
+{
+	QSet<int> ret;
+	return ret;
+}
+
+QString Backend::visualizationName( int index ) const
+{
+	return QString();
+}
+
+QString Backend::visualizationDescription( int index ) const
+{
+	return QString();
+}
+
 QSet<int> Backend::audioEffectIndexes() const
 {
 	const char* const* postPlugins = xine_list_post_plugins_typed( m_xine_engine->m_xine, XINE_POST_TYPE_AUDIO_FILTER );
@@ -452,6 +485,51 @@ QString Backend::videoEffectDescription( int index ) const
 		++i;
 	}
 
+	return QString();
+}
+
+QSet<int> Backend::audioCodecIndexes() const
+{
+	return QSet<int>();
+}
+
+QString Backend::audioCodecName( int index ) const
+{
+	return QString();
+}
+
+QString Backend::audioCodecDescription( int index ) const
+{
+	return QString();
+}
+
+QSet<int> Backend::videoCodecIndexes() const
+{
+	return QSet<int>();
+}
+
+QString Backend::videoCodecName( int index ) const
+{
+	return QString();
+}
+
+QString Backend::videoCodecDescription( int index ) const
+{
+	return QString();
+}
+
+QSet<int> Backend::containerFormatIndexes() const
+{
+	return QSet<int>();
+}
+
+QString Backend::containerFormatName( int index ) const
+{
+	return QString();
+}
+
+QString Backend::containerFormatDescription( int index ) const
+{
 	return QString();
 }
 
