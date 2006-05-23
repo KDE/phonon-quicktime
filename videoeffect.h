@@ -32,8 +32,8 @@ namespace Xine
 		public:
 			VideoEffect( int effectId, QObject* parent );
 			virtual ~VideoEffect();
-			virtual float value( int parameterId ) const;
-			virtual void setValue( int parameterId, float newValue );
+			virtual QVariant value( int parameterId ) const;
+			virtual void setValue( int parameterId, QVariant newValue );
 
 		public:
 			virtual QObject* qobject() { return this; }

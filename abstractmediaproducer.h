@@ -55,8 +55,8 @@ namespace Xine
 			virtual State state() const;
 			virtual bool hasVideo() const;
 			virtual bool seekable() const;
-			virtual long currentTime() const;
-			virtual long tickInterval() const;
+			virtual qint64 currentTime() const;
+			virtual qint32 tickInterval() const;
 
 			virtual QStringList availableAudioStreams() const;
 			virtual QStringList availableVideoStreams() const;
@@ -70,15 +70,15 @@ namespace Xine
 			virtual void selectVideoStream( const QString& streamName, const Ifaces::VideoPath* videoPath );
 			virtual void selectSubtitleStream( const QString& streamName, const Ifaces::VideoPath* videoPath );
 
-			virtual long setTickInterval( long newTickInterval );
+			virtual void setTickInterval( qint32 newTickInterval );
 			virtual void play();
 			virtual void pause();
 			virtual void stop();
-			virtual void seek( long time );
+			virtual void seek( qint64 time );
 
 		Q_SIGNALS:
 			void stateChanged( Phonon::State newstate, Phonon::State oldstate );
-			void tick( long time );
+			void tick( qint64 time );
 
 		public:
 			virtual QObject* qobject() { return this; }
@@ -94,7 +94,7 @@ namespace Xine
 			XineEngine* m_xine_engine;
 			State m_state;
 			QTimer* m_tickTimer;
-			long m_tickInterval;
+			qint32 m_tickInterval;
 			QTime m_startTime, m_pauseTime;
 			int m_bufferSize;
 			QList<AudioPath*> m_audioPathList;

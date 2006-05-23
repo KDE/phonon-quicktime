@@ -36,6 +36,8 @@ namespace Xine
 
 			virtual float volume() const;
 			virtual void setVolume( float volume );
+			virtual Phonon::VolumeFaderEffect::FadeCurve fadeCurve() const;
+			virtual void setFadeCurve( Phonon::VolumeFaderEffect::FadeCurve curve );
 			virtual void fadeTo( float volume, int fadeTime );
 
 		private:
@@ -43,6 +45,7 @@ namespace Xine
 			float m_endvolume;
 			int m_fadeTime;
 			QTime m_fadeStart;
+			Phonon::VolumeFaderEffect::FadeCurve m_fadeCurve;
 	};
 }} //namespace Phonon::Xine
 

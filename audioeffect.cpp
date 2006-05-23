@@ -19,6 +19,7 @@
 
 #include "audioeffect.h"
 #include <klocale.h>
+#include <QVariant>
 
 namespace Phonon
 {
@@ -33,12 +34,12 @@ AudioEffect::~AudioEffect()
 {
 }
 
-float AudioEffect::value( int parameterId ) const
+QVariant AudioEffect::value( int parameterId ) const
 {
-	return 0.0f;
+	return QVariant(); // invalid
 }
 
-void AudioEffect::setValue( int parameterId, float newValue )
+void AudioEffect::setValue( int parameterId, QVariant newValue )
 {
 }
 
