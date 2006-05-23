@@ -17,8 +17,8 @@
 
 */
 
-#ifndef Phonon_FAKE_UI_BACKEND_H
-#define Phonon_FAKE_UI_BACKEND_H
+#ifndef Phonon_XINE_UI_BACKEND_H
+#define Phonon_XINE_UI_BACKEND_H
 
 #include <QObject>
 #include <kdelibs_export.h>
@@ -32,9 +32,9 @@ namespace Ifaces
 {
 	class VideoWidget;
 }
-namespace Fake
+namespace Xine
 {
-	class PHONON_FAKEUI_EXPORT Backend : public Ui::Ifaces::Backend
+	class PHONON_XINEUI_EXPORT Backend : public Ui::Ifaces::Backend
 	{
 		Q_OBJECT
 		public:
@@ -43,7 +43,7 @@ namespace Fake
 
 			virtual Ifaces::VideoWidget*  createVideoWidget( QWidget* parent );
 	};
-}}} // namespace Phonon::Ui::Fake
+}}} // namespace Phonon::Ui::Xine
 
 // vim: sw=4 ts=4 noet tw=80
-#endif // Phonon_FAKE_UI_BACKEND_H
+#endif // Phonon_XINE_UI_BACKEND_H
