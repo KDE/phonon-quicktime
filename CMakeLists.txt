@@ -30,7 +30,7 @@ kde4_add_plugin(phonon_xine ${phonon_xine_PART_SRCS})
 
 kde4_install_libtool_file( ${PLUGIN_INSTALL_DIR} phonon_xine )
 
-target_link_libraries(phonon_xine ${KDE4_KDECORE_LIBS} phononcore xine )
+target_link_libraries(phonon_xine ${KDE4_KDECORE_LIBS} phononcore ${XINE_XINE_LIBRARY} )
 
 install_targets(${PLUGIN_INSTALL_DIR} phonon_xine )
 
