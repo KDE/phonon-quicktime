@@ -20,24 +20,17 @@
 #define Phonon_XINE_ABSTRACTAUDIOOUTPUTBASE_H
 
 #include <QObject>
-#include <phonon/ifaces/abstractaudiooutput.h>
 
 namespace Phonon
 {
 namespace Xine
 {
-	class AbstractAudioOutput : public QObject, virtual public Ifaces::AbstractAudioOutput
+	class AbstractAudioOutput : public QObject
 	{
 		Q_OBJECT
 		public:
 			AbstractAudioOutput( QObject* parent );
 			virtual ~AbstractAudioOutput();
-
-		public:
-			virtual QObject* qobject() { return this; }
-			virtual const QObject* qobject() const { return this; }
-
-		private:
 	};
 }} //namespace Phonon::Xine
 

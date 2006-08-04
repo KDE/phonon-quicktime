@@ -20,26 +20,21 @@
 #define Phonon_XINE_AUDIOEFFECT_H
 
 #include <QObject>
-#include <phonon/ifaces/audioeffect.h>
 
 namespace Phonon
 {
 namespace Xine
 {
-	class EffectInterface;
-
-	class AudioEffect : public QObject, virtual public Ifaces::AudioEffect
+	class AudioEffect : public QObject
 	{
 		Q_OBJECT
 		public:
 			AudioEffect( int effectId, QObject* parent );
-			virtual ~AudioEffect();
-			virtual QVariant value( int parameterId ) const;
-			virtual void setValue( int parameterId, QVariant newValue );
+			~AudioEffect();
 
-		public:
-			virtual QObject* qobject() { return this; }
-			virtual const QObject* qobject() const { return this; }
+		public slots:
+			QVariant value( int parameterId ) const;
+			void setValue( int parameterId, QVariant newValue );
 	};
 }} //namespace Phonon::Xine
 

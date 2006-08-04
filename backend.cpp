@@ -1,19 +1,19 @@
-/*  This file is part of the KDE project
-    Copyright (C) 2006 Tim Beaulen <tbscope@gmail.com>
+/* This file is part of the KDE project
+ Copyright (C) 2006 Tim Beaulen <tbscope@gmail.com>
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Library General Public
-    License version 2 as published by the Free Software Foundation.
+ This library is free software; you can redistribute it and/or
+ modify it under the terms of the GNU Library General Public
+ License version 2 as published by the Free Software Foundation.
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Library General Public License for more details.
+ This library is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ Library General Public License for more details.
 
-    You should have received a copy of the GNU Library General Public License
-    along with this library; see the file COPYING.LIB.  If not, write to
-    the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-    Boston, MA 02110-1301, USA.
+ You should have received a copy of the GNU Library General Public License
+ along with this library; see the file COPYING.LIB.  If not, write to
+ the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+ Boston, MA 02110-1301, USA.
 
 */
 
@@ -36,7 +36,7 @@
 
 #include <kdebug.h>
 
-typedef KGenericFactory<Phonon::Xine::Backend, Phonon::Ifaces::Backend> XineBackendFactory;
+typedef KGenericFactory<Phonon::Xine::Backend> XineBackendFactory;
 K_EXPORT_COMPONENT_FACTORY( phonon_xine, XineBackendFactory( "xinebackend" ) )
 
 namespace Phonon
@@ -45,7 +45,7 @@ namespace Xine
 {
 
 Backend::Backend( QObject* parent, const QStringList& )
-	: Ifaces::Backend( parent )
+	: QObject( parent )
 {
 	char configfile[2048];
 
@@ -70,62 +70,62 @@ Backend::~Backend()
 	if( m_xine_engine->m_xine) xine_exit( m_xine_engine->m_xine);
 }
 
-Ifaces::MediaObject*      Backend::createMediaObject( QObject* parent )
+QObject* Backend::createMediaObject( QObject* parent )
 {
 	return new MediaObject( parent, m_xine_engine );
 }
 
-Ifaces::AvCapture*        Backend::createAvCapture( QObject* parent )
+QObject* Backend::createAvCapture( QObject* parent )
 {
 	return new AvCapture( parent, m_xine_engine );
 }
 
-Ifaces::ByteStream*       Backend::createByteStream( QObject* parent )
+QObject* Backend::createByteStream( QObject* parent )
 {
 	return new ByteStream( parent, m_xine_engine );
 }
 
-Ifaces::AudioPath*        Backend::createAudioPath( QObject* parent )
+QObject* Backend::createAudioPath( QObject* parent )
 {
 	return new AudioPath( parent );
 }
 
-Ifaces::AudioEffect*      Backend::createAudioEffect( int effectId, QObject* parent )
+QObject* Backend::createAudioEffect( int effectId, QObject* parent )
 {
 	return new AudioEffect( effectId, parent );
 }
 
-Ifaces::VolumeFaderEffect*      Backend::createVolumeFaderEffect( QObject* parent )
+QObject* Backend::createVolumeFaderEffect( QObject* parent )
 {
 	return new VolumeFaderEffect( parent );
 }
 
-Ifaces::AudioOutput*      Backend::createAudioOutput( QObject* parent )
+QObject* Backend::createAudioOutput( QObject* parent )
 {
 	return new AudioOutput( parent, m_xine_engine );
 }
 
-Ifaces::AudioDataOutput*  Backend::createAudioDataOutput( QObject* parent )
+QObject* Backend::createAudioDataOutput( QObject* parent )
 {
 	return new AudioDataOutput( parent );
 }
 
-Ifaces::Visualization*    Backend::createVisualization( QObject* parent )
+QObject* Backend::createVisualization( QObject* parent )
 {
 	return new Visualization( parent );
 }
 
-Ifaces::VideoPath*        Backend::createVideoPath( QObject* parent )
+QObject* Backend::createVideoPath( QObject* parent )
 {
 	return new VideoPath( parent );
 }
 
-Ifaces::VideoEffect*      Backend::createVideoEffect( int effectId, QObject* parent )
+QObject* Backend::createVideoEffect( int effectId, QObject* parent )
 {
 	return new VideoEffect( effectId, parent );
 }
 
-Ifaces::VideoDataOutput*  Backend::createVideoDataOutput( QObject* parent )
+QObject* Backend::createVideoDataOutput( QObject* parent )
 {
 	return new VideoDataOutput( parent );
 }
@@ -156,7 +156,7 @@ bool Backend::supportsSubtitles() const
 	return true;
 }
 
-const QStringList& Backend::knownMimeTypes() const
+QStringList Backend::knownMimeTypes() const
 {
 	if( m_supportedMimeTypes.isEmpty() )
 	{
@@ -171,365 +171,181 @@ const QStringList& Backend::knownMimeTypes() const
 	return m_supportedMimeTypes;
 }
 
-QSet<int> Backend::audioOutputDeviceIndexes() const
+QSet<int> Backend::objectDescriptionIndexes( ObjectDescriptionType type ) const
 {
-	// This will list the audio drivers, not the actual devices.
-	const char* const* outputPlugins = xine_list_audio_output_plugins( m_xine_engine->m_xine );
-	int i = 0;
-
+	//TODO
 	QSet<int> set;
-
-	while( outputPlugins[i] )
+	switch( type )
 	{
-		kDebug() << 10000 + i << " = " << outputPlugins[i] << endl;
-		set << 10000 + i;
-		++i;
+		case Phonon::AudioOutputDeviceType:
+			{
+				// This will list the audio drivers, not the actual devices.
+				const char* const* outputPlugins = xine_list_audio_output_plugins( m_xine_engine->m_xine );
+				for( int i = 0; outputPlugins[i]; ++i )
+					set << 10000 + i;
+				break;
+			}
+		case Phonon::AudioCaptureDeviceType:
+			set << 20000 << 20001;
+			break;
+		case Phonon::VideoOutputDeviceType:
+			{
+				const char* const* outputPlugins = xine_list_video_output_plugins( m_xine_engine->m_xine );
+				for( int i = 0; outputPlugins[i]; ++i )
+					set << 40000 + i;
+				break;
+			}
+		case Phonon::VideoCaptureDeviceType:
+			set << 30000 << 30001;
+			break;
+		case Phonon::VisualizationType:
+			break;
+		case Phonon::AudioCodecType:
+			break;
+		case Phonon::VideoCodecType:
+			break;
+		case Phonon::ContainerFormatType:
+			break;
+		case Phonon::AudioEffectType:
+			{
+				const char* const* postPlugins = xine_list_post_plugins_typed( m_xine_engine->m_xine, XINE_POST_TYPE_AUDIO_FILTER );
+				for( int i = 0; postPlugins[i]; ++i )
+					set << 0x7F000000 + i;
+				break;
+			}
+		case Phonon::VideoEffectType:
+			{
+				const char* const* postPlugins = xine_list_post_plugins_typed( m_xine_engine->m_xine, XINE_POST_TYPE_VIDEO_FILTER );
+				for( int i = 0; postPlugins[i]; ++i )
+					set << 0x7E000000 + i;
+				break;
+			}
 	}
-
 	return set;
 }
 
-QString Backend::audioOutputDeviceName( int index ) const
+QString Backend::objectDescriptionName( ObjectDescriptionType type, int index ) const
 {
-	const char* const* outputPlugins = xine_list_audio_output_plugins( m_xine_engine->m_xine );
-	int i = 0;
-
-	while( outputPlugins[i] )
+	switch( type )
 	{
-		if( 10000 + i == index )
-		{
-			QString name = outputPlugins[i];
-			return name.toLatin1();
-		}
-		++i;
+		case Phonon::AudioOutputDeviceType:
+			{
+				const char* const* outputPlugins = xine_list_audio_output_plugins( m_xine_engine->m_xine );
+				for( int i = 0; outputPlugins[i]; ++i )
+					if( 10000 + i == index )
+						return QLatin1String( outputPlugins[i] );
+				break;
+			}
+		case Phonon::AudioCaptureDeviceType:
+			switch( index )
+			{
+				case 20000:
+					return "Soundcard";
+				case 20001:
+					return "DV";
+			}
+			break;
+		case Phonon::VideoOutputDeviceType:
+			{
+				const char* const* outputPlugins = xine_list_video_output_plugins( m_xine_engine->m_xine );
+				for( int i = 0; outputPlugins[i]; ++i )
+					if( 40000 + i == index )
+						return QLatin1String( outputPlugins[i] );
+				break;
+			}
+		case Phonon::VideoCaptureDeviceType:
+			switch( index )
+			{
+				case 30000:
+					return "USB Webcam";
+				case 30001:
+					return "DV";
+			}
+			break;
+		case Phonon::VisualizationType:
+			break;
+		case Phonon::AudioCodecType:
+			break;
+		case Phonon::VideoCodecType:
+			break;
+		case Phonon::ContainerFormatType:
+			break;
+		case Phonon::AudioEffectType:
+			{
+				const char* const* postPlugins = xine_list_post_plugins_typed( m_xine_engine->m_xine, XINE_POST_TYPE_AUDIO_FILTER );
+				for( int i = 0; postPlugins[i]; ++i )
+					if( 0x7F000000 + i == index )
+						return QLatin1String( postPlugins[i] );
+				break;
+			}
+		case Phonon::VideoEffectType:
+			{
+				const char* const* postPlugins = xine_list_post_plugins_typed( m_xine_engine->m_xine, XINE_POST_TYPE_VIDEO_FILTER );
+				for( int i = 0; postPlugins[i]; ++i )
+					if( 0x7E000000 + i == index )
+						return QLatin1String( postPlugins[i] );
+				break;
+			}
 	}
-
 	return QString();
 }
 
-QString Backend::audioOutputDeviceDescription( int index ) const
+QString Backend::objectDescriptionDescription( ObjectDescriptionType type, int index ) const
 {
-	const char* const* outputPlugins = xine_list_audio_output_plugins( m_xine_engine->m_xine );
-	int i = 0;
-
-	while( outputPlugins[i] )
+	switch( type )
 	{
-		if( 10000 + i == index )
-		{
-			QString description = xine_get_audio_driver_plugin_description( m_xine_engine->m_xine, outputPlugins[i] );
-			return description.toLatin1();
-		}
-		++i;
+		case Phonon::AudioOutputDeviceType:
+			{
+				const char* const* outputPlugins = xine_list_audio_output_plugins( m_xine_engine->m_xine );
+				for( int i = 0; outputPlugins[i]; ++i )
+					if( 10000 + i == index )
+						return QLatin1String( xine_get_audio_driver_plugin_description( m_xine_engine->m_xine, outputPlugins[i] ) );
+				break;
+			}
+		case Phonon::AudioCaptureDeviceType:
+			break;
+		case Phonon::VideoOutputDeviceType:
+			{
+				const char* const* outputPlugins = xine_list_video_output_plugins( m_xine_engine->m_xine );
+				for( int i = 0; outputPlugins[i]; ++i )
+					if( 40000 + i == index )
+						return QLatin1String( xine_get_video_driver_plugin_description( m_xine_engine->m_xine, outputPlugins[i] ) );
+				break;
+			}
+		case Phonon::VideoCaptureDeviceType:
+			switch( index )
+			{
+				case 30000:
+					return "first description";
+				case 30001:
+					return "second description";
+			}
+			break;
+		case Phonon::VisualizationType:
+			break;
+		case Phonon::AudioCodecType:
+			break;
+		case Phonon::VideoCodecType:
+			break;
+		case Phonon::ContainerFormatType:
+			break;
+		case Phonon::AudioEffectType:
+			{
+				const char* const* postPlugins = xine_list_post_plugins_typed( m_xine_engine->m_xine, XINE_POST_TYPE_AUDIO_FILTER );
+				for( int i = 0; postPlugins[i]; ++i )
+					if( 0x7F000000 + i == index )
+						return QLatin1String( xine_get_post_plugin_description( m_xine_engine->m_xine, postPlugins[i] ) );
+				break;
+			}
+		case Phonon::VideoEffectType:
+			{
+				const char* const* postPlugins = xine_list_post_plugins_typed( m_xine_engine->m_xine, XINE_POST_TYPE_VIDEO_FILTER );
+				for( int i = 0; postPlugins[i]; ++i )
+					if( 0x7E000000 + i == index )
+						return QLatin1String( postPlugins[i] );
+				break;
+			}
 	}
-
-	return QString();
-}
-
-QSet<int> Backend::audioCaptureDeviceIndexes() const
-{
-	QSet<int> set;
-	set << 20000 << 20001;
-	return set;
-}
-
-QString Backend::audioCaptureDeviceName( int index ) const
-{
-	switch( index )
-	{
-		case 20000:
-			return "Soundcard";
-		case 20001:
-			return "DV";
-		default:
-			return QString();
-	}
-}
-
-QString Backend::audioCaptureDeviceDescription( int index ) const
-{
-	switch( index )
-	{
-		case 20000:
-			return "first description";
-		case 20001:
-			return "second description";
-		default:
-			return QString();
-	}
-}
-
-int Backend::audioCaptureDeviceVideoIndex( int index ) const
-{
-	switch( index )
-	{
-		case 20001:
-			return 30001;
-		default:
-			return -1;
-	}
-}
-
-QSet<int> Backend::videoOutputDeviceIndexes() const
-{
-	const char* const* outputPlugins = xine_list_video_output_plugins( m_xine_engine->m_xine );
-	int i = 0;
-
-	QSet<int> set;
-
-	while( outputPlugins[i] )
-	{
-		kDebug() << 40000 + i << " = " << outputPlugins[i] << endl;
-		set << 40000 + i;
-		++i;
-	}
-
-	return set;
-}
-
-QString Backend::videoOutputDeviceName( int index ) const
-{
-	const char* const* outputPlugins = xine_list_video_output_plugins( m_xine_engine->m_xine );
-	int i = 0;
-
-	while( outputPlugins[i] )
-	{
-		if( 40000 + i == index )
-		{
-			QString name = outputPlugins[i];
-			return name.toLatin1();
-		}
-		++i;
-	}
-
-	return QString();
-}
-
-QString Backend::videoOutputDeviceDescription( int index ) const
-{
-	const char* const* outputPlugins = xine_list_video_output_plugins( m_xine_engine->m_xine );
-	int i = 0;
-
-	while( outputPlugins[i] )
-	{
-		if( 40000 + i == index )
-		{
-			QString description = xine_get_video_driver_plugin_description( m_xine_engine->m_xine, outputPlugins[i] );
-			return description.toLatin1();
-		}
-		++i;
-	}
-
-	return QString();
-}
-
-QSet<int> Backend::videoCaptureDeviceIndexes() const
-{
-	QSet<int> set;
-	set << 30000 << 30001;
-	return set;
-}
-
-QString Backend::videoCaptureDeviceName( int index ) const
-{
-	switch( index )
-	{
-		case 30000:
-			return "USB Webcam";
-		case 30001:
-			return "DV";
-		default:
-			return QString();
-	}
-}
-
-QString Backend::videoCaptureDeviceDescription( int index ) const
-{
-	switch( index )
-	{
-		case 30000:
-			return "first description";
-		case 30001:
-			return "second description";
-		default:
-			return QString();
-	}
-}
-
-int Backend::videoCaptureDeviceAudioIndex( int index ) const
-{
-	switch( index )
-	{
-		case 30001:
-			return 20001;
-		default:
-			return -1;
-	}
-}
-
-QSet<int> Backend::visualizationIndexes() const
-{
-	QSet<int> ret;
-	return ret;
-}
-
-QString Backend::visualizationName( int index ) const
-{
-	return QString();
-}
-
-QString Backend::visualizationDescription( int index ) const
-{
-	return QString();
-}
-
-QSet<int> Backend::audioEffectIndexes() const
-{
-	const char* const* postPlugins = xine_list_post_plugins_typed( m_xine_engine->m_xine, XINE_POST_TYPE_AUDIO_FILTER );
-	int i = 0;
-
-	QSet<int> set;
-
-	while( postPlugins[i] )
-	{
-		kDebug() << 0x7F000000 + i << " = " << postPlugins[i] << endl;
-		set << 0x7F000000 + i;
-		++i;
-	}
-
-	return set;
-}
-
-QString Backend::audioEffectName( int index ) const
-{
-	const char* const* postPlugins = xine_list_post_plugins_typed( m_xine_engine->m_xine, XINE_POST_TYPE_AUDIO_FILTER );
-	int i = 0;
-
-	while( postPlugins[i] )
-	{
-		if( 0x7F000000 + i == index )
-		{
-			QString name = postPlugins[i];
-			return name.toLatin1();
-		}
-		++i;
-	}
-
-	return QString();
-}
-
-QString Backend::audioEffectDescription( int index ) const
-{
-	const char* const* postPlugins = xine_list_post_plugins_typed( m_xine_engine->m_xine, XINE_POST_TYPE_AUDIO_FILTER );
-	int i = 0;
-
-	while( postPlugins[i] )
-	{
-		if( 0x7F000000 + i == index )
-		{
-			QString description = xine_get_post_plugin_description( m_xine_engine->m_xine, postPlugins[i] );
-			return description.toLatin1();
-		}
-		++i;
-	}
-
-	return QString();
-}
-
-QSet<int> Backend::videoEffectIndexes() const
-{
-	const char* const* postPlugins = xine_list_post_plugins_typed( m_xine_engine->m_xine, XINE_POST_TYPE_VIDEO_FILTER );
-	int i = 0;
-
-	QSet<int> set;
-
-	while( postPlugins[i] )
-	{
-		kDebug() << 0x7E000000 + i << " = " << postPlugins[i] << endl;
-		set << 0x7E000000 + i;
-		++i;
-	}
-
-	return set;
-}
-
-QString Backend::videoEffectName( int index ) const
-{
-	const char* const* postPlugins = xine_list_post_plugins_typed( m_xine_engine->m_xine, XINE_POST_TYPE_VIDEO_FILTER );
-	int i = 0;
-
-	while( postPlugins[i] )
-	{
-		if( 0x7E000000 + i == index )
-		{
-			QString name = postPlugins[i];
-			return name.toLatin1();
-		}
-		++i;
-	}
-
-	return QString();
-}
-
-QString Backend::videoEffectDescription( int index ) const
-{
-	const char* const* postPlugins = xine_list_post_plugins_typed( m_xine_engine->m_xine, XINE_POST_TYPE_VIDEO_FILTER );
-	int i = 0;
-
-	while( postPlugins[i] )
-	{
-		if( 0x7E000000 + i == index )
-		{
-			QString name = postPlugins[i];
-			return name.toLatin1();
-		}
-		++i;
-	}
-
-	return QString();
-}
-
-QSet<int> Backend::audioCodecIndexes() const
-{
-	return QSet<int>();
-}
-
-QString Backend::audioCodecName( int index ) const
-{
-	return QString();
-}
-
-QString Backend::audioCodecDescription( int index ) const
-{
-	return QString();
-}
-
-QSet<int> Backend::videoCodecIndexes() const
-{
-	return QSet<int>();
-}
-
-QString Backend::videoCodecName( int index ) const
-{
-	return QString();
-}
-
-QString Backend::videoCodecDescription( int index ) const
-{
-	return QString();
-}
-
-QSet<int> Backend::containerFormatIndexes() const
-{
-	return QSet<int>();
-}
-
-QString Backend::containerFormatName( int index ) const
-{
-	return QString();
-}
-
-QString Backend::containerFormatDescription( int index ) const
-{
 	return QString();
 }
 

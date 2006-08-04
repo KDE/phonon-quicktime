@@ -38,10 +38,9 @@ int AvCapture::audioCaptureDevice() const
 	return 1;
 }
 
-int AvCapture::setAudioCaptureDevice( int index )
+void AvCapture::setAudioCaptureDevice( int index )
 {
 	Q_UNUSED( index );
-	return 1;
 }
 
 int AvCapture::videoCaptureDevice() const
@@ -49,10 +48,9 @@ int AvCapture::videoCaptureDevice() const
 	return 1;
 }
 
-int AvCapture::setVideoCaptureDevice( int index )
+void AvCapture::setVideoCaptureDevice( int index )
 {
 	Q_UNUSED( index );
-	return 1;
 }
 
 }} //namespace Phonon::Xine

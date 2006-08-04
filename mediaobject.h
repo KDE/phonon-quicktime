@@ -20,7 +20,6 @@
 #define Phonon_XINE_MEDIAOBJECT_H
 
 #include "abstractmediaproducer.h"
-#include <phonon/ifaces/mediaobject.h>
 #include <kurl.h>
 
 #include <xine.h>
@@ -33,25 +32,24 @@ namespace Phonon
 {
 namespace Xine
 {
-	class MediaObject : public AbstractMediaProducer, virtual public Ifaces::MediaObject
+	class MediaObject : public AbstractMediaProducer
 	{
 		Q_OBJECT
 		public:
 			MediaObject( QObject* parent, XineEngine* xe );
-			virtual ~MediaObject();
-			virtual KUrl url() const;
-			virtual qint64 totalTime() const;
-			//virtual qint64 remainingTime() const;
-			virtual qint32 aboutToFinishTime() const;
-			virtual void setUrl( const KUrl& url );
-			virtual void setAboutToFinishTime( qint32 newAboutToFinishTime );
+			~MediaObject();
 
-			virtual void play();
-			virtual void pause();
-			virtual void seek( qint64 time );
+		public slots:
+			KUrl url() const;
+			qint64 totalTime() const;
+			qint32 aboutToFinishTime() const;
+			void setUrl( const KUrl& url );
+			void setAboutToFinishTime( qint32 newAboutToFinishTime );
 
-		public Q_SLOTS:
-			virtual void stop();
+			void play();
+			void pause();
+			void seek( qint64 time );
+			void stop();
 
 		Q_SIGNALS:
 			void finished();

@@ -20,7 +20,6 @@
 #define Phonon_XINE_AVCAPTURECAPTURE_H
 
 #include "abstractmediaproducer.h"
-#include <phonon/ifaces/avcapture.h>
 
 #include "xine_engine.h"
 
@@ -28,17 +27,18 @@ namespace Phonon
 {
 namespace Xine
 {
-	class AvCapture : public AbstractMediaProducer, virtual public Ifaces::AvCapture
+	class AvCapture : public AbstractMediaProducer
 	{
 		Q_OBJECT
 		public:
 			AvCapture( QObject* parent, XineEngine* xe );
-			virtual ~AvCapture();
+			~AvCapture();
 
-			virtual int audioCaptureDevice() const;
-			virtual int setAudioCaptureDevice( int index );
-			virtual int videoCaptureDevice() const;
-			virtual int setVideoCaptureDevice( int index );
+		public slots:
+			int audioCaptureDevice() const;
+			void setAudioCaptureDevice( int index );
+			int videoCaptureDevice() const;
+			void setVideoCaptureDevice( int index );
 
 		private:
 			XineEngine* m_xine_engine;

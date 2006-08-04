@@ -20,24 +20,21 @@
 #define Phonon_XINE_VIDEOEFFECT_H
 
 #include <QObject>
-#include <phonon/ifaces/videoeffect.h>
 
 namespace Phonon
 {
 namespace Xine
 {
-	class VideoEffect : public QObject, virtual public Ifaces::VideoEffect
+	class VideoEffect : public QObject
 	{
 		Q_OBJECT
 		public:
 			VideoEffect( int effectId, QObject* parent );
-			virtual ~VideoEffect();
-			virtual QVariant value( int parameterId ) const;
-			virtual void setValue( int parameterId, QVariant newValue );
+			~VideoEffect();
 
-		public:
-			virtual QObject* qobject() { return this; }
-			virtual const QObject* qobject() const { return this; }
+		public slots:
+			QVariant value( int parameterId ) const;
+			void setValue( int parameterId, QVariant newValue );
 
 		private:
 	};
