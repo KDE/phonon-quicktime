@@ -73,7 +73,7 @@ namespace Xine
 			Q_INVOKABLE QString objectDescriptionName( ObjectDescriptionType, int ) const;
 
 		public slots:
-			QStringList knownMimeTypes() const;
+			QStringList knownMimeTypes();
 			const char* uiLibrary() const;
 			//const char* uiSymbol() const;
 
