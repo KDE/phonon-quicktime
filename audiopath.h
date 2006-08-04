@@ -20,7 +20,6 @@
 #define Phonon_XINE_AUDIOPATH_H
 
 #include <QObject>
-#include <phonon/ifaces/audiopath.h>
 #include <QList>
 
 namespace Phonon
@@ -30,21 +29,18 @@ namespace Xine
 	class AudioEffect;
 	class AbstractAudioOutput;
 
-	class AudioPath : public QObject, virtual public Ifaces::AudioPath
+	class AudioPath : public QObject
 	{
 		Q_OBJECT
 		public:
 			AudioPath( QObject* parent );
-			virtual ~AudioPath();
+			~AudioPath();
 
-			virtual bool addOutput( Ifaces::AbstractAudioOutput* audioOutput );
-			virtual bool removeOutput( Ifaces::AbstractAudioOutput* audioOutput );
-			virtual bool insertEffect( Ifaces::AudioEffect* newEffect, Ifaces::AudioEffect* insertBefore = 0 );
-			virtual bool removeEffect( Ifaces::AudioEffect* effect );
-
-		public:
-			virtual QObject* qobject() { return this; }
-			virtual const QObject* qobject() const { return this; }
+		public slots:
+			bool addOutput( QObject* audioOutput );
+			bool removeOutput( QObject* audioOutput );
+			bool insertEffect( QObject* newEffect, QObject* insertBefore = 0 );
+			bool removeEffect( QObject* effect );
 
 		private:
 			QList<AudioEffect*> m_effects;

@@ -19,26 +19,27 @@
 #ifndef Phonon_XINE_VOLUMEFADEREFFECT_H
 #define Phonon_XINE_VOLUMEFADEREFFECT_H
 
-#include <phonon/ifaces/volumefadereffect.h>
 #include <QTime>
 #include "audioeffect.h"
+#include <phonon/volumefadereffect.h>
 
 namespace Phonon
 {
 namespace Xine
 {
-	class VolumeFaderEffect : public AudioEffect, virtual public Ifaces::VolumeFaderEffect
+	class VolumeFaderEffect : public AudioEffect
 	{
 		Q_OBJECT
 		public:
 			VolumeFaderEffect( QObject* parent );
-			virtual ~VolumeFaderEffect();
+			~VolumeFaderEffect();
 
-			virtual float volume() const;
-			virtual void setVolume( float volume );
-			virtual Phonon::VolumeFaderEffect::FadeCurve fadeCurve() const;
-			virtual void setFadeCurve( Phonon::VolumeFaderEffect::FadeCurve curve );
-			virtual void fadeTo( float volume, int fadeTime );
+		public slots:
+			float volume() const;
+			void setVolume( float volume );
+			Phonon::VolumeFaderEffect::FadeCurve fadeCurve() const;
+			void setFadeCurve( Phonon::VolumeFaderEffect::FadeCurve curve );
+			void fadeTo( float volume, int fadeTime );
 
 		private:
 			float m_volume;

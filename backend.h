@@ -20,7 +20,6 @@
 #ifndef Phonon_XINE_BACKEND_H
 #define Phonon_XINE_BACKEND_H
 
-#include <phonon/ifaces/backend.h>
 #include <QList>
 #include <QPointer>
 #include <QStringList>
@@ -29,112 +28,60 @@
 #include <xine/xineutils.h>
 
 #include "xine_engine.h"
+#include <QObject>
+#include <phonon/objectdescription.h>
 
 class KUrl;
 
 namespace Phonon
 {
-namespace Ifaces
-{
-	class MediaObject;
-	class AvCapture;
-	class ByteStream;
-
-	class AudioPath;
-	class AudioEffect;
-	class VolumeFaderEffect;
-	class AudioOutput;
-	class AudioDataOutput;
-	class Visualization;
-
-	class VideoPath;
-	class VideoEffect;
-	class VideoDataOutput;
-}
 namespace Xine
 {
 	class AudioOutput;
 
-	class Backend : public Ifaces::Backend
+	class Backend : public QObject
 	{
 		Q_OBJECT
 		public:
 			Backend( QObject* parent, const QStringList& args );
-			virtual ~Backend();
+			~Backend();
 
-			virtual Ifaces::MediaObject*      createMediaObject( QObject* parent );
-			virtual Ifaces::AvCapture*        createAvCapture( QObject* parent );
-			virtual Ifaces::ByteStream*       createByteStream( QObject* parent );
+			Q_INVOKABLE QObject* createMediaObject( QObject* parent );
+			Q_INVOKABLE QObject* createAvCapture( QObject* parent );
+			Q_INVOKABLE QObject* createByteStream( QObject* parent );
 
-			virtual Ifaces::AudioPath*        createAudioPath( QObject* parent );
-			virtual Ifaces::AudioEffect*      createAudioEffect( int effectId, QObject* parent );
-			virtual Ifaces::VolumeFaderEffect* createVolumeFaderEffect( QObject* parent );
-			virtual Ifaces::AudioOutput*      createAudioOutput( QObject* parent );
-			virtual Ifaces::AudioDataOutput*  createAudioDataOutput( QObject* parent );
-			virtual Ifaces::Visualization*    createVisualization( QObject* parent );
+			Q_INVOKABLE QObject* createAudioPath( QObject* parent );
+			Q_INVOKABLE QObject* createAudioEffect( int effectId, QObject* parent );
+			Q_INVOKABLE QObject* createVolumeFaderEffect( QObject* parent );
+			Q_INVOKABLE QObject* createAudioOutput( QObject* parent );
+			Q_INVOKABLE QObject* createAudioDataOutput( QObject* parent );
+			Q_INVOKABLE QObject* createVisualization( QObject* parent );
 
-			virtual Ifaces::VideoPath*        createVideoPath( QObject* parent );
-			virtual Ifaces::VideoEffect*      createVideoEffect( int effectId, QObject* parent );
-			virtual Ifaces::VideoDataOutput*  createVideoDataOutput( QObject* parent );
+			Q_INVOKABLE QObject* createVideoPath( QObject* parent );
+			Q_INVOKABLE QObject* createVideoEffect( int effectId, QObject* parent );
+			Q_INVOKABLE QObject* createVideoDataOutput( QObject* parent );
 
-			virtual bool supportsVideo() const;
-			virtual bool supportsOSD() const;
-			virtual bool supportsFourcc( quint32 fourcc ) const;
-			virtual bool supportsSubtitles() const;
-			virtual const QStringList& knownMimeTypes() const;
+			Q_INVOKABLE bool supportsVideo() const;
+			Q_INVOKABLE bool supportsOSD() const;
+			Q_INVOKABLE bool supportsFourcc( quint32 fourcc ) const;
+			Q_INVOKABLE bool supportsSubtitles() const;
 
-			virtual void freeSoundcardDevices();
+			Q_INVOKABLE void freeSoundcardDevices();
 
-			virtual QSet<int> audioOutputDeviceIndexes() const;
-			virtual QString audioOutputDeviceName( int index ) const;
-			virtual QString audioOutputDeviceDescription( int index ) const;
+			Q_INVOKABLE QSet<int> objectDescriptionIndexes( ObjectDescriptionType ) const;
+			Q_INVOKABLE QString objectDescriptionDescription( ObjectDescriptionType, int ) const;
+			Q_INVOKABLE QString objectDescriptionName( ObjectDescriptionType, int ) const;
 
-			virtual QSet<int> audioCaptureDeviceIndexes() const;
-			virtual QString audioCaptureDeviceName( int index ) const;
-			virtual QString audioCaptureDeviceDescription( int index ) const;
-			virtual int audioCaptureDeviceVideoIndex( int index ) const;
-
-			virtual QSet<int> videoOutputDeviceIndexes() const;
-			virtual QString videoOutputDeviceName( int index ) const;
-			virtual QString videoOutputDeviceDescription( int index ) const;
-
-			virtual QSet<int> videoCaptureDeviceIndexes() const;
-			virtual QString videoCaptureDeviceName( int index ) const;
-			virtual QString videoCaptureDeviceDescription( int index ) const;
-			virtual int videoCaptureDeviceAudioIndex( int index ) const;
-
-			virtual QSet<int> visualizationIndexes() const;
-			virtual QString visualizationName( int index ) const;
-			virtual QString visualizationDescription( int index ) const;
-
-			virtual QSet<int> audioEffectIndexes() const;
-			virtual QString audioEffectName( int index ) const;
-			virtual QString audioEffectDescription( int index ) const;
-
-			virtual QSet<int> videoEffectIndexes() const;
-			virtual QString videoEffectName( int index ) const;
-			virtual QString videoEffectDescription( int index ) const;
-
-			virtual QSet<int> audioCodecIndexes() const;
-			virtual QString audioCodecName( int index ) const;
-			virtual QString audioCodecDescription( int index ) const;
-
-			virtual QSet<int> videoCodecIndexes() const;
-			virtual QString videoCodecName( int index ) const;
-			virtual QString videoCodecDescription( int index ) const;
-
-			virtual QSet<int> containerFormatIndexes() const;
-			virtual QString containerFormatName( int index ) const;
-			virtual QString containerFormatDescription( int index ) const;
-
-			virtual const char* uiLibrary() const;
-			//virtual const char* uiSymbol() const;
+		public slots:
+			QStringList knownMimeTypes() const;
+			const char* uiLibrary() const;
+			//const char* uiSymbol() const;
 
 		private:
 			XineEngine* m_xine_engine;
 			QStringList m_supportedMimeTypes;	
 	};
-}} // namespace Phonon::Ifaces
+}} // namespace Phonon::Xine
 
 // vim: sw=4 ts=4 noet tw=80
 #endif // Phonon_XINE_BACKEND_H

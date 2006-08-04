@@ -20,7 +20,6 @@
 #define Phonon_XINE_AUDIOOUTPUT_H
 
 #include "abstractaudiooutput.h"
-#include <phonon/ifaces/audiooutput.h>
 #include <QFile>
 
 #include "xine_engine.h"
@@ -30,20 +29,21 @@ namespace Phonon
 {
 namespace Xine
 {
-	class AudioOutput : public AbstractAudioOutput, virtual public Ifaces::AudioOutput
+	class AudioOutput : public AbstractAudioOutput
 	{
 		Q_OBJECT
 		public:
 			AudioOutput( QObject* parent, XineEngine* xe );
-			virtual ~AudioOutput();
+			~AudioOutput();
 
+		public slots:
 			// Attributes Getters:
-			virtual float volume() const;
-			virtual int outputDevice() const;
+			float volume() const;
+			int outputDevice() const;
 
 			// Attributes Setters:
-			virtual void setVolume( float newVolume );
-			virtual void setOutputDevice( int newDevice );
+			void setVolume( float newVolume );
+			void setOutputDevice( int newDevice );
 
 		Q_SIGNALS:
 			void volumeChanged( float newVolume );

@@ -20,7 +20,6 @@
 #include "videopath.h"
 #include "videoeffect.h"
 #include "abstractvideooutput.h"
-#include <phonon/ifaces/abstractvideooutput.h>
 
 namespace Phonon
 {
@@ -36,35 +35,30 @@ VideoPath::~VideoPath()
 {
 }
 
-bool VideoPath::addOutput( Ifaces::AbstractVideoOutput* videoOutputIface )
+bool VideoPath::addOutput( QObject* videoOutput )
 {
-	Q_ASSERT( videoOutputIface );
-	AbstractVideoOutput* vo = reinterpret_cast<Phonon::Xine::AbstractVideoOutput*>( videoOutputIface->internal1() );
-	Q_ASSERT( vo );
-	Q_ASSERT( !m_outputs.contains( vo ) );
-	m_outputs.append( vo );
+	Q_ASSERT( videoOutput );
+	Q_ASSERT( !m_outputs.contains( videoOutput ) );
+	m_outputs.append( videoOutput );
 	return true;
 }
 
-bool VideoPath::removeOutput( Ifaces::AbstractVideoOutput* videoOutputIface )
+bool VideoPath::removeOutput( QObject* videoOutput )
 {
-	Q_ASSERT( videoOutputIface );
-	AbstractVideoOutput* vo = reinterpret_cast<Phonon::Xine::AbstractVideoOutput*>( videoOutputIface->internal1() );
-	// this should be changed to an "if( vo ) { ..." for production backends
-	Q_ASSERT( vo );
-	Q_ASSERT( m_outputs.removeAll( vo ) == 1 );
+	Q_ASSERT( videoOutput );
+	Q_ASSERT( m_outputs.removeAll( videoOutput ) == 1 );
 	return true;
 }
 
-bool VideoPath::insertEffect( Ifaces::VideoEffect* newEffect, Ifaces::VideoEffect* insertBefore )
+bool VideoPath::insertEffect( QObject* newEffect, QObject* insertBefore )
 {
 	Q_ASSERT( newEffect );
-	VideoEffect* ve = qobject_cast<VideoEffect*>( newEffect->qobject() );
+	VideoEffect* ve = qobject_cast<VideoEffect*>( newEffect );
 	Q_ASSERT( ve );
 	VideoEffect* before = 0;
 	if( insertBefore )
 	{
-		before = qobject_cast<VideoEffect*>( insertBefore->qobject() );
+		before = qobject_cast<VideoEffect*>( insertBefore );
 		Q_ASSERT( before );
 		if( !m_effects.contains( before ) )
 			return false;
@@ -76,10 +70,10 @@ bool VideoPath::insertEffect( Ifaces::VideoEffect* newEffect, Ifaces::VideoEffec
 	return true;
 }
 
-bool VideoPath::removeEffect( Ifaces::VideoEffect* effect )
+bool VideoPath::removeEffect( QObject* effect )
 {
 	Q_ASSERT( effect );
-	VideoEffect* ve = qobject_cast<VideoEffect*>( effect->qobject() );
+	VideoEffect* ve = qobject_cast<VideoEffect*>( effect );
 	Q_ASSERT( ve );
 	if( m_effects.removeAll( ve ) > 0 )
 		return true;

@@ -20,7 +20,6 @@
 #define Phonon_XINE_VIDEOPATH_H
 
 #include <QObject>
-#include <phonon/ifaces/videopath.h>
 #include <phonon/videoframe.h>
 #include <QList>
 
@@ -31,26 +30,22 @@ namespace Xine
 	class VideoEffect;
 	class AbstractVideoOutput;
 
-	class VideoPath : public QObject, virtual public Ifaces::VideoPath
+	class VideoPath : public QObject
 	{
 		Q_OBJECT
 		public:
 			VideoPath( QObject* parent );
-			virtual ~VideoPath();
+			~VideoPath();
 
-			// Operations:
-			virtual bool addOutput( Ifaces::AbstractVideoOutput* videoOutput );
-			virtual bool removeOutput( Ifaces::AbstractVideoOutput* videoOutput );
-			virtual bool insertEffect( Ifaces::VideoEffect* newEffect, Ifaces::VideoEffect* insertBefore = 0 );
-			virtual bool removeEffect( Ifaces::VideoEffect* effect );
-
-		public:
-			virtual QObject* qobject() { return this; }
-			virtual const QObject* qobject() const { return this; }
+		public slots:
+			bool addOutput( QObject* videoOutput );
+			bool removeOutput( QObject* videoOutput );
+			bool insertEffect( QObject* newEffect, QObject* insertBefore = 0 );
+			bool removeEffect( QObject* effect );
 
 		private:
 			QList<VideoEffect*> m_effects;
-			QList<AbstractVideoOutput*> m_outputs;
+			QList<QObject*> m_outputs;
 	};
 }} //namespace Phonon::Xine
 

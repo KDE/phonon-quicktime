@@ -20,9 +20,9 @@
 #define Phonon_XINE_BYTESTREAM_H
 
 #include "abstractmediaproducer.h"
-#include <phonon/ifaces/bytestream.h>
 
 #include "xine_engine.h"
+#include <phonon/bytestreaminterface.h>
 
 class QTimer;
 
@@ -30,32 +30,33 @@ namespace Phonon
 {
 namespace Xine
 {
-	class ByteStream : public AbstractMediaProducer, virtual public Ifaces::ByteStream
+	class ByteStream : public AbstractMediaProducer, public ByteStreamInterface
 	{
 		Q_OBJECT
+		Q_INTERFACES( Phonon::ByteStreamInterface )
 		public:
 			ByteStream( QObject* parent, XineEngine* xe );
-			virtual ~ByteStream();
+			~ByteStream();
 
-			virtual qint64 currentTime() const;
-			virtual qint64 totalTime() const;
-			virtual qint32 aboutToFinishTime() const;
-			virtual qint64 streamSize() const;
-			virtual bool streamSeekable() const;
-			virtual bool seekable() const;
+			qint64 currentTime() const;
+			bool isSeekable() const;
 
-			virtual void setStreamSeekable( bool );
-			virtual void writeData( const QByteArray& data );
-			virtual void setStreamSize( qint64 );
-			virtual void endOfData();
-			virtual void setAboutToFinishTime( qint32 );
+			void writeData( const QByteArray& data );
 
-			virtual void play();
-			virtual void pause();
-			virtual void seek( qint64 time );
+			void play();
+			void pause();
+			void stop();
+			void seek( qint64 time );
 
 		public Q_SLOTS:
-			virtual void stop();
+			void endOfData();
+			void setStreamSeekable( bool );
+			void setStreamSize( qint64 );
+			qint64 streamSize() const;
+			qint64 totalTime() const;
+			bool streamSeekable() const;
+			qint32 aboutToFinishTime() const;
+			void setAboutToFinishTime( qint32 );
 
 		Q_SIGNALS:
 			void finished();
