@@ -156,16 +156,18 @@ bool Backend::supportsSubtitles() const
 	return true;
 }
 
-QStringList Backend::knownMimeTypes() const
+QStringList Backend::knownMimeTypes()
 {
 	if( m_supportedMimeTypes.isEmpty() )
 	{
-		QString mimeTypes = xine_get_mime_types( m_xine_engine->m_xine );
+		char* mimeTypes_c = xine_get_mime_types( m_xine_engine->m_xine );
+		QString mimeTypes( mimeTypes_c );
+		free( mimeTypes_c );
 		QStringList lstMimeTypes = mimeTypes.split( ";", QString::SkipEmptyParts );
 		foreach( QString mimeType, lstMimeTypes )
-		{
-			const_cast<Backend*>( this )->m_supportedMimeTypes << mimeType.split( ":" )[0].toLatin1();
-		}
+			m_supportedMimeTypes << mimeType.left( mimeType.indexOf( ':' ) ).trimmed();
+		if( m_supportedMimeTypes.contains( "application/x-ogg" ) )
+			m_supportedMimeTypes << QLatin1String( "audio/vorbis" );
 	}
 
 	return m_supportedMimeTypes;
@@ -173,7 +175,6 @@ QStringList Backend::knownMimeTypes() const
 
 QSet<int> Backend::objectDescriptionIndexes( ObjectDescriptionType type ) const
 {
-	//TODO
 	QSet<int> set;
 	switch( type )
 	{
