@@ -43,6 +43,7 @@ bool AudioPath::addOutput( QObject* audioOutput )
 	Q_ASSERT( ao );
 	Q_ASSERT( !m_outputs.contains( ao ) );
 	m_outputs.append( ao );
+	ao->addPath( this );
 	return true;
 }
 
@@ -52,6 +53,7 @@ bool AudioPath::removeOutput( QObject* audioOutput )
 	AbstractAudioOutput* ao = qobject_cast<AbstractAudioOutput*>( audioOutput );
 	Q_ASSERT( ao );
 	Q_ASSERT( m_outputs.removeAll( ao ) > 0 );
+	ao->removePath( this );
 	return true;
 }
 
@@ -83,6 +85,16 @@ bool AudioPath::removeEffect( QObject* effect )
 	if( m_effects.removeAll( ae ) > 0 )
 		return true;
 	return false;
+}
+
+void AudioPath::addMediaProducer( AbstractMediaProducer* mp )
+{
+	m_producers.append( mp );
+}
+
+void AudioPath::removeMediaProducer( AbstractMediaProducer* mp )
+{
+	m_producers.removeAll( mp );
 }
 
 }}

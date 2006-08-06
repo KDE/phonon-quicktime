@@ -28,6 +28,7 @@ namespace Xine
 {
 	class AudioEffect;
 	class AbstractAudioOutput;
+	class AbstractMediaProducer;
 
 	class AudioPath : public QObject
 	{
@@ -35,6 +36,10 @@ namespace Xine
 		public:
 			AudioPath( QObject* parent );
 			~AudioPath();
+
+			void addMediaProducer( AbstractMediaProducer* mp );
+			void removeMediaProducer( AbstractMediaProducer* mp );
+			QList<AbstractMediaProducer*> producers() { return m_producers; }
 
 		public slots:
 			bool addOutput( QObject* audioOutput );
@@ -45,6 +50,7 @@ namespace Xine
 		private:
 			QList<AudioEffect*> m_effects;
 			QList<AbstractAudioOutput*> m_outputs;
+			QList<AbstractMediaProducer*> m_producers;
 	};
 }} //namespace Phonon::Xine
 

@@ -21,11 +21,37 @@
 #define xine_engine
 
 #include <xine.h>
+#include <QEvent>
+#include <QString>
 
 namespace Phonon
 {
 namespace Xine
 {
+	enum EventType
+	{
+		NewMetaDataEvent = 5400,
+		MediaFinishedEvent = 5401,
+		ProgressEvent = 5402
+	};
+
+	class XineProgressEvent : public QEvent
+	{
+		public:
+			XineProgressEvent( const QString& description, int percent )
+				: QEvent( static_cast<QEvent::Type>( Xine::ProgressEvent ) )
+				, m_description( description )
+				, m_percent( percent )
+			{
+			}
+
+			const QString& description() { return m_description; }
+			int percent() { return m_percent; }
+
+		private:
+			QString m_description;
+			int m_percent;
+	};
 
 	class XineEngine
 	{
@@ -34,9 +60,7 @@ namespace Xine
 
 			static void xineEventListener( void*, const xine_event_t* );
 			xine_t* m_xine;
-			xine_stream_t* m_stream;
 			xine_audio_port_t* m_audioPort;
-			xine_event_queue_t* m_eventQueue;
 	};
 
 }

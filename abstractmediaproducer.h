@@ -29,6 +29,7 @@
 #include <xine.h>
 #include "xine_engine.h"
 #include <phonon/mediaproducerinterface.h>
+#include <QMultiMap>
 
 class QTimer;
 
@@ -73,29 +74,39 @@ namespace Xine
 			virtual void stop();
 			virtual void seek( qint64 time );
 
+			xine_stream_t* stream() const { return m_stream; }
+
 		Q_SIGNALS:
 			void stateChanged( Phonon::State newstate, Phonon::State oldstate );
 			void tick( qint64 time );
+			void metaDataChanged( const QMultiMap<QString, QString>& );
 
 		protected:
 			void setState( State );
+			virtual bool event( QEvent* ev );
+			void updateMetaData();
 
 		protected Q_SLOTS:
 			virtual void emitTick();
 
+		private slots:
+			void getStartTime();
+
 		private:
 			XineEngine* m_xine_engine;
+			xine_stream_t* m_stream;
 			State m_state;
 			QTimer* m_tickTimer;
 			qint32 m_tickInterval;
-			QTime m_startTime, m_pauseTime;
 			int m_bufferSize;
+			int m_startTime;
 			QList<AudioPath*> m_audioPathList;
 			QList<VideoPath*> m_videoPathList;
 
 			QHash<const QObject*, QString> m_selectedAudioStream;
 			QHash<const QObject*, QString> m_selectedVideoStream;
 			QHash<const QObject*, QString> m_selectedSubtitleStream;
+			QMultiMap<QString, QString> m_metaDataMap;
 	};
 }} //namespace Phonon::Xine
 

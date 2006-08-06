@@ -25,6 +25,7 @@
 #include <xine.h>
 
 #include "xine_engine.h"
+#include <phonon/mediaobjectinterface.h>
 
 class KUrl;
 
@@ -32,9 +33,10 @@ namespace Phonon
 {
 namespace Xine
 {
-	class MediaObject : public AbstractMediaProducer
+	class MediaObject : public AbstractMediaProducer, public MediaObjectInterface
 	{
 		Q_OBJECT
+		Q_INTERFACES( Phonon::MediaObjectInterface )
 		public:
 			MediaObject( QObject* parent, XineEngine* xe );
 			~MediaObject();
@@ -42,6 +44,7 @@ namespace Xine
 		public slots:
 			KUrl url() const;
 			qint64 totalTime() const;
+			//qint64 remainingTime() const;
 			qint32 aboutToFinishTime() const;
 			void setUrl( const KUrl& url );
 			void setAboutToFinishTime( qint32 newAboutToFinishTime );
@@ -58,6 +61,10 @@ namespace Xine
 
 		protected:
 			virtual void emitTick();
+			virtual bool event( QEvent* ev );
+
+		private slots:
+			void emitAboutToFinish();
 
 		private:
 			XineEngine* m_xine_engine;
