@@ -104,7 +104,10 @@ void MediaObject::play()
 {
 	//kDebug() << k_funcinfo << endl;
 
-	xine_play( stream(), 0, 0 );
+	if( state() == PausedState )
+		xine_set_param( stream(), XINE_PARAM_SPEED, XINE_SPEED_NORMAL );
+	else
+		xine_play( stream(), 0, 0 );
 	AbstractMediaProducer::play();
 }
 
@@ -113,6 +116,7 @@ void MediaObject::pause()
 	//kDebug() << k_funcinfo << endl;
 	if( state() == PlayingState || state() == BufferingState )
 	{
+		xine_set_param( stream(), XINE_PARAM_SPEED, XINE_SPEED_PAUSE );
 		AbstractMediaProducer::pause();
 	}
 }
