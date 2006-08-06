@@ -20,17 +20,25 @@
 #define Phonon_XINE_ABSTRACTAUDIOOUTPUTBASE_H
 
 #include <QObject>
+#include <QList>
 
 namespace Phonon
 {
 namespace Xine
 {
+	class AudioPath;
 	class AbstractAudioOutput : public QObject
 	{
 		Q_OBJECT
 		public:
 			AbstractAudioOutput( QObject* parent );
 			virtual ~AbstractAudioOutput();
+
+			void addPath( AudioPath* ap ) { m_paths << ap; }
+			void removePath( AudioPath* ap ) { m_paths.removeAll( ap ); }
+
+		protected:
+			QList<AudioPath*> m_paths;
 	};
 }} //namespace Phonon::Xine
 

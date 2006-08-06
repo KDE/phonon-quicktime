@@ -22,6 +22,7 @@
 #include <kdebug.h>
 
 #include "xine_engine.h"
+#include <QEvent>
 
 namespace Phonon
 {
@@ -34,8 +35,6 @@ MediaObject::MediaObject( QObject* parent, XineEngine* xe )
 	//kDebug() << k_funcinfo << endl;
 
 	m_xine_engine = xe;
-
-	xine_event_create_listener_thread( m_xine_engine->m_eventQueue = xine_event_new_queue( m_xine_engine->m_stream ), &m_xine_engine->xineEventListener, (void*)this );
 
 }
 
@@ -52,19 +51,29 @@ KUrl MediaObject::url() const
 
 qint64 MediaObject::totalTime() const
 {
-	//kDebug() << k_funcinfo << endl;
-
 	int positionstream = 0;
 	int positiontime = 0;
 	int lengthtime = 0;
 
-	if( xine_get_pos_length( m_xine_engine->m_stream, &positionstream, &positiontime, &lengthtime ) == 1 )
-	{
-		return lengthtime;
-	}
-	else
-		return 0;
+	if( xine_get_pos_length( stream(), &positionstream, &positiontime, &lengthtime ) == 1 )
+		if( lengthtime >= 0 )
+			return lengthtime;
+	return -1;
 }
+
+/*
+qint64 MediaObject::remainingTime() const
+{
+	int positionstream = 0;
+	int positiontime = 0;
+	int lengthtime = 0;
+
+	if( xine_get_pos_length( stream(), &positionstream, &positiontime, &lengthtime ) == 1 )
+		if( lengthtime - positiontime > 0 )
+			return lengthtime - positiontime;
+	return 0;
+}
+*/
 
 qint32 MediaObject::aboutToFinishTime() const
 {
@@ -78,8 +87,9 @@ void MediaObject::setUrl( const KUrl& url )
 	stop();
 	m_url = url;
 	kDebug() << "url = " << m_url.url() << endl;
-	xine_open( m_xine_engine->m_stream, m_url.url().toUtf8() );
+	xine_open( stream(), m_url.url().toUtf8() );
 	emit length( totalTime() );
+	updateMetaData();
 }
 
 void MediaObject::setAboutToFinishTime( qint32 newAboutToFinishTime )
@@ -94,7 +104,7 @@ void MediaObject::play()
 {
 	//kDebug() << k_funcinfo << endl;
 
-	xine_play( m_xine_engine->m_stream, 0, 0 );
+	xine_play( stream(), 0, 0 );
 	AbstractMediaProducer::play();
 }
 
@@ -111,7 +121,7 @@ void MediaObject::stop()
 {
 	//kDebug() << k_funcinfo << endl;
 
-	xine_stop( m_xine_engine->m_stream );
+	xine_stop( stream() );
 	AbstractMediaProducer::stop();
 	m_aboutToFinishNotEmitted = true;
 }
@@ -119,32 +129,69 @@ void MediaObject::stop()
 void MediaObject::seek( qint64 time )
 {
 	//kDebug() << k_funcinfo << endl;
+	if( !isSeekable() )
+		return;
 
 	//xine_trick_mode( m_xine_engine->m_stream, XINE_TRICK_MODE_SEEK_TO_TIME, time );
 
 	AbstractMediaProducer::seek( time );
 
-	if( currentTime() < totalTime() - m_aboutToFinishTime ) // not about to finish
+	int tmp;
+	int timeAfter;
+	int totalTime;
+	xine_get_pos_length( stream(), &tmp, &timeAfter, &totalTime );
+
+	if( timeAfter < totalTime - m_aboutToFinishTime ) // not about to finish
 		m_aboutToFinishNotEmitted = true;
 }
 
 void MediaObject::emitTick()
 {
 	AbstractMediaProducer::emitTick();
-	if( currentTime() >= totalTime() - m_aboutToFinishTime ) // about to finish
+	int tmp = 0;
+	int currentTime = 0;
+	int totalTime = 0;
+
+	xine_get_pos_length( stream(), &tmp, &currentTime, &totalTime );
+	const int remainingTime = totalTime - currentTime;
+	const int timeToAboutToFinishSignal = remainingTime - m_aboutToFinishTime;
+	if( timeToAboutToFinishSignal <= tickInterval() ) // about to finish
 	{
-		if( m_aboutToFinishNotEmitted )
+		if( timeToAboutToFinishSignal > 40 )
+			QTimer::singleShot( timeToAboutToFinishSignal, this, SLOT( emitAboutToFinish() ) );
+		else if( m_aboutToFinishNotEmitted )
 		{
 			m_aboutToFinishNotEmitted = false;
-			emit aboutToFinish( totalTime() - currentTime() );
+			emit aboutToFinish( remainingTime );
 		}
 	}
-	if( currentTime() >= totalTime() ) // finished
+}
+
+void MediaObject::emitAboutToFinish()
+{
+	if( m_aboutToFinishNotEmitted )
 	{
-		stop();
-		emit finished();
+		m_aboutToFinishNotEmitted = false;
+		emit aboutToFinish( totalTime() - currentTime() );
 	}
 }
+
+bool MediaObject::event( QEvent* ev )
+{
+	switch( ev->type() )
+	{
+		case Xine::MediaFinishedEvent:
+			AbstractMediaProducer::stop();
+			m_aboutToFinishNotEmitted = true;
+			emit finished();
+			ev->accept();
+			return true;
+		default:
+			break;
+	}
+	return AbstractMediaProducer::event( ev );
+}
+
 
 }}
 

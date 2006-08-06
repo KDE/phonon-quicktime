@@ -24,6 +24,9 @@
 #include <config.h>
 #include <sys/ioctl.h>
 #include <iostream>
+#include <QSet>
+#include "audiopath.h"
+#include "abstractmediaproducer.h"
 
 namespace Phonon
 {
@@ -58,7 +61,18 @@ void AudioOutput::setVolume( float newVolume )
 	if( xinevolume > 200) xinevolume = 200;
 	if( xinevolume < 0) xinevolume = 0;
 
-	xine_set_param( m_xine_engine->m_stream, XINE_PARAM_AUDIO_AMP_LEVEL, xinevolume );
+	QSet<xine_stream_t*> streams;
+	foreach( AudioPath* ap, m_paths )
+	{
+		foreach( AbstractMediaProducer* mp, ap->producers() )
+		{
+			streams << mp->stream();
+		}
+	}
+	foreach( xine_stream_t* stream, streams )
+	{
+		xine_set_param( stream, XINE_PARAM_AUDIO_AMP_LEVEL, xinevolume );
+	}
 
 	emit volumeChanged( m_volume );
 }

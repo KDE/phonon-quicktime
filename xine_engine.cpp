@@ -20,6 +20,8 @@
 #include "xine_engine.h"
 
 #include <kdebug.h>
+#include "abstractmediaproducer.h"
+#include <QCoreApplication>
 
 namespace Phonon
 {
@@ -28,21 +30,32 @@ namespace Xine
 	XineEngine::XineEngine()
 	{
 		m_xine = 0;
-		m_stream = 0;
 		m_audioPort = 0;
-		m_eventQueue = 0;
 	}
 
 	void XineEngine::xineEventListener( void *p, const xine_event_t* xineEvent )
 	{
-		if( !p )
+		if( !p || !xineEvent )
 			return;
+		kDebug() << "Xine event: " << xineEvent->type << QByteArray( ( char* )xineEvent->data, xineEvent->data_length ) << endl;
 
-		/*switch( xineEvent->type ) 
+		AbstractMediaProducer* mp = static_cast<AbstractMediaProducer*>( p );
+
+		switch( xineEvent->type ) 
 		{
-		}*/
-
-		kDebug() << "Xine event: " << xineEvent->type << endl;
+			case XINE_EVENT_UI_SET_TITLE:
+				QCoreApplication::postEvent( mp, new QEvent( static_cast<QEvent::Type>( Xine::NewMetaDataEvent ) ) );
+				break;
+			case XINE_EVENT_UI_PLAYBACK_FINISHED:
+				QCoreApplication::postEvent( mp, new QEvent( static_cast<QEvent::Type>( Xine::MediaFinishedEvent ) ) );
+				break;
+			case XINE_EVENT_PROGRESS:
+				{
+					xine_progress_data_t* progress = static_cast<xine_progress_data_t*>( xineEvent->data );
+					QCoreApplication::postEvent( mp, new XineProgressEvent( QString::fromUtf8( progress->description ), progress->percent ) );
+				}
+				break;
+		}
 	}
 }
 }
