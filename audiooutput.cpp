@@ -36,6 +36,7 @@ AudioOutput::AudioOutput( QObject* parent, XineEngine* xe )
 	: AbstractAudioOutput( parent )
 	, m_xine_engine( xe )
 	, m_device( 1 )
+	, m_audioPort( 0 )
 {
 }
 
@@ -79,9 +80,24 @@ void AudioOutput::setVolume( float newVolume )
 
 void AudioOutput::setOutputDevice( int newDevice )
 {
-	Q_ASSERT( newDevice >= 1 );
-	Q_ASSERT( newDevice <= 2 );
 	m_device = newDevice;
+	if( m_audioPort )
+		xine_close_audio_driver( m_xine_engine->m_xine, m_audioPort );
+	const char* const* outputPlugins = xine_list_audio_output_plugins( m_xine_engine->m_xine );
+	kDebug( 610 ) << k_funcinfo << "use output plugin: " << outputPlugins[ newDevice - 10000 ] << endl;
+	m_audioPort = xine_open_audio_driver( m_xine_engine->m_xine, outputPlugins[ newDevice - 10000 ], NULL );
+
+	// notify the connected MediaProducers of the new device
+	QSet<AbstractMediaProducer *> mps;
+	foreach( AudioPath* ap, m_paths )
+	{
+		foreach( AbstractMediaProducer *mp, ap->producers() )
+		{
+			mps << mp;
+		}
+	}
+	foreach( AbstractMediaProducer *mp, mps )
+		mp->checkAudioOutput();
 }
 
 }} //namespace Phonon::Xine

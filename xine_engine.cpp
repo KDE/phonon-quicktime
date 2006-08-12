@@ -30,7 +30,6 @@ namespace Xine
 	XineEngine::XineEngine()
 	{
 		m_xine = 0;
-		m_audioPort = 0;
 	}
 
 	void XineEngine::xineEventListener( void *p, const xine_event_t* xineEvent )

@@ -20,7 +20,9 @@
 #include "audiopath.h"
 #include "audioeffect.h"
 #include "abstractaudiooutput.h"
+#include "audiooutput.h"
 #include <QVector>
+#include "abstractmediaproducer.h"
 
 namespace Phonon
 {
@@ -29,6 +31,7 @@ namespace Xine
 
 AudioPath::AudioPath( QObject* parent )
 	: QObject( parent )
+	, m_output( 0 )
 {
 }
 
@@ -36,24 +39,55 @@ AudioPath::~AudioPath()
 {
 }
 
+bool AudioPath::hasOutput() const
+{
+	return ( m_output && m_output->audioPort() != 0 );
+}
+
+xine_audio_port_t *AudioPath::audioPort() const
+{
+	if( m_output )
+		return m_output->audioPort();
+	return 0;
+}
+
 bool AudioPath::addOutput( QObject* audioOutput )
 {
-	Q_ASSERT( audioOutput );
-	AbstractAudioOutput* ao = qobject_cast<AbstractAudioOutput*>( audioOutput );
-	Q_ASSERT( ao );
-	Q_ASSERT( !m_outputs.contains( ao ) );
-	m_outputs.append( ao );
-	ao->addPath( this );
+	AudioOutput *ao = qobject_cast<AudioOutput*>( audioOutput );
+	if( ao )
+	{
+		if( m_output )
+			return false;
+		m_output = ao;
+		m_output->addPath( this );
+		foreach( AbstractMediaProducer *mp, m_producers )
+			mp->checkAudioOutput();
+		return true;
+	}
+
+	AbstractAudioOutput *aao = qobject_cast<AbstractAudioOutput*>( audioOutput );
+	Q_ASSERT( aao );
+	Q_ASSERT( !m_outputs.contains( aao ) );
+	m_outputs.append( aao );
+	aao->addPath( this );
 	return true;
 }
 
 bool AudioPath::removeOutput( QObject* audioOutput )
 {
-	Q_ASSERT( audioOutput );
-	AbstractAudioOutput* ao = qobject_cast<AbstractAudioOutput*>( audioOutput );
-	Q_ASSERT( ao );
-	Q_ASSERT( m_outputs.removeAll( ao ) > 0 );
-	ao->removePath( this );
+	AudioOutput *ao = qobject_cast<AudioOutput*>( audioOutput );
+	if( ao && m_output == ao )
+	{
+		m_output->removePath( this );
+		m_output = 0;
+		foreach( AbstractMediaProducer *mp, m_producers )
+			mp->checkAudioOutput();
+		return true;
+	}
+	AbstractAudioOutput* aao = qobject_cast<AbstractAudioOutput*>( audioOutput );
+	Q_ASSERT( aao );
+	Q_ASSERT( m_outputs.removeAll( aao ) > 0 );
+	aao->removePath( this );
 	return true;
 }
 

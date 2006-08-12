@@ -35,6 +35,21 @@ VideoPath::~VideoPath()
 {
 }
 
+bool VideoPath::hasOutput() const
+{
+	//TODO implement
+	return false;
+	//return ( m_output && m_output->videoPort() != 0 );
+}
+
+xine_video_port_t *VideoPath::videoPort() const
+{
+	//TODO implement
+	//if( m_output )
+		//return m_output->videoPort();
+	return 0;
+}
+
 bool VideoPath::addOutput( QObject* videoOutput )
 {
 	Q_ASSERT( videoOutput );
@@ -78,6 +93,16 @@ bool VideoPath::removeEffect( QObject* effect )
 	if( m_effects.removeAll( ve ) > 0 )
 		return true;
 	return false;
+}
+
+void VideoPath::addMediaProducer( AbstractMediaProducer* mp )
+{
+	m_producers.append( mp );
+}
+
+void VideoPath::removeMediaProducer( AbstractMediaProducer* mp )
+{
+	m_producers.removeAll( mp );
 }
 
 }}

@@ -22,6 +22,7 @@
 #include <QObject>
 #include <phonon/videoframe.h>
 #include <QList>
+#include <xine.h>
 
 namespace Phonon
 {
@@ -29,6 +30,7 @@ namespace Xine
 {
 	class VideoEffect;
 	class AbstractVideoOutput;
+	class AbstractMediaProducer;
 
 	class VideoPath : public QObject
 	{
@@ -37,6 +39,13 @@ namespace Xine
 			VideoPath( QObject* parent );
 			~VideoPath();
 
+			void addMediaProducer( AbstractMediaProducer* mp );
+			void removeMediaProducer( AbstractMediaProducer* mp );
+			QList<AbstractMediaProducer*> producers() { return m_producers; }
+
+			bool hasOutput() const;
+			xine_video_port_t *videoPort() const;
+
 		public slots:
 			bool addOutput( QObject* videoOutput );
 			bool removeOutput( QObject* videoOutput );
@@ -44,8 +53,10 @@ namespace Xine
 			bool removeEffect( QObject* effect );
 
 		private:
+			//VideoWidget *m_output;
 			QList<VideoEffect*> m_effects;
 			QList<QObject*> m_outputs;
+			QList<AbstractMediaProducer*> m_producers;
 	};
 }} //namespace Phonon::Xine
 
