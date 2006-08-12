@@ -60,9 +60,7 @@ namespace Xine
 
 			static void xineEventListener( void*, const xine_event_t* );
 			xine_t* m_xine;
-			xine_audio_port_t* m_audioPort;
 	};
-
 }
 }
 

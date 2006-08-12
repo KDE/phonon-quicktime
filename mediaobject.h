@@ -62,6 +62,7 @@ namespace Xine
 		protected:
 			virtual void emitTick();
 			virtual bool event( QEvent* ev );
+			virtual void recreateStream();
 
 		private slots:
 			void emitAboutToFinish();

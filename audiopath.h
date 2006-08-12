@@ -21,6 +21,7 @@
 
 #include <QObject>
 #include <QList>
+#include <xine.h>
 
 namespace Phonon
 {
@@ -29,6 +30,7 @@ namespace Xine
 	class AudioEffect;
 	class AbstractAudioOutput;
 	class AbstractMediaProducer;
+	class AudioOutput;
 
 	class AudioPath : public QObject
 	{
@@ -41,6 +43,9 @@ namespace Xine
 			void removeMediaProducer( AbstractMediaProducer* mp );
 			QList<AbstractMediaProducer*> producers() { return m_producers; }
 
+			bool hasOutput() const;
+			xine_audio_port_t *audioPort() const;
+
 		public slots:
 			bool addOutput( QObject* audioOutput );
 			bool removeOutput( QObject* audioOutput );
@@ -48,6 +53,7 @@ namespace Xine
 			bool removeEffect( QObject* effect );
 
 		private:
+			AudioOutput *m_output;
 			QList<AudioEffect*> m_effects;
 			QList<AbstractAudioOutput*> m_outputs;
 			QList<AbstractMediaProducer*> m_producers;

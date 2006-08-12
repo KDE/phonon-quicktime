@@ -75,6 +75,8 @@ namespace Xine
 			virtual void seek( qint64 time );
 
 			xine_stream_t* stream() const { return m_stream; }
+			void checkAudioOutput();
+			void checkVideoOutput();
 
 		Q_SIGNALS:
 			void stateChanged( Phonon::State newstate, Phonon::State oldstate );
@@ -85,6 +87,7 @@ namespace Xine
 			void setState( State );
 			virtual bool event( QEvent* ev );
 			void updateMetaData();
+			virtual void recreateStream();
 
 		protected Q_SLOTS:
 			virtual void emitTick();
@@ -93,15 +96,18 @@ namespace Xine
 			void getStartTime();
 
 		private:
-			XineEngine* m_xine_engine;
-			xine_stream_t* m_stream;
+			void createStream();
+
+			XineEngine *m_xine_engine;
+			xine_stream_t *m_stream;
+			xine_event_queue_t *m_event_queue;
 			State m_state;
-			QTimer* m_tickTimer;
+			QTimer *m_tickTimer;
 			qint32 m_tickInterval;
 			int m_bufferSize;
 			int m_startTime;
-			QList<AudioPath*> m_audioPathList;
-			QList<VideoPath*> m_videoPathList;
+			AudioPath *m_audioPath;
+			VideoPath *m_videoPath;
 
 			QHash<const QObject*, QString> m_selectedAudioStream;
 			QHash<const QObject*, QString> m_selectedVideoStream;

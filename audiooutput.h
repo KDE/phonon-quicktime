@@ -36,6 +36,8 @@ namespace Xine
 			AudioOutput( QObject* parent, XineEngine* xe );
 			~AudioOutput();
 
+			xine_audio_port_t* audioPort() const { return m_audioPort; }
+
 		public slots:
 			// Attributes Getters:
 			float volume() const;
@@ -52,6 +54,7 @@ namespace Xine
 			XineEngine* m_xine_engine;
 			float m_volume;
 			int m_device;
+			xine_audio_port_t* m_audioPort;
 	};
 }} //namespace Phonon::Xine
 

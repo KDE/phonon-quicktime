@@ -171,6 +171,40 @@ void MediaObject::emitTick()
 	}
 }
 
+void MediaObject::recreateStream()
+{
+	kDebug() << k_funcinfo << endl;
+
+	// store state
+	Phonon::State oldstate = state();
+	int position;
+	int tmp1, tmp2;
+	xine_get_pos_length( stream(), &position, &tmp1, &tmp2 );
+
+	AbstractMediaProducer::recreateStream();
+	// restore state
+	kDebug() << "xine_open URL: " << m_url << endl;
+	xine_open( stream(), m_url.url().toUtf8() );
+	switch( oldstate )
+	{
+		case Phonon::PausedState:
+			kDebug() << "xine_play" << endl;
+			xine_play( stream(), position, 0 );
+			kDebug() << "pause" << endl;
+			xine_set_param( stream(), XINE_PARAM_SPEED, XINE_SPEED_PAUSE );
+			break;
+		case Phonon::PlayingState:
+		case Phonon::BufferingState:
+			kDebug() << "xine_play" << endl;
+			xine_play( stream(), position, 0 );
+			break;
+		case Phonon::StoppedState:
+		case Phonon::LoadingState:
+		case Phonon::ErrorState:
+			break;
+	}
+}
+
 void MediaObject::emitAboutToFinish()
 {
 	if( m_aboutToFinishNotEmitted )
