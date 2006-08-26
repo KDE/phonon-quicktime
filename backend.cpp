@@ -57,7 +57,7 @@ Backend::Backend( QObject* parent, const QStringList& )
 	xine_config_load( m_xine_engine->m_xine, configfile );
 	xine_init( m_xine_engine->m_xine );
 
-	kDebug() << "Using Xine version " << xine_get_version_string() << endl;
+	kDebug( 610 ) << "Using Xine version " << xine_get_version_string() << endl;
 
 	// testing
 	//xine_video_port_t* m_videoPort = xine_open_video_driver( m_xine, "auto", 1, NULL );

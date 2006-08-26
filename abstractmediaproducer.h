@@ -88,6 +88,8 @@ namespace Xine
 			virtual bool event( QEvent* ev );
 			void updateMetaData();
 			virtual void recreateStream();
+			virtual void reachedPlayingState() {}
+			virtual void leftPlayingState() {}
 
 		protected Q_SLOTS:
 			virtual void emitTick();
@@ -113,6 +115,8 @@ namespace Xine
 			QHash<const QObject*, QString> m_selectedVideoStream;
 			QHash<const QObject*, QString> m_selectedSubtitleStream;
 			QMultiMap<QString, QString> m_metaDataMap;
+
+			mutable int m_currentTimeOverride;
 	};
 }} //namespace Phonon::Xine
 
