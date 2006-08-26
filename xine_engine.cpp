@@ -36,7 +36,7 @@ namespace Xine
 	{
 		if( !p || !xineEvent )
 			return;
-		kDebug() << "Xine event: " << xineEvent->type << QByteArray( ( char* )xineEvent->data, xineEvent->data_length ) << endl;
+		kDebug( 610 ) << "Xine event: " << xineEvent->type << QByteArray( ( char* )xineEvent->data, xineEvent->data_length ) << endl;
 
 		AbstractMediaProducer* mp = static_cast<AbstractMediaProducer*>( p );
 

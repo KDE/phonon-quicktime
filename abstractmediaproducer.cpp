@@ -45,6 +45,7 @@ AbstractMediaProducer::AbstractMediaProducer( QObject* parent, XineEngine* xe )
 	, m_startTime( -1 )
 	, m_audioPath( 0 )
 	, m_videoPath( 0 )
+	, m_currentTimeOverride( -1 )
 {
 	connect( m_tickTimer, SIGNAL( timeout() ), SLOT( emitTick() ) );
 	createStream();
@@ -270,10 +271,19 @@ qint64 AbstractMediaProducer::currentTime() const
 				int lengthtime = 0;
 
 				if( xine_get_pos_length( stream(), &positionstream, &positiontime, &lengthtime ) == 1 )
+				{
+					if( m_currentTimeOverride != -1 )
+					{
+						if( positiontime > 0 )
+							m_currentTimeOverride = -1;
+						else
+							positiontime = m_currentTimeOverride;
+					}
 					if( m_startTime == -1 )
 						return positiontime;
 					else
 						return positiontime - m_startTime;
+				}
 			}
 			break;
 		case Phonon::StoppedState:
@@ -375,6 +385,7 @@ void AbstractMediaProducer::play()
 		}
 		else
 			m_startTime = -1;
+		m_currentTimeOverride = -1;
 	}
 	setState( Phonon::PlayingState );
 	m_tickTimer->start();
@@ -404,12 +415,18 @@ void AbstractMediaProducer::seek( qint64 time )
 	switch( state() )
 	{
 		case Phonon::PausedState:
-			xine_play( m_stream, 0, time );
-			xine_set_param( m_stream, XINE_PARAM_SPEED, XINE_SPEED_PAUSE );
-			break;
 		case Phonon::BufferingState:
 		case Phonon::PlayingState:
-			xine_play( m_stream, 0, time );
+			kDebug( 610 ) << k_funcinfo << "seeking xine stream to " << time << endl;
+			// xine_trick_mode aborts :(
+			//if( 0 == xine_trick_mode( m_stream, XINE_TRICK_MODE_SEEK_TO_TIME, time ) )
+			{
+				xine_play( m_stream, 0, time );
+				if( Phonon::PausedState == state() )
+					// go back to paused speed after seek
+					xine_set_param( m_stream, XINE_PARAM_SPEED, XINE_SPEED_PAUSE );
+				m_currentTimeOverride = time;
+			}
 			break;
 		case Phonon::StoppedState:
 		case Phonon::ErrorState:
@@ -420,18 +437,23 @@ void AbstractMediaProducer::seek( qint64 time )
 
 void AbstractMediaProducer::setState( State newstate )
 {
-	if( newstate == m_state )
+	if( newstate == m_state ) // no change
 		return;
 	State oldstate = m_state;
 	m_state = newstate;
+	kDebug( 610 ) << "reached " << newstate << " after " << oldstate << endl;
 	switch( newstate )
 	{
+		case Phonon::PlayingState:
+			reachedPlayingState();
+			break;
 		case Phonon::PausedState:
 		case Phonon::BufferingState:
-		case Phonon::PlayingState:
 		case Phonon::StoppedState:
 		case Phonon::ErrorState:
 		case Phonon::LoadingState:
+			if( oldstate == Phonon::PlayingState )
+				leftPlayingState();
 			break;
 	}
 	//kDebug( 610 ) << "emit stateChanged( " << newstate << ", " << oldstate << " )" << endl;
