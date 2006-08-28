@@ -16,36 +16,41 @@
     Boston, MA 02110-1301, USA.
 
 */
-#ifndef Phonon_UI_XINE_VIDEOWIDGET_H
-#define Phonon_UI_XINE_VIDEOWIDGET_H
+#ifndef PHONON_XINE_VIDEOWIDGET_H
+#define PHONON_XINE_VIDEOWIDGET_H
 
 #include <QWidget>
-#include <phonon/ui/ifaces/videowidget.h>
-#include <phonon/videoframe.h>
+#include <phonon/ui/videowidget.h>
 #include "../abstractvideooutput.h"
 #include <QPixmap>
+#include <xine.h>
 
 class QString;
 
 namespace Phonon
 {
-namespace Ui
-{
 namespace Xine
 {
-	class VideoWidget : public QWidget, virtual public Ui::Ifaces::VideoWidget, public Phonon::Xine::AbstractVideoOutput
+	class VideoWidget : public QWidget, public Phonon::Xine::AbstractVideoOutput
 	{
 		Q_OBJECT
+		Q_INTERFACES( Phonon::Xine::AbstractVideoOutput )
 		public:
 			VideoWidget( QWidget* parent = 0 );
 
-			virtual void* internal1( void* = 0 ) { return static_cast<Phonon::Xine::AbstractVideoOutput*>( this ); }
+			Q_INVOKABLE Phonon::VideoWidget::AspectRatio aspectRatio() const;
+			Q_INVOKABLE void setAspectRatio( Phonon::VideoWidget::AspectRatio aspectRatio );
 
-		public:
-			virtual QObject* qobject() { return this; }
-			virtual const QObject* qobject() const { return this; }
+			Q_INVOKABLE QWidget *widget() { return this; }
+
+			xine_video_port_t* videoPort() const { return m_videoPort; }
+
+		private:
+			xine_video_port_t* m_videoPort;
+			x11_visual_t m_visual;
+			Phonon::VideoWidget::AspectRatio m_aspectRatio;
 	};
-}}} //namespace Phonon::Ui::Xine
+}} //namespace Phonon::Xine
 
 // vim: sw=4 ts=4 tw=80 noet
-#endif // Phonon_UI_XINE_VIDEOWIDGET_H
+#endif // PHONON_XINE_VIDEOWIDGET_H

@@ -23,16 +23,60 @@
 #include <QPainter>
 #include <kdebug.h>
 
+#include <X11/X.h>
+#include <QX11Info>
+
+extern Drawable qt_x11Handle( const QPaintDevice *pd );
+
 namespace Phonon
-{
-namespace Ui
 {
 namespace Xine
 {
 
+extern "C" {
+	static void dest_size_cb( void* user_data, int /*video_width*/, int /*video_height*/, double /*video_pixel_aspect*/,
+			int *dest_width, int *dest_height, double *dest_pixel_aspect )
+	{
+		Phonon::Xine::VideoWidget* vw = static_cast<VideoWidget*>( user_data );
+		*dest_width = vw->width();
+		*dest_height = vw->height();
+		*dest_pixel_aspect = 1.0;
+	}
+
+	static void frame_output_cb( void* user_data, int /*video_width*/, int /*video_height*/,
+			double /*video_pixel_aspect*/, int *dest_x, int *dest_y,
+			int *dest_width, int *dest_height,
+			double *dest_pixel_aspect, int *win_x, int *win_y )
+	{
+		Phonon::Xine::VideoWidget* vw = static_cast<VideoWidget*>( user_data );
+
+		//if ( running && firstframe )
+		//{
+			//firstframe = 0;
+			// ?
+		//}
+
+		*dest_x            = 0;
+		*dest_y            = 0;
+		*win_x             = vw->x();
+		*win_y             = vw->y();
+		*dest_width        = vw->width();
+		*dest_height       = vw->height();
+		*dest_pixel_aspect = 1.0;
+	}
+}
+
 VideoWidget::VideoWidget( QWidget* parent )
 	: QWidget( parent )
 {
+	m_visual.display = QX11Info::display();
+	m_visual.screen = x11Info().screen();
+	m_visual.d = qt_x11Handle( this );
+	m_visual.user_data = static_cast<void*>( this );
+	m_visual.dest_size_cb = Phonon::Xine::dest_size_cb;
+	m_visual.frame_output_cb = Phonon::Xine::frame_output_cb;
+	m_videoPort = xine_open_video_driver( m_xine_engine->m_xine, NULL, XINE_VISUAL_TYPE_X11, static_cast<void*>( &m_visual ) );
+
 	QPalette p = palette();
 	p.setColor( QPalette::Window, Qt::blue );
 	setPalette( p );
@@ -41,7 +85,17 @@ VideoWidget::VideoWidget( QWidget* parent )
 	setMinimumSize( 100, 100 );
 }
 
-}}} //namespace Phonon::Ui::Xine
+Phonon::VideoWidget::AspectRatio VideoWidget::aspectRatio() const
+{
+	return m_aspectRatio;
+}
+
+void VideoWidget::setAspectRatio( Phonon::VideoWidget::AspectRatio aspectRatio )
+{
+	m_aspectRatio = aspectRatio;
+}
+
+}} //namespace Phonon::Xine
 
 #include "videowidget.moc"
 // vim: sw=4 ts=4 noet
