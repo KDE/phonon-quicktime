@@ -22,28 +22,21 @@
 
 #include <QObject>
 #include <kdelibs_export.h>
-#include <phonon/ui/ifaces/backend.h>
 
 namespace Phonon
 {
-namespace Ui
-{
-namespace Ifaces
-{
-	class VideoWidget;
-}
 namespace Xine
 {
-	class PHONON_XINEUI_EXPORT Backend : public Ui::Ifaces::Backend
+	class KDE_EXPORT Backend : public QObject
 	{
 		Q_OBJECT
 		public:
 			Backend( QObject* parent, const QStringList& args );
-			virtual ~Backend();
+			~Backend();
 
-			virtual Ifaces::VideoWidget*  createVideoWidget( QWidget* parent );
+			Q_INVOKABLE QObject* createVideoWidget( QWidget* parent );
 	};
-}}} // namespace Phonon::Ui::Xine
+}} // namespace Phonon::Xine
 
 // vim: sw=4 ts=4 noet tw=80
 #endif // Phonon_XINE_UI_BACKEND_H
