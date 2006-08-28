@@ -65,7 +65,10 @@ Backend::Backend( QObject* parent, const QStringList& )
 
 Backend::~Backend()
 {
-	if( m_xine_engine->m_xine) xine_exit( m_xine_engine->m_xine);
+	if( m_xine_engine->m_xine)
+		xine_exit( m_xine_engine->m_xine);
+	delete m_xine_engine;
+	m_xine_engine = 0;
 }
 
 QObject* Backend::createMediaObject( QObject* parent )
