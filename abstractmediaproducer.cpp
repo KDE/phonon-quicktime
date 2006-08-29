@@ -35,9 +35,8 @@ namespace Phonon
 {
 namespace Xine
 {
-AbstractMediaProducer::AbstractMediaProducer( QObject* parent, XineEngine* xe )
+AbstractMediaProducer::AbstractMediaProducer( QObject* parent )
 	: QObject( parent )
-	, m_xine_engine( xe )
 	, m_stream( 0 )
 	, m_event_queue( 0 )
 	, m_state( Phonon::LoadingState )
@@ -89,10 +88,10 @@ void AbstractMediaProducer::createStream()
 		kDebug( 610 ) << "getting videoPort from m_videoPath" << endl;
 		videoPort = m_videoPath->videoPort();
 	}
-	kDebug( 610 ) << "XXXXXXXXXXXXXX xine_stream_new( " << ( void* )m_xine_engine->m_xine << ", " << ( void* )audioPort << ", " << ( void* )videoPort << " );" << endl;
-	m_stream = xine_stream_new( m_xine_engine->m_xine, audioPort, videoPort );
+	kDebug( 610 ) << "XXXXXXXXXXXXXX xine_stream_new( " << ( void* )XineEngine::xine() << ", " << ( void* )audioPort << ", " << ( void* )videoPort << " );" << endl;
+	m_stream = xine_stream_new( XineEngine::xine(), audioPort, videoPort );
 	m_event_queue = xine_event_new_queue( m_stream );
-	xine_event_create_listener_thread( m_event_queue, &m_xine_engine->xineEventListener, (void*)this );
+	xine_event_create_listener_thread( m_event_queue, &XineEngine::self()->xineEventListener, (void*)this );
 	xine_set_param( m_stream, XINE_PARAM_IGNORE_AUDIO, 1 );
 	xine_set_param( m_stream, XINE_PARAM_IGNORE_VIDEO, 1 );
 }
@@ -151,8 +150,7 @@ void AbstractMediaProducer::getStartTime()
 	if( m_startTime == -1 || m_startTime == 0 )
 	{
 		int total;
-		int tmp;
-		if( xine_get_pos_length( stream(), &tmp, &m_startTime, &total ) == 1 )
+		if( xine_get_pos_length( stream(), 0, &m_startTime, &total ) == 1 )
 		{
 			if( total > 0 && m_startTime < total && m_startTime >= 0 )
 				m_startTime = -1;
@@ -266,11 +264,8 @@ qint64 AbstractMediaProducer::currentTime() const
 		case Phonon::BufferingState:
 		case Phonon::PlayingState:
 			{
-				int positionstream = 0;
-				int positiontime = 0;
-				int lengthtime = 0;
-
-				if( xine_get_pos_length( stream(), &positionstream, &positiontime, &lengthtime ) == 1 )
+				int positiontime;
+				if( xine_get_pos_length( stream(), 0, &positiontime, 0 ) == 1 )
 				{
 					if( m_currentTimeOverride != -1 )
 					{
@@ -279,11 +274,15 @@ qint64 AbstractMediaProducer::currentTime() const
 						else
 							positiontime = m_currentTimeOverride;
 					}
-					if( m_startTime == -1 )
-						return positiontime;
-					else
-						return positiontime - m_startTime;
 				}
+				else
+				{
+					positiontime = m_currentTimeOverride;
+				}
+				if( m_startTime == -1 )
+					return positiontime;
+				else
+					return positiontime - m_startTime;
 			}
 			break;
 		case Phonon::StoppedState:
@@ -377,8 +376,7 @@ void AbstractMediaProducer::play()
 	if( state() != PausedState )
 	{
 		int total;
-		int tmp;
-		if( xine_get_pos_length( stream(), &tmp, &m_startTime, &total ) == 1 )
+		if( xine_get_pos_length( stream(), 0, &m_startTime, &total ) == 1 )
 		{
 			if( total > 0 && m_startTime < total && m_startTime >= 0 )
 				m_startTime = -1;

@@ -1,40 +1,37 @@
+include_directories(${KDE4_INCLUDE_DIR} ${QT_INCLUDES})
+add_subdirectory(ui)
 
-
-include_directories( ${KDE4_INCLUDE_DIR} ${QT_INCLUDES} )
-
-# add_subdirectory( ui )
-
-########### next target ###############
+set(xine_engine_LIB_SRCS
+    xine_engine.cpp
+   )
+kde4_automoc(${xine_engine_LIB_SRCS})
+kde4_add_library(phononxineengine SHARED ${xine_engine_LIB_SRCS})
+target_link_libraries(phononxineengine ${QT_QTCORE_LIBRARY} ${XINE_LIBRARY})
+set_target_properties(phononxineengine PROPERTIES VERSION ${GENERIC_LIB_VERSION} SOVERSION ${GENERIC_LIB_SOVERSION})
+install(TARGETS phononxineengine DESTINATION ${LIB_INSTALL_DIR})
 
 set(phonon_xine_PART_SRCS
-   xine_engine.cpp
-   abstractmediaproducer.cpp
-   abstractaudiooutput.cpp
-   audiodataoutput.cpp
-   audioeffect.cpp
-   audiooutput.cpp
-   audiopath.cpp
-   bytestream.cpp
-   mediaobject.cpp
-   avcapture.cpp
-   videoeffect.cpp
-   videopath.cpp
-   videodataoutput.cpp
-   visualization.cpp
-   backend.cpp
-   volumefadereffect.cpp )
+    abstractmediaproducer.cpp
+    abstractaudiooutput.cpp
+    audiodataoutput.cpp
+    audioeffect.cpp
+    audiooutput.cpp
+    audiopath.cpp
+    bytestream.cpp
+    mediaobject.cpp
+    avcapture.cpp
+    videoeffect.cpp
+    videopath.cpp
+    videodataoutput.cpp
+    visualization.cpp
+    backend.cpp
+    volumefadereffect.cpp
+   )
 
 kde4_automoc(${phonon_xine_PART_SRCS})
-
 kde4_add_plugin(phonon_xine ${phonon_xine_PART_SRCS})
+target_link_libraries(phonon_xine ${KDE4_KDECORE_LIBS} phononcore phononxineengine)
 
-kde4_install_libtool_file( ${PLUGIN_INSTALL_DIR} phonon_xine )
-
-target_link_libraries(phonon_xine ${KDE4_KDECORE_LIBS} phononcore ${XINE_LIBRARY} )
-
+kde4_install_libtool_file(${PLUGIN_INSTALL_DIR} phonon_xine)
 install(TARGETS phonon_xine DESTINATION ${PLUGIN_INSTALL_DIR})
-
-
-########### install files ###############
-
 install(FILES xine.desktop DESTINATION ${SERVICES_INSTALL_DIR}/phononbackends)

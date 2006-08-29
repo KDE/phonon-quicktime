@@ -20,6 +20,10 @@
 #include "videopath.h"
 #include "videoeffect.h"
 #include "abstractvideooutput.h"
+#include "videowidgetinterface.h"
+#include "abstractmediaproducer.h"
+#include "videodataoutput.h"
+#include <xine.h>
 
 namespace Phonon
 {
@@ -28,6 +32,7 @@ namespace Xine
 
 VideoPath::VideoPath( QObject* parent )
 	: QObject( parent )
+	, m_output( 0 )
 {
 }
 
@@ -37,31 +42,54 @@ VideoPath::~VideoPath()
 
 bool VideoPath::hasOutput() const
 {
-	//TODO implement
-	return false;
-	//return ( m_output && m_output->videoPort() != 0 );
+	return ( m_output && m_output->videoPort() != 0 );
 }
 
 xine_video_port_t *VideoPath::videoPort() const
 {
-	//TODO implement
-	//if( m_output )
-		//return m_output->videoPort();
+	if( m_output )
+		return m_output->videoPort();
 	return 0;
 }
 
 bool VideoPath::addOutput( QObject* videoOutput )
 {
-	Q_ASSERT( videoOutput );
-	Q_ASSERT( !m_outputs.contains( videoOutput ) );
-	m_outputs.append( videoOutput );
+	VideoWidgetInterface *vwi = qobject_cast<VideoWidgetInterface*>( videoOutput );
+	if( vwi )
+	{
+		if( m_output )
+			return false;
+		m_output = vwi;
+		m_output->addPath( this );
+		foreach( AbstractMediaProducer *mp, m_producers )
+			mp->checkVideoOutput();
+		return true;
+	}
+
+	Xine::VideoDataOutput *vdo = qobject_cast<Xine::VideoDataOutput*>( videoOutput );
+	Q_ASSERT( vdo );
+	Q_ASSERT( !m_outputs.contains( vdo ) );
+	m_outputs.append( vdo );
+	vdo->addPath( this );
 	return true;
 }
 
 bool VideoPath::removeOutput( QObject* videoOutput )
 {
-	Q_ASSERT( videoOutput );
-	Q_ASSERT( m_outputs.removeAll( videoOutput ) == 1 );
+	VideoWidgetInterface *vwi = qobject_cast<VideoWidgetInterface*>( videoOutput );
+	if( vwi && m_output == vwi )
+	{
+		m_output->removePath( this );
+		m_output = 0;
+		foreach( AbstractMediaProducer *mp, m_producers )
+			mp->checkVideoOutput();
+		return true;
+	}
+
+	Xine::VideoDataOutput *vdo = qobject_cast<Xine::VideoDataOutput*>( videoOutput );
+	Q_ASSERT( vdo );
+	Q_ASSERT( m_outputs.removeAll( vdo ) == 1 );
+	vdo->removePath( this );
 	return true;
 }
 

@@ -1,5 +1,5 @@
 /*  This file is part of the KDE project
-    Copyright (C) 2006 Tim Beaulen <tbscope@gmail.com>
+    Copyright (C) 2006 Matthias Kretz <kretz@kde.org>
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -17,53 +17,35 @@
 
 */
 
-#ifndef xine_engine
-#define xine_engine
+#ifndef VIDEOWIDGETINTERFACE_H
+#define VIDEOWIDGETINTERFACE_H
 
+#include <QObject>
 #include <xine.h>
-#include <QEvent>
-#include <QString>
+#include <QList>
+#include "videopath.h"
 
 namespace Phonon
 {
 namespace Xine
 {
-	enum EventType
-	{
-		NewMetaDataEvent = 5400,
-		MediaFinishedEvent = 5401,
-		ProgressEvent = 5402
-	};
 
-	class XineProgressEvent : public QEvent
-	{
-		public:
-			XineProgressEvent( const QString& description, int percent );
-			const QString& description();
-			int percent();
+class VideoWidgetInterface
+{
+	public:
+		virtual ~VideoWidgetInterface() {}
+		virtual xine_video_port_t* videoPort() const = 0;
 
-		private:
-			QString m_description;
-			int m_percent;
-	};
+		void addPath( VideoPath* vp ) { m_paths << vp; }
+		void removePath( VideoPath* vp ) { m_paths.removeAll( vp ); }
 
-	class XineEngine
-	{
-		public:
-			~XineEngine();
+	protected:
+		QList<VideoPath*> m_paths;
+};
 
-			static XineEngine* self();
-			static xine_t* xine();
-			static void xineEventListener( void*, const xine_event_t* );
+} // namespace Xine
+} // namespace Phonon
 
-		protected:
-			XineEngine();
+Q_DECLARE_INTERFACE( Phonon::Xine::VideoWidgetInterface, "org.kde.Phonon.Xine.VideoWidgetInterface/0.1" )
 
-		private:
-			static XineEngine* s_instance;
-			xine_t* m_xine;
-	};
-}
-}
-
-#endif //xine_engine
+#endif // VIDEOWIDGETINTERFACE_H

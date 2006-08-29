@@ -43,7 +43,7 @@ namespace Xine
 		Q_OBJECT
 		Q_INTERFACES( Phonon::MediaProducerInterface )
 		public:
-			AbstractMediaProducer( QObject* parent, XineEngine* xe );
+			AbstractMediaProducer( QObject* parent );
 			virtual ~AbstractMediaProducer();
 
 			virtual bool addVideoPath( QObject* videoPath );
@@ -100,7 +100,6 @@ namespace Xine
 		private:
 			void createStream();
 
-			XineEngine *m_xine_engine;
 			xine_stream_t *m_stream;
 			xine_event_queue_t *m_event_queue;
 			State m_state;

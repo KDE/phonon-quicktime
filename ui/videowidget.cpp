@@ -23,8 +23,10 @@
 #include <QPainter>
 #include <kdebug.h>
 
-#include <X11/X.h>
 #include <QX11Info>
+#include "../xine_engine.h"
+#include <X11/X.h>
+#include <X11/Xlib.h>
 
 extern Drawable qt_x11Handle( const QPaintDevice *pd );
 
@@ -69,13 +71,23 @@ extern "C" {
 VideoWidget::VideoWidget( QWidget* parent )
 	: QWidget( parent )
 {
-	m_visual.display = QX11Info::display();
+	Display* display = QX11Info::display();
+
+	XLockDisplay( display );
+	Window xwindow = XCreateSimpleWindow( display, QX11Info::appRootWindow( x11Info().screen() ),
+			x(), y(), width(), height(), 1, 0, 0 );
+	XSelectInput( display, xwindow, ExposureMask );
+	XMapRaised( display, xwindow );
+	XSync( display, xwindow );
+	XUnlockDisplay( display );
+
+	m_visual.display = display;
 	m_visual.screen = x11Info().screen();
-	m_visual.d = qt_x11Handle( this );
+	m_visual.d = xwindow;
 	m_visual.user_data = static_cast<void*>( this );
 	m_visual.dest_size_cb = Phonon::Xine::dest_size_cb;
 	m_visual.frame_output_cb = Phonon::Xine::frame_output_cb;
-	m_videoPort = xine_open_video_driver( m_xine_engine->m_xine, NULL, XINE_VISUAL_TYPE_X11, static_cast<void*>( &m_visual ) );
+	m_videoPort = xine_open_video_driver( XineEngine::xine(), NULL, XINE_VISUAL_TYPE_X11, static_cast<void*>( &m_visual ) );
 
 	QPalette p = palette();
 	p.setColor( QPalette::Window, Qt::blue );

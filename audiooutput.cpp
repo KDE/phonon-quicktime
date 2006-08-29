@@ -32,9 +32,8 @@ namespace Phonon
 {
 namespace Xine
 {
-AudioOutput::AudioOutput( QObject* parent, XineEngine* xe )
+AudioOutput::AudioOutput( QObject* parent )
 	: AbstractAudioOutput( parent )
-	, m_xine_engine( xe )
 	, m_device( 1 )
 	, m_audioPort( 0 )
 {
@@ -82,10 +81,10 @@ void AudioOutput::setOutputDevice( int newDevice )
 {
 	m_device = newDevice;
 	if( m_audioPort )
-		xine_close_audio_driver( m_xine_engine->m_xine, m_audioPort );
-	const char* const* outputPlugins = xine_list_audio_output_plugins( m_xine_engine->m_xine );
+		xine_close_audio_driver( XineEngine::xine(), m_audioPort );
+	const char* const* outputPlugins = xine_list_audio_output_plugins( XineEngine::xine() );
 	kDebug( 610 ) << k_funcinfo << "use output plugin: " << outputPlugins[ newDevice - 10000 ] << endl;
-	m_audioPort = xine_open_audio_driver( m_xine_engine->m_xine, outputPlugins[ newDevice - 10000 ], NULL );
+	m_audioPort = xine_open_audio_driver( XineEngine::xine(), outputPlugins[ newDevice - 10000 ], NULL );
 
 	// notify the connected MediaProducers of the new device
 	QSet<AbstractMediaProducer *> mps;

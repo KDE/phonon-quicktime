@@ -78,7 +78,6 @@ namespace Xine
 			//const char* uiSymbol() const;
 
 		private:
-			XineEngine* m_xine_engine;
 			QStringList m_supportedMimeTypes;	
 	};
 }} // namespace Phonon::Xine

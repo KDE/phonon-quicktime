@@ -39,7 +39,7 @@ namespace Xine
 		Q_OBJECT
 		Q_INTERFACES( Phonon::MediaObjectInterface )
 		public:
-			MediaObject( QObject* parent, XineEngine* xe );
+			MediaObject( QObject* parent );
 			~MediaObject();
 
 		public slots:
@@ -73,7 +73,6 @@ namespace Xine
 		private:
 			void emitAboutToFinishIn( int timeToAboutToFinishSignal );
 
-			XineEngine* m_xine_engine;
 			KUrl m_url;
 			qint32 m_aboutToFinishTime;
 			bool m_aboutToFinishNotEmitted;

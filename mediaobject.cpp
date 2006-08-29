@@ -28,14 +28,12 @@ namespace Phonon
 {
 namespace Xine
 {
-MediaObject::MediaObject( QObject* parent, XineEngine* xe )
-	: AbstractMediaProducer( parent, xe )
+MediaObject::MediaObject( QObject* parent )
+	: AbstractMediaProducer( parent )
 	, m_aboutToFinishNotEmitted( true )
 	, m_aboutToFinishTimer( 0 )
 {
 	//kDebug( 610 ) << k_funcinfo << endl;
-
-	m_xine_engine = xe;
 }
 
 MediaObject::~MediaObject()
@@ -54,11 +52,8 @@ qint64 MediaObject::totalTime() const
 	if( xine_get_status( stream() ) == XINE_STATUS_IDLE && m_url.isValid() )
 		xine_open( stream(), m_url.url().toUtf8() );
 
-	int positionstream = 0;
-	int positiontime = 0;
 	int lengthtime = 0;
-
-	if( xine_get_pos_length( stream(), &positionstream, &positiontime, &lengthtime ) == 1 )
+	if( xine_get_pos_length( stream(), 0, 0, &lengthtime ) == 1 )
 		if( lengthtime >= 0 )
 			return lengthtime;
 	return -1;
@@ -154,10 +149,9 @@ void MediaObject::seek( qint64 time )
 
 	AbstractMediaProducer::seek( time );
 
-	int tmp;
 	int timeAfter;
 	int totalTime;
-	xine_get_pos_length( stream(), &tmp, &timeAfter, &totalTime );
+	xine_get_pos_length( stream(), 0, &timeAfter, &totalTime );
 	//kDebug( 610 ) << k_funcinfo << "time after seek: " << timeAfter << endl;
 	// xine_get_pos_length doesn't work immediately after seek :(
 	timeAfter = time;
@@ -174,11 +168,10 @@ void MediaObject::emitTick()
 	AbstractMediaProducer::emitTick();
 	if( m_aboutToFinishNotEmitted && m_aboutToFinishTime > 0 )
 	{
-		int tmp = 0;
 		int currentTime = 0;
 		int totalTime = 0;
 
-		xine_get_pos_length( stream(), &tmp, &currentTime, &totalTime );
+		xine_get_pos_length( stream(), 0, &currentTime, &totalTime );
 		const int remainingTime = totalTime - currentTime;
 		const int timeToAboutToFinishSignal = remainingTime - m_aboutToFinishTime;
 		if( timeToAboutToFinishSignal <= tickInterval() ) // about to finish
@@ -202,8 +195,7 @@ void MediaObject::recreateStream()
 	// store state
 	Phonon::State oldstate = state();
 	int position;
-	int tmp1, tmp2;
-	xine_get_pos_length( stream(), &position, &tmp1, &tmp2 );
+	xine_get_pos_length( stream(), &position, 0, 0 );
 
 	AbstractMediaProducer::recreateStream();
 	// restore state
@@ -264,11 +256,10 @@ void MediaObject::emitAboutToFinish()
 	kDebug( 610 ) << k_funcinfo << endl;
 	if( m_aboutToFinishNotEmitted )
 	{
-		int tmp = 0;
 		int currentTime = 0;
 		int totalTime = 0;
 
-		xine_get_pos_length( stream(), &tmp, &currentTime, &totalTime );
+		xine_get_pos_length( stream(), 0, &currentTime, &totalTime );
 		const int remainingTime = totalTime - currentTime;
 
 		if( remainingTime <= m_aboutToFinishTime + 150 )

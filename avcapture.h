@@ -31,7 +31,7 @@ namespace Xine
 	{
 		Q_OBJECT
 		public:
-			AvCapture( QObject* parent, XineEngine* xe );
+			AvCapture( QObject* parent );
 			~AvCapture();
 
 		public slots:
@@ -39,9 +39,6 @@ namespace Xine
 			void setAudioCaptureDevice( int index );
 			int videoCaptureDevice() const;
 			void setVideoCaptureDevice( int index );
-
-		private:
-			XineEngine* m_xine_engine;
 	};
 }} //namespace Phonon::Xine
 

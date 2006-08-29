@@ -20,7 +20,7 @@
 #ifndef PHONON_XINE_ABSTRACTVIDEOOUTPUT_H
 #define PHONON_XINE_ABSTRACTVIDEOOUTPUT_H
 
-#include <phonon/videoframe.h>
+#include <QObject>
 
 namespace Phonon
 {
@@ -34,6 +34,8 @@ class AbstractVideoOutput
 };
 
 }} //namespace Phonon::Fake
+
+Q_DECLARE_INTERFACE( Phonon::Xine::AbstractVideoOutput, "org.kde.Phonon.Xine.AbstractVideoOutput/0.1" )
 
 #endif // PHONON_XINE_ABSTRACTVIDEOOUTPUT_H
 // vim: sw=4 ts=4 noet

@@ -25,6 +25,8 @@
 #include <QByteArray>
 #include <QObject>
 #include <QSize>
+#include "videopath.h"
+#include <QList>
 
 namespace Phonon
 {
@@ -36,9 +38,13 @@ namespace Xine
 	class VideoDataOutput : public QObject, public Phonon::Xine::AbstractVideoOutput
 	{
 		Q_OBJECT
+		Q_INTERFACES( Phonon::Xine::AbstractVideoOutput )
 		public:
 			VideoDataOutput( QObject* parent );
 			~VideoDataOutput();
+
+			void addPath( VideoPath* vp ) { m_paths << vp; }
+			void removePath( VideoPath* vp ) { m_paths.removeAll( vp ); }
 
 		public slots:
 			int frameRate() const;
@@ -59,6 +65,7 @@ namespace Xine
 			quint32 m_fourcc;
 			int m_frameRate;
 			QSize m_frameSize;
+			QList<VideoPath*> m_paths;
 	};
 }} //namespace Phonon::Xine
 

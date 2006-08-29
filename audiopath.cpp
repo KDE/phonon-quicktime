@@ -86,7 +86,7 @@ bool AudioPath::removeOutput( QObject* audioOutput )
 	}
 	AbstractAudioOutput* aao = qobject_cast<AbstractAudioOutput*>( audioOutput );
 	Q_ASSERT( aao );
-	Q_ASSERT( m_outputs.removeAll( aao ) > 0 );
+	Q_ASSERT( m_outputs.removeAll( aao ) == 1 );
 	aao->removePath( this );
 	return true;
 }
