@@ -33,7 +33,7 @@ namespace Xine
 	{
 		Q_OBJECT
 		public:
-			AudioOutput( QObject* parent, XineEngine* xe );
+			AudioOutput( QObject* parent );
 			~AudioOutput();
 
 			xine_audio_port_t* audioPort() const { return m_audioPort; }
@@ -51,7 +51,6 @@ namespace Xine
 			void volumeChanged( float newVolume );
 
 		private:
-			XineEngine* m_xine_engine;
 			float m_volume;
 			int m_device;
 			xine_audio_port_t* m_audioPort;

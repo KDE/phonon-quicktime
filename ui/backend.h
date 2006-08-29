@@ -27,14 +27,15 @@ namespace Phonon
 {
 namespace Xine
 {
-	class KDE_EXPORT Backend : public QObject
+	class KDE_EXPORT UiBackend : public QObject
 	{
 		Q_OBJECT
 		public:
-			Backend( QObject* parent, const QStringList& args );
-			~Backend();
+			UiBackend( QObject* parent, const QStringList& args );
+			~UiBackend();
 
-			Q_INVOKABLE QObject* createVideoWidget( QWidget* parent );
+		public slots:
+			QObject* createVideoWidget( QWidget* parent );
 	};
 }} // namespace Phonon::Xine
 

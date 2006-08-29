@@ -31,6 +31,7 @@ namespace Xine
 	class VideoEffect;
 	class AbstractVideoOutput;
 	class AbstractMediaProducer;
+	class VideoWidgetInterface;
 
 	class VideoPath : public QObject
 	{
@@ -53,7 +54,7 @@ namespace Xine
 			bool removeEffect( QObject* effect );
 
 		private:
-			//VideoWidget *m_output;
+			VideoWidgetInterface *m_output;
 			QList<VideoEffect*> m_effects;
 			QList<QObject*> m_outputs;
 			QList<AbstractMediaProducer*> m_producers;

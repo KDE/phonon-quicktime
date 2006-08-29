@@ -20,26 +20,30 @@
 #include "backend.h"
 #include "videowidget.h"
 #include <kgenericfactory.h>
+#include <kdebug.h>
 
-typedef KGenericFactory<Phonon::Xine::Backend> XineUiBackendFactory;
-K_EXPORT_COMPONENT_FACTORY( phonon_fakeui, XineUiBackendFactory( "fakeuibackend" ) )
+typedef KGenericFactory<Phonon::Xine::UiBackend> XineUiUiBackendFactory;
+K_EXPORT_COMPONENT_FACTORY( phonon_xineui, XineUiUiBackendFactory( "xineuibackend" ) )
 
 namespace Phonon
 {
 namespace Xine
 {
 
-Backend::Backend( QObject* parent, const QStringList& )
+UiBackend::UiBackend( QObject* parent, const QStringList& )
 	: QObject( parent )
 {
+	kDebug( 610 ) << k_funcinfo << endl;
 }
 
-Backend::~Backend()
+UiBackend::~UiBackend()
 {
+	kDebug( 610 ) << k_funcinfo << endl;
 }
 
-QObject* Backend::createVideoWidget( QWidget* parent )
+QObject* UiBackend::createVideoWidget( QWidget* parent )
 {
+	kDebug( 610 ) << k_funcinfo << endl;
 	return new Xine::VideoWidget( parent );
 }
 

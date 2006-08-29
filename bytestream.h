@@ -35,7 +35,7 @@ namespace Xine
 		Q_OBJECT
 		Q_INTERFACES( Phonon::ByteStreamInterface )
 		public:
-			ByteStream( QObject* parent, XineEngine* xe );
+			ByteStream( QObject* parent );
 			~ByteStream();
 
 			qint64 currentTime() const;
@@ -70,7 +70,6 @@ namespace Xine
 			void consumeStream();
 
 		private:
-			XineEngine* m_xine_engine;
 			qint64 m_aboutToFinishBytes;
 			qint64 m_streamSize;
 			qint64 m_bufferSize;

@@ -22,6 +22,7 @@
 #include <QWidget>
 #include <phonon/ui/videowidget.h>
 #include "../abstractvideooutput.h"
+#include "../videowidgetinterface.h"
 #include <QPixmap>
 #include <xine.h>
 
@@ -31,10 +32,10 @@ namespace Phonon
 {
 namespace Xine
 {
-	class VideoWidget : public QWidget, public Phonon::Xine::AbstractVideoOutput
+	class VideoWidget : public QWidget, public Phonon::Xine::AbstractVideoOutput, public Phonon::Xine::VideoWidgetInterface
 	{
 		Q_OBJECT
-		Q_INTERFACES( Phonon::Xine::AbstractVideoOutput )
+		Q_INTERFACES( Phonon::Xine::AbstractVideoOutput Phonon::Xine::VideoWidgetInterface )
 		public:
 			VideoWidget( QWidget* parent = 0 );
 

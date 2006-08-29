@@ -19,7 +19,7 @@
 
 #include "xine_engine.h"
 
-#include <kdebug.h>
+//#include <kdebug.h>
 #include "abstractmediaproducer.h"
 #include <QCoreApplication>
 
@@ -27,16 +27,54 @@ namespace Phonon
 {
 namespace Xine
 {
-	XineEngine::XineEngine()
+
+	XineProgressEvent::XineProgressEvent( const QString& description, int percent )
+		: QEvent( static_cast<QEvent::Type>( Xine::ProgressEvent ) )
+		, m_description( description )
+		, m_percent( percent )
 	{
+	}
+
+	const QString& XineProgressEvent::description() 
+	{
+		return m_description;
+	}
+
+	int XineProgressEvent::percent()
+	{
+		return m_percent;
+	}
+
+	XineEngine* XineEngine::s_instance = 0;
+
+	XineEngine::XineEngine()
+		: m_xine( xine_new() )
+	{
+	}
+
+	XineEngine::~XineEngine()
+	{
+		xine_exit( m_xine );
 		m_xine = 0;
+	}
+
+	XineEngine* XineEngine::self()
+	{
+		if( !s_instance )
+			s_instance = new XineEngine();
+		return s_instance;
+	}
+
+	xine_t* XineEngine::xine()
+	{
+		return self()->m_xine;
 	}
 
 	void XineEngine::xineEventListener( void *p, const xine_event_t* xineEvent )
 	{
 		if( !p || !xineEvent )
 			return;
-		kDebug( 610 ) << "Xine event: " << xineEvent->type << QByteArray( ( char* )xineEvent->data, xineEvent->data_length ) << endl;
+		//kDebug( 610 ) << "Xine event: " << xineEvent->type << QByteArray( ( char* )xineEvent->data, xineEvent->data_length ) << endl;
 
 		AbstractMediaProducer* mp = static_cast<AbstractMediaProducer*>( p );
 
