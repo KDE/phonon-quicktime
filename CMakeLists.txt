@@ -1,4 +1,3 @@
-include_directories(${KDE4_INCLUDE_DIR} ${QT_INCLUDES})
 add_subdirectory(ui)
 
 set(xine_engine_LIB_SRCS
