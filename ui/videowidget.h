@@ -26,6 +26,9 @@
 #include <QPixmap>
 #include <xine.h>
 
+#include <X11/X.h>
+#include <fixx11h.h>
+
 class QString;
 
 namespace Phonon
@@ -38,6 +41,7 @@ namespace Xine
 		Q_INTERFACES( Phonon::Xine::AbstractVideoOutput Phonon::Xine::VideoWidgetInterface )
 		public:
 			VideoWidget( QWidget* parent = 0 );
+			~VideoWidget();
 
 			Q_INVOKABLE Phonon::VideoWidget::AspectRatio aspectRatio() const;
 			Q_INVOKABLE void setAspectRatio( Phonon::VideoWidget::AspectRatio aspectRatio );
@@ -46,10 +50,32 @@ namespace Xine
 
 			xine_video_port_t* videoPort() const { return m_videoPort; }
 
+			void setPath( VideoPath* vp );
+			void unsetPath( VideoPath* vp );
+
+			void xineCallback( int &x, int &y, int &width, int &height,
+					double &ratio, int videoWidth, int videoHeight, double videoRatio, bool mayResize );
+			void clearWindow();
+
+		signals:
+			void videoPortChanged();
+
+		protected:
+			virtual bool x11Event( XEvent* );
+			virtual void showEvent( QShowEvent* );
+			virtual void hideEvent( QHideEvent* );
+			virtual void paintEvent( QPaintEvent* );
+
 		private:
 			xine_video_port_t* m_videoPort;
 			x11_visual_t m_visual;
 			Phonon::VideoWidget::AspectRatio m_aspectRatio;
+			VideoPath* m_path;
+
+			Display* m_display;
+			int m_videoWidth;
+			int m_videoHeight;
+			bool m_clearWindow;
 	};
 }} //namespace Phonon::Xine
 

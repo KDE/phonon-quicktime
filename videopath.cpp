@@ -33,6 +33,7 @@ namespace Xine
 VideoPath::VideoPath( QObject* parent )
 	: QObject( parent )
 	, m_output( 0 )
+	, m_producer( 0 )
 {
 }
 
@@ -60,9 +61,10 @@ bool VideoPath::addOutput( QObject* videoOutput )
 		if( m_output )
 			return false;
 		m_output = vwi;
-		m_output->addPath( this );
-		foreach( AbstractMediaProducer *mp, m_producers )
-			mp->checkVideoOutput();
+		m_output->setPath( this );
+		if( m_producer && m_output->videoPort() != 0 )
+			m_producer->checkVideoOutput();
+		connect( videoOutput, SIGNAL( videoPortChanged() ), m_producer, SLOT( checkVideoOutput() ) );
 		return true;
 	}
 
@@ -79,10 +81,11 @@ bool VideoPath::removeOutput( QObject* videoOutput )
 	VideoWidgetInterface *vwi = qobject_cast<VideoWidgetInterface*>( videoOutput );
 	if( vwi && m_output == vwi )
 	{
-		m_output->removePath( this );
+		m_output->unsetPath( this );
 		m_output = 0;
-		foreach( AbstractMediaProducer *mp, m_producers )
-			mp->checkVideoOutput();
+		if( m_producer )
+			m_producer->checkVideoOutput();
+		disconnect( videoOutput, SIGNAL( videoPortChanged() ), m_producer, SLOT( checkVideoOutput() ) );
 		return true;
 	}
 
@@ -123,14 +126,16 @@ bool VideoPath::removeEffect( QObject* effect )
 	return false;
 }
 
-void VideoPath::addMediaProducer( AbstractMediaProducer* mp )
+void VideoPath::setMediaProducer( AbstractMediaProducer* mp )
 {
-	m_producers.append( mp );
+	Q_ASSERT( m_producer == 0 );
+	m_producer = mp;
 }
 
-void VideoPath::removeMediaProducer( AbstractMediaProducer* mp )
+void VideoPath::unsetMediaProducer( AbstractMediaProducer* mp )
 {
-	m_producers.removeAll( mp );
+	Q_ASSERT( m_producer == mp );
+	m_producer = 0;
 }
 
 }}

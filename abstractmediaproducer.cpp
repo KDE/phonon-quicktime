@@ -192,6 +192,7 @@ bool AbstractMediaProducer::addVideoPath( QObject* videoPath )
 		return false;
 	m_videoPath = qobject_cast<VideoPath*>( videoPath );
 	Q_ASSERT( m_videoPath );
+	m_videoPath->setMediaProducer( this );
 	recreateStream();
 	if( m_videoPath->hasOutput() )
 		xine_set_param( m_stream, XINE_PARAM_IGNORE_VIDEO, 0 );
@@ -220,6 +221,7 @@ void AbstractMediaProducer::removeVideoPath( QObject* videoPath )
 	Q_ASSERT( videoPath );
 	if( m_videoPath == qobject_cast<VideoPath*>( videoPath ) )
 	{
+		m_videoPath->unsetMediaProducer( this );
 		m_videoPath = 0;
 		recreateStream();
 		xine_set_param( m_stream, XINE_PARAM_IGNORE_VIDEO, 1 );

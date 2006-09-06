@@ -36,11 +36,8 @@ class VideoWidgetInterface
 		virtual ~VideoWidgetInterface() {}
 		virtual xine_video_port_t* videoPort() const = 0;
 
-		void addPath( VideoPath* vp ) { m_paths << vp; }
-		void removePath( VideoPath* vp ) { m_paths.removeAll( vp ); }
-
-	protected:
-		QList<VideoPath*> m_paths;
+		virtual void setPath( VideoPath* vp ) = 0;
+		virtual void unsetPath( VideoPath* vp ) = 0;
 };
 
 } // namespace Xine
