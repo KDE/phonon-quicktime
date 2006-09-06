@@ -76,6 +76,8 @@ namespace Xine
 
 			xine_stream_t* stream() const { return m_stream; }
 			void checkAudioOutput();
+
+		public slots:
 			void checkVideoOutput();
 
 		Q_SIGNALS:

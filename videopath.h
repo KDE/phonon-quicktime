@@ -40,9 +40,9 @@ namespace Xine
 			VideoPath( QObject* parent );
 			~VideoPath();
 
-			void addMediaProducer( AbstractMediaProducer* mp );
-			void removeMediaProducer( AbstractMediaProducer* mp );
-			QList<AbstractMediaProducer*> producers() { return m_producers; }
+			void setMediaProducer( AbstractMediaProducer* mp );
+			void unsetMediaProducer( AbstractMediaProducer* mp );
+			AbstractMediaProducer* producer() { return m_producer; }
 
 			bool hasOutput() const;
 			xine_video_port_t *videoPort() const;
@@ -57,7 +57,7 @@ namespace Xine
 			VideoWidgetInterface *m_output;
 			QList<VideoEffect*> m_effects;
 			QList<QObject*> m_outputs;
-			QList<AbstractMediaProducer*> m_producers;
+			AbstractMediaProducer* m_producer;
 	};
 }} //namespace Phonon::Xine
 
