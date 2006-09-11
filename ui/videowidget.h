@@ -65,6 +65,7 @@ namespace Xine
 			virtual void showEvent( QShowEvent* );
 			virtual void hideEvent( QHideEvent* );
 			virtual void paintEvent( QPaintEvent* );
+			virtual void changeEvent( QEvent* );
 
 		private:
 			xine_video_port_t* m_videoPort;
