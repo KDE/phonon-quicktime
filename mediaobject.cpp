@@ -39,6 +39,7 @@ MediaObject::MediaObject( QObject* parent )
 MediaObject::~MediaObject()
 {
 	//kDebug( 610 ) << k_funcinfo << endl;
+	stop();
 }
 
 KUrl MediaObject::url() const
