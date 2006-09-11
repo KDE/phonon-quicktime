@@ -1,19 +1,19 @@
 /*  This file is part of the KDE project
     Copyright (C) 2006 Matthias Kretz <kretz@kde.org>
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Library General Public
-    License version 2 as published by the Free Software Foundation.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License version 2
+    as published by the Free Software Foundation.
 
-    This library is distributed in the hope that it will be useful,
+    This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Library General Public License for more details.
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
 
-    You should have received a copy of the GNU Library General Public License
-    along with this library; see the file COPYING.LIB.  If not, write to
-    the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-    Boston, MA 02110-1301, USA.
+    You should have received a copy of the GNU General Public License
+    along with this program; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+    02110-1301, USA.
 
 */
 
@@ -29,8 +29,6 @@
 #include <QApplication>
 
 #include <X11/Xlib.h>
-
-extern Drawable qt_x11Handle( const QPaintDevice *pd );
 
 namespace Phonon
 {
@@ -66,23 +64,10 @@ void VideoWidget::xineCallback( int &x, int &y, int &width, int &height, double 
 		int videoWidth, int videoHeight, double videoRatio, bool mayResize )
 {
 	Q_UNUSED( videoRatio );
+	Q_UNUSED( videoWidth );
+	Q_UNUSED( videoHeight );
 	Q_UNUSED( mayResize );
-	/*
-	XLockDisplay( m_display );
-	Window root;
-	int n;
-	unsigned int u;
 
-	XGetGeometry( m_display, m_visual.d, &root, &n, &n, reinterpret_cast<unsigned int*>( &width ),
-			reinterpret_cast<unsigned int*>( &height ), &u, &u );
-	if( !mayResize )
-	{
-		Window child;
-		XTranslateCoordinates( m_display, m_visual.d, root, 0, 0, &x, &y, &child );
-	}
-
-	XUnlockDisplay( m_display );
-	*/
 	x = this->x();
 	y = this->y();
 	width = this->width();
@@ -90,9 +75,6 @@ void VideoWidget::xineCallback( int &x, int &y, int &width, int &height, double 
 
 	// square pixels
 	ratio = 1.0;
-
-	m_videoWidth = videoWidth;
-	m_videoHeight = videoHeight;
 }
 
 VideoWidget::VideoWidget( QWidget* parent )
@@ -114,33 +96,43 @@ VideoWidget::VideoWidget( QWidget* parent )
 	// disable Qt composition management as Xine draws onto the widget directly using X calls
 	setAttribute( Qt::WA_PaintOnScreen, true );
 
-	// make sure all Qt<->X communication is done
-	QApplication::syncX();
-
-	// make a new X connection for xine with X threading enabled
-	XInitThreads();
-	m_display = XOpenDisplay( NULL );
+	// make a new X connection for xine
+	// ~QApplication hangs (or crashes) in XCloseDisplay called from Qt when XInitThreads is
+	// called. Without it everything is fine, except of course xine rendering onto the window from
+	// multiple threads. So Phonon-Xine will use its own xine vo plugins not using X(Un)LockDisplay.
+	m_display = XOpenDisplay( DisplayString( x11Info().display() ) );
 	if( m_display )
 	{
-		//XFlush( m_display );
-
 		m_visual.display = m_display;
 		m_visual.screen = DefaultScreen( m_display );
-		m_visual.d = winId();
 		m_visual.user_data = static_cast<void*>( this );
 		m_visual.dest_size_cb = Phonon::Xine::dest_size_cb;
 		m_visual.frame_output_cb = Phonon::Xine::frame_output_cb;
+		m_visual.d = winId();
+
+		// make sure all Qt<->X communication is done, else xine_open_video_driver will hang
+		QApplication::syncX();
+
+		Q_ASSERT( testAttribute( Qt::WA_WState_Created ) );
+		m_videoPort = xine_open_video_driver( XineEngine::xine(), "xvnt", XINE_VISUAL_TYPE_X11, static_cast<void*>( &m_visual ) );
+		if( !m_videoPort )
+		{
+			kWarning( 610 ) << "No xine video output plugin without XThreads found. Expect to see X errors." << endl;
+			m_videoPort = xine_open_video_driver( XineEngine::xine(), 0, XINE_VISUAL_TYPE_X11, static_cast<void*>( &m_visual ) );
+		}
 	}
 }
 
 VideoWidget::~VideoWidget()
 {
 	//xine_port_send_gui_data( m_videoPort, XINE_GUI_SEND_WILL_DESTROY_DRAWABLE, 0 );
-	// tell all streams to stop using this videoPort
+
 	xine_video_port_t* vp = m_videoPort;
 	m_videoPort = 0;
+	// tell the xine stream to stop using this videoPort
 	if( m_path && m_path->producer() )
 		emit videoPortChanged();
+
 	xine_close_video_driver( XineEngine::xine(), vp );
 
 	XCloseDisplay( m_display );
@@ -167,26 +159,30 @@ Phonon::VideoWidget::AspectRatio VideoWidget::aspectRatio() const
 void VideoWidget::setAspectRatio( Phonon::VideoWidget::AspectRatio aspectRatio )
 {
 	m_aspectRatio = aspectRatio;
-	switch( m_aspectRatio )
+	if( m_path && m_path->producer() && m_path->producer()->stream() )
 	{
-		case Phonon::VideoWidget::AspectRatioWidget:
-			sizePolicy().setHeightForWidth( false );
-			break;
-		case Phonon::VideoWidget::AspectRatioAuto:
-			sizePolicy().setHeightForWidth( true );
-			break;
-		case Phonon::VideoWidget::AspectRatioSquare:
-			sizePolicy().setHeightForWidth( true );
-			break;
-		case Phonon::VideoWidget::AspectRatio4_3:
-			sizePolicy().setHeightForWidth( true );
-			break;
-		case Phonon::VideoWidget::AspectRatioAnamorphic:
-			sizePolicy().setHeightForWidth( true );
-			break;
-		case Phonon::VideoWidget::AspectRatioDvb:
-			sizePolicy().setHeightForWidth( true );
-			break;
+		xine_stream_t* stream = m_path->producer()->stream();
+		switch( m_aspectRatio )
+		{
+			case Phonon::VideoWidget::AspectRatioWidget:
+				xine_set_param( stream, XINE_PARAM_VO_ASPECT_RATIO, XINE_VO_ASPECT_NUM_RATIOS );
+				break;
+			case Phonon::VideoWidget::AspectRatioAuto:
+				xine_set_param( stream, XINE_PARAM_VO_ASPECT_RATIO, XINE_VO_ASPECT_AUTO );
+				break;
+			case Phonon::VideoWidget::AspectRatioSquare:
+				xine_set_param( stream, XINE_PARAM_VO_ASPECT_RATIO, XINE_VO_ASPECT_SQUARE );
+				break;
+			case Phonon::VideoWidget::AspectRatio4_3:
+				xine_set_param( stream, XINE_PARAM_VO_ASPECT_RATIO, XINE_VO_ASPECT_4_3 );
+				break;
+			case Phonon::VideoWidget::AspectRatioAnamorphic:
+				xine_set_param( stream, XINE_PARAM_VO_ASPECT_RATIO, XINE_VO_ASPECT_ANAMORPHIC );
+				break;
+			case Phonon::VideoWidget::AspectRatioDvb:
+				xine_set_param( stream, XINE_PARAM_VO_ASPECT_RATIO, XINE_VO_ASPECT_DVB );
+				break;
+		}
 	}
 }
 
@@ -197,38 +193,11 @@ bool VideoWidget::x11Event( XEvent* event )
 		case Expose:
 			if( event->xexpose.count == 0 && event->xexpose.window == winId() )
 			{
+				//kDebug( 610 ) << "XINE_GUI_SEND_EXPOSE_EVENT" << endl;
 				xine_port_send_gui_data( m_videoPort,
 						XINE_GUI_SEND_EXPOSE_EVENT, event );
 			}
 			return true;
-			/*
-		case MotionNotify:
-			{
-				XMotionEvent* mev = reinterpret_cast<XMotionEvent*>( event );
-				x11_rectangle_t rect = { mev->x, mev->y, 0, 0 };
-				if( xine_port_send_gui_data( m_videoPort, XINE_GUI_SEND_TRANSLATE_GUI_TO_VIDEO,
-							static_cast<void*>( &rect ) ) == -1 )
-				{
-					return true;
-				}
-				if( m_path && m_path->producer() && m_path->producer()->stream() )
-				{
-					xine_stream_t* stream = m_path->producer()->stream();
-					xine_input_data_t data;
-					data.x = rect.x;
-					data.y = rect.y;
-					data.button = 0;
-					xine_event_t xine_event =  {
-						XINE_EVENT_INPUT_MOUSE_MOVE,
-						stream, &data, sizeof( xine_input_data_t ),
-						{ 0 , 0 }
-					};
-					xine_event_send( stream, &xine_event );
-					return true;
-				}
-				break;
-			}
-			*/
 	}
 	return false;
 }
@@ -241,11 +210,6 @@ void VideoWidget::clearWindow()
 
 void VideoWidget::showEvent( QShowEvent* )
 {
-	if( !m_videoPort )
-	{
-		m_videoPort = xine_open_video_driver( XineEngine::xine(), NULL, XINE_VISUAL_TYPE_X11, static_cast<void*>( &m_visual ) );
-		emit videoPortChanged();
-	}
 	//xine_port_send_gui_data( m_videoPort, XINE_GUI_SEND_VIDEOWIN_VISIBLE, static_cast<void*>( 1 ) );
 }
 
@@ -256,32 +220,26 @@ void VideoWidget::hideEvent( QHideEvent* )
 
 void VideoWidget::paintEvent( QPaintEvent* )
 {
-	kDebug( 610 ) << k_funcinfo << endl;
+	//kDebug( 610 ) << k_funcinfo << endl;
 	if( m_clearWindow )
 	{
 		m_clearWindow = false;
 		QPainter p( this );
 		p.fillRect( rect(), Qt::black );
 	}
-	// paint the area that is not covered by the video
-	//QPainter p( this );
-	//p.fillRect( rect(), Qt::black );
-	/*
-	if( m_videoWidth < width() - 1 )
+}
+
+void VideoWidget::changeEvent( QEvent* event )
+{
+	if( event->type() == QEvent::ParentAboutToChange )
 	{
-		// fill left and right
-		int borderWidth = ( width() - m_videoWidth ) / 2;
-		p.fillRect( 0, 0, borderWidth, height(), Qt::black );
-		p.fillRect( width() - borderWidth, 0, borderWidth, height(), Qt::black );
 	}
-	if( m_videoHeight < height() - 1 )
+	else if( event->type() == QEvent::ParentChange )
 	{
-		// fill top and bottom
-		int borderHeight = ( height() - m_videoHeight ) / 2;
-		p.fillRect( 0, 0, width(), borderHeight, Qt::black );
-		p.fillRect( 0, height() - borderHeight, height(), borderHeight, Qt::black );
+		m_visual.d = winId();
+		if( m_videoPort )
+			xine_port_send_gui_data( m_videoPort, XINE_GUI_SEND_DRAWABLE_CHANGED, reinterpret_cast<void*>( m_visual.d ) );
 	}
-	*/
 }
 
 }} //namespace Phonon::Xine
