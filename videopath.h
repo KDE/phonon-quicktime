@@ -44,6 +44,7 @@ namespace Xine
 			void unsetMediaProducer( AbstractMediaProducer* mp );
 			AbstractMediaProducer* producer() { return m_producer; }
 
+			void streamFinished();
 			bool hasOutput() const;
 			xine_video_port_t *videoPort() const;
 

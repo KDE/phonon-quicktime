@@ -41,6 +41,12 @@ VideoPath::~VideoPath()
 {
 }
 
+void VideoPath::streamFinished()
+{
+	if( m_output )
+		m_output->clearWindow();
+}
+
 bool VideoPath::hasOutput() const
 {
 	return ( m_output && m_output->videoPort() != 0 );
