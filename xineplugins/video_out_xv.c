@@ -1606,7 +1606,7 @@ static void *init_class (xine_t *xine, void *visual_gen) {
 }
 
 static vo_info_t vo_info_xv = {
-  10,                   /* priority    */
+  0,                    /* priority    */
   XINE_VISUAL_TYPE_X11  /* visual type */
 };
 
