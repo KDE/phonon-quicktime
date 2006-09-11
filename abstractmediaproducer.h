@@ -92,6 +92,7 @@ namespace Xine
 			virtual void recreateStream();
 			virtual void reachedPlayingState() {}
 			virtual void leftPlayingState() {}
+			VideoPath* videoPath() const { return m_videoPath; }
 
 		protected Q_SLOTS:
 			virtual void emitTick();

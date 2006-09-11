@@ -285,6 +285,8 @@ bool MediaObject::event( QEvent* ev )
 		case Xine::MediaFinishedEvent:
 			AbstractMediaProducer::stop();
 			m_aboutToFinishNotEmitted = true;
+			if( videoPath() )
+				videoPath()->streamFinished();
 			kDebug( 610 ) << "emit finished()" << endl;
 			emit finished();
 			xine_close( stream() );
