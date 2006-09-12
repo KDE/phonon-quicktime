@@ -12,7 +12,7 @@ if(X11_XV_FOUND)
 		)
 
 	ADD_LIBRARY(xineplug_vo_out_xv_nt SHARED ${xineplug_vo_out_xv_nt_LIB_SRCS})
-	TARGET_LINK_LIBRARIES(xineplug_vo_out_xv_nt ${XINE_LIBRARY} ${X11_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+	TARGET_LINK_LIBRARIES(xineplug_vo_out_xv_nt ${XINE_LIBRARY} ${X11_LIBRARIES} ${X11_Xv_LIB} ${CMAKE_THREAD_LIBS_INIT})
 	SET_TARGET_PROPERTIES(xineplug_vo_out_xv_nt PROPERTIES PREFIX "")
 # FIXME: the install path needs to be determined in FindXine.cmake
 	INSTALL(TARGETS xineplug_vo_out_xv_nt DESTINATION /usr/lib/xine/plugins/1.1.1/)
