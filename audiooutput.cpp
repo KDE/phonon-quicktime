@@ -80,11 +80,16 @@ void AudioOutput::setVolume( float newVolume )
 void AudioOutput::setOutputDevice( int newDevice )
 {
 	m_device = newDevice;
-	if( m_audioPort )
-		xine_close_audio_driver( XineEngine::xine(), m_audioPort );
+	xine_audio_port_t* oldAudioPort = m_audioPort;
+
 	const char* const* outputPlugins = xine_list_audio_output_plugins( XineEngine::xine() );
 	kDebug( 610 ) << k_funcinfo << "use output plugin: " << outputPlugins[ newDevice - 10000 ] << endl;
 	m_audioPort = xine_open_audio_driver( XineEngine::xine(), outputPlugins[ newDevice - 10000 ], NULL );
+	if( !m_audioPort )
+	{
+		m_audioPort = oldAudioPort;
+		return; //false;
+	}
 
 	// notify the connected MediaProducers of the new device
 	QSet<AbstractMediaProducer *> mps;
@@ -97,6 +102,9 @@ void AudioOutput::setOutputDevice( int newDevice )
 	}
 	foreach( AbstractMediaProducer *mp, mps )
 		mp->checkAudioOutput();
+
+	if( oldAudioPort )
+		xine_close_audio_driver( XineEngine::xine(), oldAudioPort );
 }
 
 }} //namespace Phonon::Xine
