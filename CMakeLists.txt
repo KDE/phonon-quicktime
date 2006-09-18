@@ -1,4 +1,5 @@
 add_subdirectory(ui)
+add_subdirectory(xineplugins)
 
 set(xine_engine_LIB_SRCS
     xine_engine.cpp
@@ -18,6 +19,7 @@ set(phonon_xine_PART_SRCS
     audiopath.cpp
     bytestream.cpp
     mediaobject.cpp
+    mediaqueue.cpp
     avcapture.cpp
     videoeffect.cpp
     videopath.cpp

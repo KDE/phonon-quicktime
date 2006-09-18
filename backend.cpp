@@ -21,6 +21,7 @@
 #include "mediaobject.h"
 #include "avcapture.h"
 #include "bytestream.h"
+#include "mediaqueue.h"
 #include "audiopath.h"
 #include "audioeffect.h"
 #include "audiooutput.h"
@@ -78,6 +79,11 @@ QObject* Backend::createAvCapture( QObject* parent )
 QObject* Backend::createByteStream( QObject* parent )
 {
 	return new ByteStream( parent );
+}
+
+QObject* Backend::createMediaQueue( QObject* parent )
+{
+	return new MediaQueue( parent );
 }
 
 QObject* Backend::createAudioPath( QObject* parent )
