@@ -67,15 +67,16 @@ namespace Xine
 			virtual void reachedPlayingState();
 			virtual void leftPlayingState();
 
+			KUrl m_url;
+			bool m_aboutToFinishNotEmitted;
+
 		private slots:
 			void emitAboutToFinish();
 
 		private:
 			void emitAboutToFinishIn( int timeToAboutToFinishSignal );
 
-			KUrl m_url;
 			qint32 m_aboutToFinishTime;
-			bool m_aboutToFinishNotEmitted;
 			QTimer *m_aboutToFinishTimer;
 	};
 }} //namespace Phonon::Xine

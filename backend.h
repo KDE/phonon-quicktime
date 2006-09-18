@@ -49,6 +49,7 @@ namespace Xine
 			Q_INVOKABLE QObject* createMediaObject( QObject* parent );
 			Q_INVOKABLE QObject* createAvCapture( QObject* parent );
 			Q_INVOKABLE QObject* createByteStream( QObject* parent );
+			Q_INVOKABLE QObject* createMediaQueue( QObject* parent );
 
 			Q_INVOKABLE QObject* createAudioPath( QObject* parent );
 			Q_INVOKABLE QObject* createAudioEffect( int effectId, QObject* parent );
