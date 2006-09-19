@@ -36,6 +36,7 @@
 #include "videodataoutput.h"
 
 #include <kdebug.h>
+#include "brightnesscontrol.h"
 
 typedef KGenericFactory<Phonon::Xine::Backend> XineBackendFactory;
 K_EXPORT_COMPONENT_FACTORY( phonon_xine, XineBackendFactory( "xinebackend" ) )
@@ -124,6 +125,11 @@ QObject* Backend::createVideoPath( QObject* parent )
 QObject* Backend::createVideoEffect( int effectId, QObject* parent )
 {
 	return new VideoEffect( effectId, parent );
+}
+
+QObject* Backend::createBrightnessControl( QObject* parent )
+{
+	return new BrightnessControl( parent );
 }
 
 QObject* Backend::createVideoDataOutput( QObject* parent )
