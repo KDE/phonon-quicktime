@@ -60,6 +60,7 @@ namespace Xine
 
 			Q_INVOKABLE QObject* createVideoPath( QObject* parent );
 			Q_INVOKABLE QObject* createVideoEffect( int effectId, QObject* parent );
+			Q_INVOKABLE QObject* createBrightnessControl( QObject* parent );
 			Q_INVOKABLE QObject* createVideoDataOutput( QObject* parent );
 
 			Q_INVOKABLE bool supportsVideo() const;

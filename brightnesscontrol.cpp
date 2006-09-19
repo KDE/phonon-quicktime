@@ -1,10 +1,9 @@
 /*  This file is part of the KDE project
     Copyright (C) 2006 Matthias Kretz <kretz@kde.org>
 
-    This program is free software; you can redistribute it and/or
+    This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
-    License as published by the Free Software Foundation; either
-    version 2 of the License, or (at your option) any later version.
+    License version 2 as published by the Free Software Foundation.
 
     This library is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -19,7 +18,8 @@
 */
 
 #include "brightnesscontrol.h"
-#include "mediaobject.h"
+#include "videopath.h"
+#include "abstractmediaproducer.h"
 #include <kdebug.h>
 
 namespace Phonon
@@ -27,9 +27,9 @@ namespace Phonon
 namespace Xine
 {
 
-BrightnessControl::BrightnessControl(QObject *parent)
-    : VideoEffect(1, parent)
-    , m_brightness(100)
+BrightnessControl::BrightnessControl( QObject *parent )
+	: VideoEffect( 1, parent )
+	, m_brightness( 100 )
 {
 }
 
@@ -37,49 +37,49 @@ BrightnessControl::~BrightnessControl()
 {
 }
 
-void BrightnessControl::setPath(VideoPath *path)
+void BrightnessControl::setPath( VideoPath* path )
 {
-    VideoEffect::setPath(path);
-    //TODO find output and set brightness
+	VideoEffect::setPath( path );
+	//TODO find output and set brightness
 }
 
-void BrightnessControl::setBrightness(int newBrightness)
+void BrightnessControl::setBrightness( int newBrightness )
 {
-    if (newBrightness < 0)
-        newBrightness = 0;
-    else if (newBrightness > 65535)
-        newBrightness = 65535;
-    if (m_brightness != newBrightness)
-    {
-        m_brightness = newBrightness;
-        XineStream *s = stream();
-        if (s) {
-            kDebug(610) << m_brightness;
-            s->setParam(XINE_PARAM_VO_BRIGHTNESS, m_brightness);
-        }
-    }
+	if( newBrightness < 0 )
+		newBrightness = 0;
+	else if( newBrightness > 65535 )
+		newBrightness = 65535;
+	if( m_brightness != newBrightness )
+	{
+		m_brightness = newBrightness;
+		xine_stream_t *s = stream();
+		if( s )
+		{
+			kDebug( 610 ) << k_funcinfo << m_brightness << endl;
+			xine_set_param( s, XINE_PARAM_VO_BRIGHTNESS, m_brightness );
+		}
+	}
 }
 
 int BrightnessControl::upperBound() const
 {
-    return 65535;
+	return 65535;
 }
 
 int BrightnessControl::lowerBound() const
 {
-    return 0;
+	return 0;
 }
 
-XineStream *BrightnessControl::stream()
+xine_stream_t *BrightnessControl::stream() const
 {
-    if (path() && path()->mediaObject()) {
-        return &path()->mediaObject()->stream();
-    }
-    return 0;
+	if( path() && path()->producer() )
+		return path()->producer()->stream();
+	return 0;
 }
 
 } // namespace Xine
 } // namespace Phonon
 
 #include "brightnesscontrol.moc"
-// vim: sw=4 ts=4
+// vim: sw=4 ts=4 noet

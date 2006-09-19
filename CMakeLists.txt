@@ -22,6 +22,7 @@ set(phonon_xine_PART_SRCS
     mediaqueue.cpp
     avcapture.cpp
     videoeffect.cpp
+    brightnesscontrol.cpp
     videopath.cpp
     videodataoutput.cpp
     visualization.cpp
