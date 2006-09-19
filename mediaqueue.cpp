@@ -100,19 +100,24 @@ bool MediaQueue::event( QEvent* ev )
 		case Xine::MediaFinishedEvent:
 			if( !m_doCrossfade )
 			{
-				xine_set_param( stream(), XINE_PARAM_GAPLESS_SWITCH, 1 );
-				if( !xine_open( stream(), m_nextUrl.url().toUtf8() ) )
-					xine_set_param( stream(), XINE_PARAM_GAPLESS_SWITCH, 0 );
-				xine_play( stream(), 0, 0 );
-				m_url = m_nextUrl;
-				m_nextUrl.clear();
-				emit needNextUrl();
+				if( m_nextUrl.isEmpty() )
+					emit needNextUrl();
+				if( !m_nextUrl.isEmpty() )
+				{
+					xine_set_param( stream(), XINE_PARAM_GAPLESS_SWITCH, 1 );
+					if( !xine_open( stream(), m_nextUrl.url().toUtf8() ) )
+						xine_set_param( stream(), XINE_PARAM_GAPLESS_SWITCH, 0 );
+					xine_play( stream(), 0, 0 );
+					m_url = m_nextUrl;
+					m_nextUrl.clear();
 
-				m_aboutToFinishNotEmitted = true;
-				kDebug( 610 ) << "emit finished()" << endl;
-				emit finished();
-				ev->accept();
-				return true;
+					m_aboutToFinishNotEmitted = true;
+					kDebug( 610 ) << "emit finished()" << endl;
+					emit finished();
+					emit length( totalTime() );
+					ev->accept();
+					return true;
+				}
 			}
 		default:
 			break;
