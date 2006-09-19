@@ -25,6 +25,8 @@ namespace Phonon
 {
 namespace Xine
 {
+	class VideoPath;
+
 	class VideoEffect : public QObject
 	{
 		Q_OBJECT
@@ -32,11 +34,17 @@ namespace Xine
 			VideoEffect( int effectId, QObject* parent );
 			~VideoEffect();
 
+			virtual void setPath( VideoPath* );
+
+		protected:
+			VideoPath* path() const { return m_path; }
+
 		public slots:
 			QVariant value( int parameterId ) const;
 			void setValue( int parameterId, QVariant newValue );
 
 		private:
+			VideoPath* m_path;
 	};
 }} //namespace Phonon::Xine
 
