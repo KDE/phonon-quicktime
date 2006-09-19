@@ -33,6 +33,11 @@ VideoEffect::~VideoEffect()
 {
 }
 
+void VideoEffect::setPath( VideoPath* path )
+{
+	m_path = path;
+}
+
 QVariant VideoEffect::value( int parameterId ) const
 {
 	return QVariant(); // invalid

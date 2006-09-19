@@ -39,6 +39,10 @@ VideoPath::VideoPath( QObject* parent )
 
 VideoPath::~VideoPath()
 {
+	foreach( VideoEffect* ve, m_effects )
+		ve->setPath( 0 );
+	if( m_output )
+		m_output->unsetPath( this );
 }
 
 void VideoPath::streamFinished()
@@ -118,6 +122,7 @@ bool VideoPath::insertEffect( QObject* newEffect, QObject* insertBefore )
 	}
 	else
 		m_effects.append( ve );
+	ve->setPath( this );
 
 	return true;
 }
@@ -128,7 +133,10 @@ bool VideoPath::removeEffect( QObject* effect )
 	VideoEffect* ve = qobject_cast<VideoEffect*>( effect );
 	Q_ASSERT( ve );
 	if( m_effects.removeAll( ve ) > 0 )
+	{
+		ve->setPath( 0 );
 		return true;
+	}
 	return false;
 }
 
