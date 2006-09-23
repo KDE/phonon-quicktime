@@ -15,7 +15,7 @@ if(X11_XV_FOUND)
 	TARGET_LINK_LIBRARIES(xineplug_vo_out_xv_nt ${XINE_LIBRARY} ${X11_LIBRARIES} ${X11_Xv_LIB} ${CMAKE_THREAD_LIBS_INIT})
 	SET_TARGET_PROPERTIES(xineplug_vo_out_xv_nt PROPERTIES PREFIX "")
 # FIXME: the install path needs to be determined in FindXine.cmake
-	INSTALL(TARGETS xineplug_vo_out_xv_nt DESTINATION /usr/lib/xine/plugins/1.1.1/)
+	INSTALL(TARGETS xineplug_vo_out_xv_nt DESTINATION /usr/lib/xine/plugins/1.1.2/)
 endif(X11_XV_FOUND)
 
 #xineplug_vo_out_xv_la_SOURCES = $(X11OSD) deinterlace.c video_out_xv.c

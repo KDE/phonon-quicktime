@@ -170,8 +170,6 @@ static uint32_t xv_get_capabilities (vo_driver_t *this_gen) {
 }
 
 static void xv_frame_field (vo_frame_t *vo_img, int which_field) {
-	if( vo_img ) {}
-	if( which_field ) {}
   /* not needed for Xv */
 }
 
@@ -208,7 +206,7 @@ static vo_frame_t *xv_alloc_frame (vo_driver_t *this_gen) {
   frame = (xv_frame_t *) xine_xmalloc (sizeof (xv_frame_t));
   if (!frame)
     return NULL;
-
+  
   pthread_mutex_init (&frame->vo_frame.mutex, NULL);
 
   /*
@@ -225,7 +223,7 @@ static vo_frame_t *xv_alloc_frame (vo_driver_t *this_gen) {
 
 static int HandleXError (Display *display, XErrorEvent *xevent) {
   char str [1024];
-
+  
   XGetErrorText (display, xevent->error_code, str, 1024);
   printf ("received X error event: %s\n", str);
   gX11Fail = 1;
@@ -395,10 +393,10 @@ static void dispose_ximage (xv_driver_t *this,
       shminfo->shmid = -1;
     }
 
-  }
+  } 
   else {
     free (myimage->data);
-
+    
     XFree (myimage);
   }
 }
@@ -436,7 +434,7 @@ static void xv_update_frame_format (vo_driver_t *this_gen,
     if(format == XINE_IMGFMT_YUY2) {
       frame->vo_frame.pitches[0] = frame->image->pitches[0];
       frame->vo_frame.base[0] = (uint8_t*)frame->image->data + frame->image->offsets[0];
-    }
+    } 
     else {
       frame->vo_frame.pitches[0] = frame->image->pitches[0];
       frame->vo_frame.pitches[1] = frame->image->pitches[2];
@@ -475,7 +473,7 @@ static void xv_deinterlace_frame (xv_driver_t *this) {
     if(this->deinterlace_frame.image)
       dispose_ximage (this, &this->deinterlace_frame.shminfo,
                       this->deinterlace_frame.image);
-
+    
     this->deinterlace_frame.image = create_ximage (this, &this->deinterlace_frame.shminfo,
 						   frame->width,frame->height / xvscaling,
 						   frame->format);
@@ -591,12 +589,12 @@ static void xv_clean_output_area (xv_driver_t *this) {
 		    this->sc.output_xoffset, this->sc.output_yoffset,
 		    this->sc.output_width, this->sc.output_height);
   }
-
+  
   if (this->xoverlay) {
     x11osd_resize (this->xoverlay, this->sc.gui_width, this->sc.gui_height);
     this->ovl_changed = 1;
   }
-
+  
   pthread_mutex_unlock (&this->display_mutex);
 }
 
@@ -621,13 +619,13 @@ static void xv_compute_output_size (xv_driver_t *this) {
   /* onefield_xv divide by 2 the number of lines */
   if (this->deinterlace_enabled
       && (this->deinterlace_method == DEINTERLACE_ONEFIELDXV)
-      && (this->cur_frame->format == XINE_IMGFMT_YV12)) {
+      && this->cur_frame && (this->cur_frame->format == XINE_IMGFMT_YV12)) {
     this->sc.displayed_height  = this->sc.displayed_height / 2 - 1;
     this->sc.displayed_yoffset = this->sc.displayed_yoffset / 2;
   }
 }
 
-static void xv_overlay_begin (vo_driver_t *this_gen,
+static void xv_overlay_begin (vo_driver_t *this_gen, 
 			      vo_frame_t *frame_gen, int changed) {
   xv_driver_t  *this = (xv_driver_t *) this_gen;
 
@@ -635,10 +633,10 @@ static void xv_overlay_begin (vo_driver_t *this_gen,
 
   if( this->ovl_changed && this->xoverlay ) {
     pthread_mutex_lock (&this->display_mutex);
-    x11osd_clear(this->xoverlay);
+    x11osd_clear(this->xoverlay); 
     pthread_mutex_unlock (&this->display_mutex);
   }
-
+  
   this->alphablend_extra_data.offset_x = frame_gen->overlay_offset_x;
   this->alphablend_extra_data.offset_y = frame_gen->overlay_offset_y;
 }
@@ -655,7 +653,7 @@ static void xv_overlay_end (vo_driver_t *this_gen, vo_frame_t *vo_img) {
   this->ovl_changed = 0;
 }
 
-static void xv_overlay_blend (vo_driver_t *this_gen,
+static void xv_overlay_blend (vo_driver_t *this_gen, 
 			      vo_frame_t *frame_gen, vo_overlay_t *overlay) {
   xv_driver_t  *this = (xv_driver_t *) this_gen;
   xv_frame_t   *frame = (xv_frame_t *) frame_gen;
@@ -664,16 +662,16 @@ static void xv_overlay_blend (vo_driver_t *this_gen,
     if( overlay->unscaled ) {
       if( this->ovl_changed && this->xoverlay ) {
         pthread_mutex_lock (&this->display_mutex);
-        x11osd_blend(this->xoverlay, overlay);
+        x11osd_blend(this->xoverlay, overlay); 
         pthread_mutex_unlock (&this->display_mutex);
       }
     } else {
       if (frame->format == XINE_IMGFMT_YV12)
-        _x_blend_yuv(frame->vo_frame.base, overlay,
+        _x_blend_yuv(frame->vo_frame.base, overlay, 
 		  frame->width, frame->height, frame->vo_frame.pitches,
                   &this->alphablend_extra_data);
       else
-        _x_blend_yuy2(frame->vo_frame.base[0], overlay,
+        _x_blend_yuy2(frame->vo_frame.base[0], overlay, 
 		   frame->width, frame->height, frame->vo_frame.pitches[0],
                    &this->alphablend_extra_data);
     }
@@ -717,7 +715,7 @@ static int xv_redraw_needed (vo_driver_t *this_gen) {
     this->sc.delivered_height = this->cur_frame->height;
     this->sc.delivered_width  = this->cur_frame->width;
     this->sc.delivered_ratio  = this->cur_frame->ratio;
-
+    
     this->sc.crop_left        = this->cur_frame->vo_frame.crop_left;
     this->sc.crop_right       = this->cur_frame->vo_frame.crop_right;
     this->sc.crop_top         = this->cur_frame->vo_frame.crop_top;
@@ -746,7 +744,7 @@ static void xv_display_frame (vo_driver_t *this_gen, vo_frame_t *frame_gen) {
   /*
   printf ("video_out_xv: xv_display_frame...\n");
   */
-
+  
   /*
    * queue frames (deinterlacing)
    * free old frames
@@ -832,7 +830,7 @@ static int xv_get_property (vo_driver_t *this_gen, int property) {
 static void xv_property_callback (void *property_gen, xine_cfg_entry_t *entry) {
   xv_property_t *property = (xv_property_t *) property_gen;
   xv_driver_t   *this = property->this;
-
+  
   pthread_mutex_lock (&this->display_mutex);
   XvSetPortAttribute (this->display, this->xv_port,
 		      property->atom,
@@ -862,7 +860,7 @@ static int xv_set_property (vo_driver_t *this_gen,
       this->props[property].entry->num_value = this->props[property].value;
 
     return this->props[property].value;
-  }
+  } 
   else {
     switch (property) {
 
@@ -876,13 +874,13 @@ static int xv_set_property (vo_driver_t *this_gen,
          xv_compute_output_size (this);
       }
       break;
-
+  
     case VO_PROP_ASPECT_RATIO:
       if (value>=XINE_VO_ASPECT_NUM_RATIOS)
 	value = XINE_VO_ASPECT_AUTO;
 
       this->props[property].value = value;
-      xprintf(this->xine, XINE_VERBOSITY_LOG,
+      xprintf(this->xine, XINE_VERBOSITY_LOG, 
 	      "video_out_xv: VO_PROP_ASPECT_RATIO(%d)\n", this->props[property].value);
       this->sc.user_ratio = value;
 
@@ -967,7 +965,7 @@ static int xv_gui_data_exchange (vo_driver_t *this_gen,
 
       if(this->xoverlay)
 	x11osd_expose(this->xoverlay);
-
+      
       XSync(this->display, False);
       pthread_mutex_unlock (&this->display_mutex);
     }
@@ -1021,37 +1019,38 @@ static int xv_gui_data_exchange (vo_driver_t *this_gen,
 static void xv_store_port_attribute(xv_driver_t *this, char *name) {
   Atom                 atom;
   xv_portattribute_t  *attr;
-
+  
   attr = (xv_portattribute_t *)malloc( sizeof(xv_portattribute_t) );
   attr->name = strdup(name);
-
+  
   atom = XInternAtom (this->display, attr->name, False);
   XvGetPortAttribute (this->display, this->xv_port, atom, &attr->value);
-
-  xine_list_append_content (this->port_attributes, attr);
+  
+  xine_list_push_back (this->port_attributes, attr);
 }
 
 static void xv_restore_port_attributes(xv_driver_t *this) {
   Atom                 atom;
-  xv_portattribute_t  *attr;
-
-  while ((attr = xine_list_first_content(this->port_attributes)) != NULL) {
-    xine_list_delete_current (this->port_attributes);
-
+  xine_list_iterator_t ite;
+  
+  while ((ite = xine_list_front(this->port_attributes)) != NULL) {
+    xv_portattribute_t *attr = xine_list_get_value(this->port_attributes, ite);
+    xine_list_remove (this->port_attributes, ite);
+  
     pthread_mutex_lock(&this->display_mutex);
     atom = XInternAtom (this->display, attr->name, False);
     XvSetPortAttribute (this->display, this->xv_port, atom, attr->value);
     pthread_mutex_unlock(&this->display_mutex);
-
+        
     free( attr->name );
     free( attr );
   }
-
+  
   pthread_mutex_lock(&this->display_mutex);
   XSync(this->display, False);
   pthread_mutex_unlock(&this->display_mutex);
-
-  xine_list_free( this->port_attributes );
+ 
+  xine_list_delete( this->port_attributes );
 }
 
 static void xv_dispose (vo_driver_t *this_gen) {
@@ -1060,7 +1059,7 @@ static void xv_dispose (vo_driver_t *this_gen) {
 
   /* restore port attributes to their initial values */
   xv_restore_port_attributes(this);
-
+  
   if (this->deinterlace_frame.image) {
     pthread_mutex_lock (&this->display_mutex);
     dispose_ximage (this, &this->deinterlace_frame.shminfo,
@@ -1090,7 +1089,7 @@ static void xv_dispose (vo_driver_t *this_gen) {
   }
 
   _x_alphablend_free(&this->alphablend_extra_data);
-
+  
   free (this);
 }
 
@@ -1101,7 +1100,7 @@ static int xv_check_yv12 (Display *display, XvPortID port) {
   int                  i;
 
   formatValues = XvListImageFormats (display, port, &formats);
-
+  
   for (i = 0; i < formats; i++)
     if ((formatValues[i].id == XINE_IMGFMT_YV12) &&
 	(! (strcmp (formatValues[i].guid, "YV12")))) {
@@ -1123,7 +1122,7 @@ static void xv_check_capability (xv_driver_t *this,
   int          int_default;
   cfg_entry_t *entry;
   char        *str_prop = attr.name;
-
+   
   /*
    * some Xv drivers (Gatos ATI) report some ~0 as max values, this is confusing.
    */
@@ -1144,7 +1143,7 @@ static void xv_check_capability (xv_driver_t *this,
   /* might be overridden using config entry */
   if(strcmp(str_prop, "XV_AUTOPAINT_COLORKEY") == 0)
     int_default = 0;
-
+    
   if (config_name) {
     /* is this a boolean property ? */
     if ((attr.min_value == 0) && (attr.max_value == 1)) {
@@ -1161,12 +1160,12 @@ static void xv_check_capability (xv_driver_t *this,
 
     entry = this->config->lookup_entry (this->config, config_name);
 
-    if((entry->num_value < this->props[property].min) ||
+    if((entry->num_value < this->props[property].min) || 
        (entry->num_value > this->props[property].max)) {
 
-      this->config->update_num(this->config, config_name,
+      this->config->update_num(this->config, config_name, 
 			       ((this->props[property].min + this->props[property].max) >> 1));
-
+      
       entry = this->config->lookup_entry (this->config, config_name);
     }
 
@@ -1254,7 +1253,7 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
     return NULL;
 
   _x_alphablend_init(&this->alphablend_extra_data, class->xine);
-
+  
   this->display           = visual->display;
   this->screen            = visual->screen;
   this->config            = config;
@@ -1297,7 +1296,7 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
 			    0) == Success)) {
           xv_port = adaptor_info[adaptor_num].base_id + j;
         }
-
+      
       if( xv_port )
         break;
     }
@@ -1307,19 +1306,19 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
     xprintf(class->xine, XINE_VERBOSITY_LOG,
 	    _("video_out_xv: Xv extension is present but I couldn't find a usable yuv12 port.\n"
 	      "              Looks like your graphics hardware driver doesn't support Xv?!\n"));
-
+    
     /* XvFreeAdaptorInfo (adaptor_info); this crashed on me (gb)*/
     pthread_mutex_unlock(&this->display_mutex);
     return NULL;
-  }
+  } 
   else
     xprintf(class->xine, XINE_VERBOSITY_LOG,
 	    _("video_out_xv: using Xv port %ld from adaptor %s for hardware "
 	      "colorspace conversion and scaling.\n"), xv_port,
             adaptor_info[adaptor_num].name);
-
+  
   pthread_mutex_unlock(&this->display_mutex);
-
+  
   this->xv_port           = xv_port;
 
   _x_vo_scale_init (&this->sc, 1, 0, config );
@@ -1453,7 +1452,7 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
 	  config->update_num(config,"video.device.xv_filter",xv_filter);
 	} else if(!strcmp(attr[k].name, "XV_DOUBLE_BUFFER")) {
 	  int xv_double_buffer;
-	  xv_double_buffer =
+	  xv_double_buffer = 
 	    config->register_bool (config, "video.device.xv_double_buffer", 1,
 	      _("enable double buffering"),
 	      _("Double buffering will synchronize the update of the video image to the "
@@ -1476,10 +1475,10 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
 
   fo = XvListImageFormats(this->display, this->xv_port, (int*)&formats);
   pthread_mutex_unlock (&this->display_mutex);
-
+  
   this->xv_format_yv12 = 0;
   this->xv_format_yuy2 = 0;
-
+  
   for(i = 0; i < formats; i++) {
     lprintf ("Xv image format: 0x%x (%4.4s) %s\n",
 	     fo[i].id, (char*)&fo[i].id,
@@ -1493,7 +1492,7 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
     } else if (fo[i].id == XINE_IMGFMT_YUY2) {
       this->xv_format_yuy2 = fo[i].id;
       this->capabilities |= VO_CAP_YUY2;
-      xprintf(this->xine, XINE_VERBOSITY_LOG,
+      xprintf(this->xine, XINE_VERBOSITY_LOG, 
 	      _("video_out_xv: this adaptor supports the yuy2 format.\n"));
     }
   }
@@ -1514,13 +1513,13 @@ static vo_driver_t *open_plugin (video_driver_class_t *class_gen, const void *vi
   dispose_ximage (this, &myshminfo, myimage);
   pthread_mutex_unlock (&this->display_mutex);
 
-  this->use_pitch_alignment =
+  this->use_pitch_alignment = 
     config->register_bool (config, "video.device.xv_pitch_alignment", 0,
 			   _("pitch alignment workaround"),
 			   _("Some buggy video drivers need a workaround to function properly."),
 			   10, xv_update_xv_pitch_alignment, this);
 
-  this->deinterlace_method =
+  this->deinterlace_method = 
     config->register_enum (config, "video.output.xv_deinterlace_method", 4,
 			   deinterlace_methods,
 			   _("deinterlace method (deprecated)"),
@@ -1585,7 +1584,7 @@ static char* get_description (video_driver_class_t *this_gen) {
 
 static void dispose_class (video_driver_class_t *this_gen) {
   xv_class_t        *this = (xv_class_t *) this_gen;
-
+  
   free (this);
 }
 
@@ -1600,12 +1599,10 @@ static void *init_class (xine_t *xine, void *visual_gen) {
   this->config                       = xine->config;
   this->xine                         = xine;
 
-  printf ("++++++++++++++++++++++ Xv NT ++++++++++++++++++++++");
-
   return this;
 }
 
-static vo_info_t vo_info_xv = {
+static const vo_info_t vo_info_xv = {
   0,                    /* priority    */
   XINE_VISUAL_TYPE_X11  /* visual type */
 };
@@ -1614,7 +1611,7 @@ static vo_info_t vo_info_xv = {
  * exported plugin catalog entry
  */
 
-plugin_info_t xine_plugin_info[] = {
+const plugin_info_t xine_plugin_info[] = {
   /* type, API, "name", version, special_info, init_function */
   { PLUGIN_VIDEO_OUT, 21, "xvnt", XINE_VERSION_CODE, &vo_info_xv, init_class },
   { PLUGIN_NONE, 0, "", 0, NULL, NULL }
