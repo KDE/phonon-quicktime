@@ -26,6 +26,12 @@
 #include <cstring>
 #include <cstdio>
 
+extern "C" {
+#include <xine/xine_plugin.h>
+}
+
+extern plugin_info_t kbytestream_xine_plugin_info[];
+
 namespace Phonon
 {
 namespace Xine
@@ -40,6 +46,7 @@ ByteStream::ByteStream( QObject* parent )
 	//kDebug( 610 ) << k_funcinfo << endl;
 	connect( this, SIGNAL( needDataQueued() ), this, SIGNAL( needData() ), Qt::QueuedConnection );
 	connect( this, SIGNAL( seekStreamQueued( qint64 ) ), this, SLOT( slotSeekStream( qint64 ) ), Qt::QueuedConnection );
+	xine_register_plugins( XineEngine::xine(), kbytestream_xine_plugin_info );
 }
 
 void ByteStream::slotSeekStream( qint64 offset )
@@ -55,13 +62,13 @@ ByteStream::~ByteStream()
 
 void ByteStream::xineOpen()
 {
-	if( ( m_intstate & AboutToOpenState ) != ( m_intstate | AboutToOpenState ) )
+	if( ( m_intstate != AboutToOpenState ) && ( m_intstate != ( AboutToOpenState | StreamAtEndState ) ) )
 	{
 		kDebug( 610 ) << k_funcinfo << "not ready yet!" << endl;
 		return;
 	}
 
-	kDebug( 610 ) << k_funcinfo << endl;
+	kDebug( 610 ) << k_funcinfo << m_intstate << endl;
 
 	QByteArray mrl( "kbytestream:/" );
 	// the address can contain 0s which will null-terminate the C-string
