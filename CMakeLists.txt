@@ -1,5 +1,5 @@
 add_subdirectory(ui)
-#add_subdirectory(xineplugins)
+add_subdirectory(xineplugins)
 
 set(xine_engine_LIB_SRCS
     xine_engine.cpp
