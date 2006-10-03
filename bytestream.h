@@ -21,8 +21,11 @@
 
 #include "abstractmediaproducer.h"
 
+#include <xine.h>
+
 #include "xine_engine.h"
 #include <phonon/bytestreaminterface.h>
+#include "internalbytestreaminterface.h"
 
 class QTimer;
 
@@ -30,7 +33,7 @@ namespace Phonon
 {
 namespace Xine
 {
-	class ByteStream : public AbstractMediaProducer, public ByteStreamInterface
+	class ByteStream : public AbstractMediaProducer, public ByteStreamInterface, public InternalByteStreamInterface
 	{
 		Q_OBJECT
 		Q_INTERFACES( Phonon::ByteStreamInterface )
@@ -38,7 +41,8 @@ namespace Xine
 			ByteStream( QObject* parent );
 			~ByteStream();
 
-			qint64 currentTime() const;
+		public slots:
+			qint64 totalTime() const;
 			bool isSeekable() const;
 
 			void writeData( const QByteArray& data );
@@ -48,38 +52,52 @@ namespace Xine
 			void stop();
 			void seek( qint64 time );
 
-		public Q_SLOTS:
 			void endOfData();
+
 			void setStreamSeekable( bool );
+			bool streamSeekable() const;
+
 			void setStreamSize( qint64 );
 			qint64 streamSize() const;
-			qint64 totalTime() const;
-			bool streamSeekable() const;
+
+			void setAboutToFinishTime( qint32 newAboutToFinishTime );
 			qint32 aboutToFinishTime() const;
-			void setAboutToFinishTime( qint32 );
 
 		Q_SIGNALS:
 			void finished();
-			void aboutToFinish( qint32 );
-			void length( qint64 );
+			void aboutToFinish( qint32 msec );
+			void length( qint64 length );
 			void needData();
+			void needDataQueued();
 			void enoughData();
 			void seekStream( qint64 );
+			void seekStreamQueued( qint64 );
 
-		private Q_SLOTS:
-			void consumeStream();
+		protected:
+			virtual void emitTick();
+			virtual bool event( QEvent* ev );
+			virtual void recreateStream();
+			virtual void reachedPlayingState();
+			virtual void leftPlayingState();
+
+			bool m_aboutToFinishNotEmitted;
+
+		private slots:
+			void emitAboutToFinish();
+			void init();
+			void slotSeekStream( qint64 );
 
 		private:
-			qint64 m_aboutToFinishBytes;
+			void emitAboutToFinishIn( int timeToAboutToFinishSignal );
+			void xineOpen();
+
+			bool m_seekable;
+			qint32 m_aboutToFinishTime;
+			QTimer *m_aboutToFinishTimer;
 			qint64 m_streamSize;
-			qint64 m_bufferSize;
-			qint64 m_streamPosition;
-			bool m_streamSeekable;
-			bool m_eof;
-			bool m_aboutToFinishEmitted;
-			QTimer* m_streamConsumeTimer;
+			bool m_streamSizeSet;
 	};
 }} //namespace Phonon::Xine
 
 // vim: sw=4 ts=4 tw=80 noet
-#endif // Phonon_XINE_BYTESTREAM_H
+#endif // Phonon_XINE_MEDIAOBJECT_H
