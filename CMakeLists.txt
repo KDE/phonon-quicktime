@@ -10,6 +10,9 @@ target_link_libraries(phononxineengine ${QT_QTCORE_LIBRARY} ${XINE_LIBRARY})
 set_target_properties(phononxineengine PROPERTIES VERSION ${GENERIC_LIB_VERSION} SOVERSION ${GENERIC_LIB_SOVERSION})
 install(TARGETS phononxineengine DESTINATION ${LIB_INSTALL_DIR})
 
+# xine expects off_t to be 64bits
+ADD_DEFINITIONS(-D_FILE_OFFSET_BITS=64)
+
 set(phonon_xine_PART_SRCS
     abstractmediaproducer.cpp
     abstractaudiooutput.cpp
