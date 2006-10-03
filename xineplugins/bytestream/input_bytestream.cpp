@@ -53,20 +53,17 @@ typedef struct {
     xine_stream_t    *stream;
     char *mrl;
     InternalByteStreamInterface *bytestream;
-
-    off_t currentPosition;
 } kbytestream_input_plugin_t;
 
 static uint32_t kbytestream_plugin_get_capabilities (input_plugin_t *this_gen) {
     kbytestream_input_plugin_t *that = (kbytestream_input_plugin_t *) this_gen;
 
-    return that->bytestream->isSeekable() ? INPUT_CAP_SEEKABLE : 0;
+    return INPUT_CAP_PREVIEW | (that->bytestream->isSeekable() ? INPUT_CAP_SEEKABLE : 0);
 }
 
 static off_t kbytestream_plugin_read (input_plugin_t *this_gen, char *buf, off_t len) {
     kbytestream_input_plugin_t *that = (kbytestream_input_plugin_t *) this_gen;
     off_t read = that->bytestream->readFromBuffer( buf, len );
-    that->currentPosition += read;
     return read;
 }
 
@@ -92,7 +89,6 @@ static buf_element_t *kbytestream_plugin_read_block (input_plugin_t *this_gen, f
     if( buf != NULL )
         buf->size = total_bytes;
 
-    that->currentPosition += total_bytes;
     return buf;
 }
 
@@ -106,7 +102,7 @@ static off_t kbytestream_plugin_seek (input_plugin_t *this_gen, off_t offset, in
         case SEEK_SET:
             break;
         case SEEK_CUR:
-            offset += that->currentPosition;
+            offset += that->bytestream->currentPosition();
             break;
         case SEEK_END:
             offset += that->bytestream->streamSize();
@@ -116,13 +112,13 @@ static off_t kbytestream_plugin_seek (input_plugin_t *this_gen, off_t offset, in
     }
     printf( "kbytestream_plugin_seek %d\n", ( int )offset );
 
-    that->bytestream->seek( offset );
+    that->bytestream->seekBuffer( offset );
     return offset;
 }
 
 static off_t kbytestream_plugin_get_current_pos (input_plugin_t *this_gen){
     kbytestream_input_plugin_t *that = (kbytestream_input_plugin_t *) this_gen;
-    return that->currentPosition;
+    return that->bytestream->currentPosition();
 }
 
 static off_t kbytestream_plugin_get_length (input_plugin_t *this_gen) {
@@ -140,8 +136,12 @@ static char* kbytestream_plugin_get_mrl (input_plugin_t *this_gen) {
     return that->mrl;
 }
 
-static int kbytestream_plugin_get_optional_data (input_plugin_t * /*this_gen*/,
-        void * /*data*/, int /*data_type*/) {
+static int kbytestream_plugin_get_optional_data (input_plugin_t *this_gen,
+        void *data, int data_type) {
+    if (data_type == INPUT_OPTIONAL_DATA_PREVIEW) {
+        kbytestream_input_plugin_t *that = (kbytestream_input_plugin_t *) this_gen;
+        return that->bytestream->peekBuffer(data);
+    }
     return INPUT_OPTIONAL_UNSUPPORTED;
 }
 
