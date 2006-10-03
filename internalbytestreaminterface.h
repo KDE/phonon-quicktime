@@ -28,13 +28,22 @@
 #include <QWaitCondition>
 #include <pthread.h>
 #include <cstdlib>
+extern "C" {
+#define this this_xine
+#include <xine/input_plugin.h>
+#undef this
+}
 
 static const size_t MAXBUFFERSIZE = 1024 * 128; // 128kB
 
 class InternalByteStreamInterface
 {
 	public:
-		InternalByteStreamInterface() : m_atEnd( false ) {
+		InternalByteStreamInterface()
+			: m_intstate( CreatedState ),
+			m_buffersize( 0 ),
+			m_currentPosition( 0 )
+		{
 			// created in the main thread
 			m_mainThread = pthread_self();
 		}
@@ -43,8 +52,29 @@ class InternalByteStreamInterface
 		}
 
 		void pushBuffer( const QByteArray& data ) {
+			if( !( m_intstate & PreviewReadyState ) )
+			{
+				kDebug() << k_funcinfo << "fill preview" << endl;
+				if( m_preview.size() + data.size() > MAX_PREVIEW_SIZE )
+				{
+					int tocopy = MAX_PREVIEW_SIZE - m_preview.size();
+					m_preview += data.left( tocopy );
+					QByteArray leftover( data.right( data.size() - tocopy ) );
+					m_buffers.enqueue( leftover );
+					m_buffersize += leftover.size();
+				}
+				else
+					m_preview += data;
+
+				kDebug() << "filled preview buffer to " << m_preview.size() << endl;
+				if( m_preview.size() == MAX_PREVIEW_SIZE )
+					stateTransition( m_intstate | PreviewReadyState );
+				return;
+			}
 			// always called in the main thread
-			kDebug() << k_funcinfo << data.size() << ' ' << pthread_self() << endl;// << data.left( 4 ).constData() << endl;
+			Q_ASSERT( m_mainThread == pthread_self() );
+
+			kDebug() << k_funcinfo << data.size() << " m_intstate = " << m_intstate << endl;
 
 			m_mutex.lock();
 			m_buffers.enqueue( data );
@@ -62,24 +92,43 @@ class InternalByteStreamInterface
 		void pullBuffer( char *buf, int len ) {
 			// called from either main or xine thread
 			kDebug() << k_funcinfo << endl;
+			// the preview doesn't change anymore when this method is called -> no mutex
+			if( m_currentPosition < m_preview.size() )
+			{
+				kDebug() << k_funcinfo << "reading from preview buffer" << endl;
+				int tocopy = qMin( len, static_cast<int>( m_preview.size() - m_currentPosition ) );
+				memcpy( buf, m_preview.constData() + m_currentPosition, tocopy );
+				buf += tocopy;
+				len -= tocopy;
+			}
 			while( len > 0 )
 			{
 				m_mutex.lock();
+				if( m_buffers.isEmpty() )
+				{
+					kFatal() << k_funcinfo << "m_currentPosition = " << m_currentPosition << ", m_preview.size() = " << m_preview.size() << ", len = " << len << kBacktrace() << endl;
+				}
 				if( m_buffers.head().size() - m_offset < len )
 				{
 					QByteArray buffer = m_buffers.dequeue();
+					Q_ASSERT( buffer.size() > 0 );
 					int tocopy = buffer.size() - m_offset;
+					Q_ASSERT( tocopy > 0 );
 					memcpy( buf, buffer.constData() + m_offset, tocopy );
 					buf += tocopy;
 					len -= tocopy;
+					Q_ASSERT( len >= 0 );
+					Q_ASSERT( m_buffersize >= tocopy );
 					m_buffersize -= tocopy;
 					m_offset = 0;
 				}
 				else
 				{
 					QByteArray &buffer = m_buffers.head();
+					Q_ASSERT( buffer.size() > 0 );
 					memcpy( buf, buffer.constData() + m_offset , len );
 					m_offset += len;
+					Q_ASSERT( m_buffersize >= len );
 					m_buffersize -= len;
 					len = 0;
 				}
@@ -95,39 +144,43 @@ class InternalByteStreamInterface
 			}
 		}
 
+		int peekBuffer( void *buf ) {
+			memcpy( buf, m_preview.constData(), m_preview.size() );
+			return m_preview.size();
+		}
+
 		qint64 readFromBuffer( void *buf, size_t count ) {
 			// called from either main or xine thread
-			if( m_atEnd )
-				return 0;
 
 			kDebug() << k_funcinfo << count << " called from thread " << pthread_self() << endl;
 			size_t oldbuffersize = 0;
 
 			/* get data while more is needed and while we're still receiving data */
-			while( m_buffersize < count && !m_atEnd ) // && m_buffersize > oldbuffersize )
+			int previewsize = qMax( 0, static_cast<int>( m_preview.size() - m_currentPosition ) );
+			kDebug() << k_funcinfo << "previewsize = " << previewsize << endl;
+			while( previewsize + m_buffersize < count && !( m_intstate & StreamAtEndState ) )
 			{
+				// ignore previewsize
 				oldbuffersize = m_buffersize;
-
-				// if it calls from the main thread processEvents has to be called to block until
-				// the data has arrived
-				// if it calls from a different thread, the thread needs to sleep until a wait
-				// condition is signalled from pushBuffer
 
 				if( m_mainThread == pthread_self() )
 				{
+					// if it calls from the main thread processEvents has to be called to block until
+					// the data has arrived
 					kDebug() << k_funcinfo << "wait in main thread" << endl;
-					while( m_buffersize == oldbuffersize && !m_atEnd )
+					while( m_buffersize == oldbuffersize && !( m_intstate & StreamAtEndState ) )
 					{
-						//kDebug() << k_funcinfo << "waiting: " << m_buffersize << ", " << oldbuffersize << ", " << m_atEnd << endl;
 						emit needData();
 						QCoreApplication::processEvents( QEventLoop::ExcludeUserInputEvents );
 					}
 				}
 				else
 				{
+					// if it calls from a different thread, the thread needs to sleep until a wait
+					// condition is signalled from pushBuffer
 					kDebug() << k_funcinfo << "wait in xine thread" << endl;
 					m_mutex.lock();
-					while( m_buffersize == oldbuffersize && !m_atEnd )
+					while( m_buffersize == oldbuffersize && !( m_intstate & StreamAtEndState ) )
 					{
 						emit needDataQueued();
 						m_waitForDataCondition.wait( &m_mutex, 50 );
@@ -136,54 +189,78 @@ class InternalByteStreamInterface
 				}
 				//kDebug() << "m_buffersize = " << m_buffersize << endl;
 			}
-			if( m_buffersize >= count )
+			if( previewsize + m_buffersize >= count )
 			{
 				pullBuffer( static_cast<char*>( buf ), count );
+				m_currentPosition += count;
 				return count;
 			}
-			else if( m_buffersize > 0 )
+			else if( previewsize + m_buffersize > 0 )
 			{
-				size_t tmp = m_buffersize;
-				pullBuffer( static_cast<char*>( buf ), m_buffersize );
+				size_t tmp = m_buffersize + previewsize;
+				pullBuffer( static_cast<char*>( buf ), tmp );
+				m_currentPosition += tmp;
 				return tmp;
 			}
 			return 0;
 		}
 
-		void seek( qint64 offset )
+		void seekBuffer( qint64 offset )
 		{
 			// called from either main or xine thread
 			m_mutex.lock();
 			m_buffers.clear();
 			m_buffersize = 0;
 			m_offset = 0;
-			m_atEnd = false;
+			stateTransition( m_intstate - ( m_intstate & StreamAtEndState ) );
 			if( m_mainThread == pthread_self() )
 			{
 				kDebug() << k_funcinfo << "from main thread " << offset << " = " << qulonglong( offset ) << endl;
-				emit seekStream( offset );
+				emit seekStream( qMax( static_cast<qint64>( m_preview.size() ), offset ) );
 			}
 			else
 			{
 				kDebug() << k_funcinfo << "from xine thread " << offset << " = " << qulonglong( offset ) << endl;
 				::exit( 1 ); // XXX
 				m_seekMutex.lock();
-				emit seekStreamQueued( offset ); //calls syncSeekStream from the main thread
+				emit seekStreamQueued( qMax( static_cast<qint64>( m_preview.size() ), offset ) ); //calls syncSeekStream from the main thread
 				m_seekWaitCondition.wait( &m_seekMutex );
 				m_seekMutex.unlock();
 			}
+			m_currentPosition = offset;
 			m_mutex.unlock();
+		}
+
+		off_t currentPosition() const {
+			return m_currentPosition;
 		}
 
 		virtual qint64 streamSize() const = 0;
 		virtual bool isSeekable() const = 0;
 
 	protected:
+		enum State
+		{
+			CreatedState = 1,
+			PreviewReadyState = 2,
+			StreamSizeSetState = 4,
+			AboutToOpenState = CreatedState | PreviewReadyState | StreamSizeSetState,
+			OpenedState = AboutToOpenState | 8,
+			PlayingState = OpenedState | 16,
+			SeekingState = OpenedState | 32,
+			StreamAtEndState = 64
+		};
+
 		virtual void needData() = 0;
 		virtual void needDataQueued() = 0;
 		virtual void enoughData() = 0;
 		virtual void seekStream( qint64 ) = 0;
 		virtual void seekStreamQueued( qint64 ) = 0;
+		virtual void stateTransition( int newState )
+		{
+			m_intstate = newState;
+		}
+
 		void syncSeekStream( qint64 offset ) {
 			kDebug() << k_funcinfo << endl;
 			m_seekMutex.lock();
@@ -192,7 +269,8 @@ class InternalByteStreamInterface
 			m_seekWaitCondition.wakeOne();
 		}
 
-		bool m_atEnd;
+		QByteArray m_preview;
+		int m_intstate;
 
 	private:
 		QMutex m_mutex;
@@ -204,6 +282,7 @@ class InternalByteStreamInterface
 		int m_offset;
 		QQueue<QByteArray> m_buffers;
 		pthread_t m_mainThread;
+		qint64 m_currentPosition;
 };
 
 #endif // INTERNALBYTESTREAMDATA_H

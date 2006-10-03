@@ -36,10 +36,8 @@ ByteStream::ByteStream( QObject* parent )
 	, m_seekable( false )
 	, m_aboutToFinishTimer( 0 )
 	, m_streamSize( 0 )
-	, m_streamSizeSet( false )
 {
 	//kDebug( 610 ) << k_funcinfo << endl;
-	QTimer::singleShot( 0, this, SLOT( init() ) );
 	connect( this, SIGNAL( needDataQueued() ), this, SIGNAL( needData() ), Qt::QueuedConnection );
 	connect( this, SIGNAL( seekStreamQueued( qint64 ) ), this, SLOT( slotSeekStream( qint64 ) ), Qt::QueuedConnection );
 }
@@ -47,11 +45,6 @@ ByteStream::ByteStream( QObject* parent )
 void ByteStream::slotSeekStream( qint64 offset )
 {
 	syncSeekStream( offset );
-}
-
-void ByteStream::init()
-{
-	xineOpen();
 }
 
 ByteStream::~ByteStream()
@@ -62,9 +55,11 @@ ByteStream::~ByteStream()
 
 void ByteStream::xineOpen()
 {
-	// the kbytestream:/ xine plugin only works as soon as we know the size of the stream
-	if( !m_streamSizeSet )
+	if( ( m_intstate & AboutToOpenState ) != ( m_intstate | AboutToOpenState ) )
+	{
+		kDebug( 610 ) << k_funcinfo << "not ready yet!" << endl;
 		return;
+	}
 
 	kDebug( 610 ) << k_funcinfo << endl;
 
@@ -91,21 +86,20 @@ void ByteStream::xineOpen()
 	xine_open( stream(), mrl.constData() );
 	emit length( totalTime() );
 	updateMetaData();
+	stateTransition( InternalByteStreamInterface::OpenedState );
 }
 
 void ByteStream::setStreamSize( qint64 x )
 {
 	kDebug( 610 ) << k_funcinfo << x << endl;
 	m_streamSize = x;
-	m_streamSizeSet = true;
-	if( xine_get_status( stream() ) == XINE_STATUS_IDLE )
-		xineOpen();
+	stateTransition( m_intstate | InternalByteStreamInterface::StreamSizeSetState );
 }
 
 void ByteStream::endOfData()
 {
 	kDebug( 610 ) << k_funcinfo << endl;
-	m_atEnd = true;
+	stateTransition( m_intstate | InternalByteStreamInterface::StreamAtEndState );
 }
 
 qint64 ByteStream::streamSize() const
@@ -186,7 +180,7 @@ void ByteStream::play()
 void ByteStream::pause()
 {
 	//kDebug( 610 ) << k_funcinfo << endl;
-	if( state() == PlayingState || state() == BufferingState )
+	if( state() == Phonon::PlayingState || state() == Phonon::BufferingState )
 	{
 		xine_set_param( stream(), XINE_PARAM_SPEED, XINE_SPEED_PAUSE );
 		AbstractMediaProducer::pause();
@@ -201,6 +195,9 @@ void ByteStream::stop()
 	AbstractMediaProducer::stop();
 	m_aboutToFinishNotEmitted = true;
 	xine_close( stream() );
+
+	// don't call stateTransition so that xineOpen isn't called automatically
+	m_intstate = InternalByteStreamInterface::AboutToOpenState;
 }
 
 void ByteStream::seek( qint64 time )
@@ -297,6 +294,23 @@ void ByteStream::leftPlayingState()
 	kDebug( 610 ) << k_funcinfo << endl;
 	if( m_aboutToFinishTimer )
 		m_aboutToFinishTimer->stop();
+}
+
+void ByteStream::stateTransition( int newState )
+{
+	if( m_intstate == newState )
+		return;
+
+	kDebug() << k_funcinfo << newState << endl;
+	InternalByteStreamInterface::stateTransition( newState );
+	switch( newState )
+	{
+		case InternalByteStreamInterface::AboutToOpenState:
+			QTimer::singleShot( 0, this, SLOT( xineOpen() ) );
+			break;
+		default:
+			break;
+	}
 }
 
 void ByteStream::emitAboutToFinishIn( int timeToAboutToFinishSignal )

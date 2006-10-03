@@ -79,23 +79,22 @@ namespace Xine
 			virtual void recreateStream();
 			virtual void reachedPlayingState();
 			virtual void leftPlayingState();
+			virtual void stateTransition( int newState );
 
 			bool m_aboutToFinishNotEmitted;
 
 		private slots:
 			void emitAboutToFinish();
-			void init();
 			void slotSeekStream( qint64 );
+			void xineOpen();
 
 		private:
 			void emitAboutToFinishIn( int timeToAboutToFinishSignal );
-			void xineOpen();
 
 			bool m_seekable;
 			qint32 m_aboutToFinishTime;
 			QTimer *m_aboutToFinishTimer;
 			qint64 m_streamSize;
-			bool m_streamSizeSet;
 	};
 }} //namespace Phonon::Xine
 
