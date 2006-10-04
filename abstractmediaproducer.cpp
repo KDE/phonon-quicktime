@@ -44,20 +44,33 @@ AbstractMediaProducer::AbstractMediaProducer( QObject* parent )
 	, m_startTime( -1 )
 	, m_audioPath( 0 )
 	, m_videoPath( 0 )
+	, m_audioPort( 0 )
+	, m_videoPort( 0 )
 	, m_currentTimeOverride( -1 )
 {
 	connect( m_tickTimer, SIGNAL( timeout() ), SLOT( emitTick() ) );
-	createStream();
+	QTimer::singleShot( 0, this, SLOT( delayedInit() ) );
+}
+
+void AbstractMediaProducer::delayedInit() const
+{
+	if( !m_stream )
+		const_cast<AbstractMediaProducer*>( this )->createStream();
 }
 
 AbstractMediaProducer::~AbstractMediaProducer()
 {
-	xine_event_dispose_queue( m_event_queue );
-	xine_dispose( m_stream );
+	if( m_event_queue )
+		xine_event_dispose_queue( m_event_queue );
+	if( m_stream )
+		xine_dispose( m_stream );
 }
 
 void AbstractMediaProducer::checkAudioOutput()
 {
+	if( !m_stream )
+		return;
+
 	recreateStream();
 	if( m_audioPath->hasOutput() )
 		xine_set_param( m_stream, XINE_PARAM_IGNORE_AUDIO, 0 );
@@ -67,6 +80,9 @@ void AbstractMediaProducer::checkAudioOutput()
 
 void AbstractMediaProducer::checkVideoOutput()
 {
+	if( !m_stream )
+		return;
+
 	recreateStream();
 	if( m_videoPath->hasOutput() )
 		xine_set_param( m_stream, XINE_PARAM_IGNORE_VIDEO, 0 );
@@ -74,26 +90,41 @@ void AbstractMediaProducer::checkVideoOutput()
 		xine_set_param( m_stream, XINE_PARAM_IGNORE_VIDEO, 1 );
 }
 
+bool AbstractMediaProducer::outputPortsNotChanged() const
+{
+	xine_audio_port_t *audioPort = NULL;
+	xine_video_port_t *videoPort = NULL;
+	if( m_audioPath )
+		audioPort = m_audioPath->audioPort();
+	if( m_videoPath )
+		videoPort = m_videoPath->videoPort();
+	return ( m_videoPort == videoPort && m_audioPort == audioPort );
+}
+
 void AbstractMediaProducer::createStream()
 {
 	xine_audio_port_t *audioPort = NULL;
 	xine_video_port_t *videoPort = NULL;
 	if( m_audioPath )
-	{
-		kDebug( 610 ) << "getting audioPort from m_audioPath" << endl;
 		audioPort = m_audioPath->audioPort();
-	}
 	if( m_videoPath )
-	{
-		kDebug( 610 ) << "getting videoPort from m_videoPath" << endl;
 		videoPort = m_videoPath->videoPort();
-	}
-	kDebug( 610 ) << "XXXXXXXXXXXXXX xine_stream_new( " << ( void* )XineEngine::xine() << ", " << ( void* )audioPort << ", " << ( void* )videoPort << " );" << endl;
+	if( m_stream && m_videoPort == videoPort && m_audioPort == audioPort )
+		return;
+
+	kDebug( 610 ) << "XXXXXXXXXXXXXX xine_stream_new( " << ( void* )XineEngine::xine() << ", " << ( void* )audioPort << ", " << ( void* )videoPort << " );" << kBacktrace() << endl;
+
 	m_stream = xine_stream_new( XineEngine::xine(), audioPort, videoPort );
+
 	m_event_queue = xine_event_new_queue( m_stream );
 	xine_event_create_listener_thread( m_event_queue, &XineEngine::self()->xineEventListener, (void*)this );
-	xine_set_param( m_stream, XINE_PARAM_IGNORE_AUDIO, 1 );
-	xine_set_param( m_stream, XINE_PARAM_IGNORE_VIDEO, 1 );
+
+	if( !audioPort )
+		xine_set_param( m_stream, XINE_PARAM_IGNORE_AUDIO, 1 );
+	else
+		m_audioPath->updateVolume( this );
+	if( !videoPort )
+		xine_set_param( m_stream, XINE_PARAM_IGNORE_VIDEO, 1 );
 }
 
 void AbstractMediaProducer::recreateStream()
@@ -104,6 +135,7 @@ void AbstractMediaProducer::recreateStream()
 		params[ i ] = xine_get_param( m_stream, i );
 
 	// dispose of old xine objects
+	Q_ASSERT( m_event_queue );
 	xine_event_dispose_queue( m_event_queue );
 	xine_dispose( m_stream );
 	
@@ -190,14 +222,19 @@ bool AbstractMediaProducer::addVideoPath( QObject* videoPath )
 {
 	if( m_videoPath )
 		return false;
+
 	m_videoPath = qobject_cast<VideoPath*>( videoPath );
 	Q_ASSERT( m_videoPath );
 	m_videoPath->setMediaProducer( this );
-	recreateStream();
-	if( m_videoPath->hasOutput() )
-		xine_set_param( m_stream, XINE_PARAM_IGNORE_VIDEO, 0 );
-	else
-		xine_set_param( m_stream, XINE_PARAM_IGNORE_VIDEO, 1 );
+
+	if( m_stream )
+	{
+		recreateStream();
+		if( m_videoPath->hasOutput() )
+			xine_set_param( m_stream, XINE_PARAM_IGNORE_VIDEO, 0 );
+		else
+			xine_set_param( m_stream, XINE_PARAM_IGNORE_VIDEO, 1 );
+	}
 	return true;
 }
 
@@ -208,11 +245,14 @@ bool AbstractMediaProducer::addAudioPath( QObject* audioPath )
 	m_audioPath = qobject_cast<AudioPath*>( audioPath );
 	Q_ASSERT( m_audioPath );
 	m_audioPath->addMediaProducer( this );
-	recreateStream();
-	if( m_audioPath->hasOutput() )
-		xine_set_param( m_stream, XINE_PARAM_IGNORE_AUDIO, 0 );
-	else
-		xine_set_param( m_stream, XINE_PARAM_IGNORE_AUDIO, 1 );
+	if( m_stream )
+	{
+		recreateStream();
+		if( m_audioPath->hasOutput() )
+			xine_set_param( m_stream, XINE_PARAM_IGNORE_AUDIO, 0 );
+		else
+			xine_set_param( m_stream, XINE_PARAM_IGNORE_AUDIO, 1 );
+	}
 	return true;
 }
 
@@ -223,8 +263,11 @@ void AbstractMediaProducer::removeVideoPath( QObject* videoPath )
 	{
 		m_videoPath->unsetMediaProducer( this );
 		m_videoPath = 0;
-		recreateStream();
-		xine_set_param( m_stream, XINE_PARAM_IGNORE_VIDEO, 1 );
+		if( m_stream )
+		{
+			recreateStream();
+			xine_set_param( m_stream, XINE_PARAM_IGNORE_VIDEO, 1 );
+		}
 	}
 }
 
@@ -235,8 +278,11 @@ void AbstractMediaProducer::removeAudioPath( QObject* audioPath )
 	{
 		m_audioPath->removeMediaProducer( this );
 		m_audioPath = 0;
-		recreateStream();
-		xine_set_param( m_stream, XINE_PARAM_IGNORE_AUDIO, 1 );
+		if( m_stream )
+		{
+			recreateStream();
+			xine_set_param( m_stream, XINE_PARAM_IGNORE_AUDIO, 1 );
+		}
 	}
 }
 
@@ -249,12 +295,14 @@ State AbstractMediaProducer::state() const
 bool AbstractMediaProducer::hasVideo() const
 {
 	//kDebug( 610 ) << k_funcinfo << endl;
+	delayedInit();
 	return xine_get_stream_info( m_stream, XINE_STREAM_INFO_HAS_VIDEO );
 }
 
 bool AbstractMediaProducer::isSeekable() const
 {
 	//kDebug( 610 ) << k_funcinfo << endl;
+	delayedInit();
 	return xine_get_stream_info( m_stream, XINE_STREAM_INFO_SEEKABLE );
 }
 
@@ -375,6 +423,8 @@ void AbstractMediaProducer::selectSubtitleStream( const QString& streamName, con
 void AbstractMediaProducer::play()
 {
 	//kDebug( 610 ) << k_funcinfo << endl;
+	delayedInit();
+
 	if( state() != PausedState )
 	{
 		int total;
