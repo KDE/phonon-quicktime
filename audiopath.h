@@ -45,6 +45,7 @@ namespace Xine
 
 			bool hasOutput() const;
 			xine_audio_port_t *audioPort() const;
+			void updateVolume( AbstractMediaProducer* mp ) const;
 
 		public slots:
 			bool addOutput( QObject* audioOutput );

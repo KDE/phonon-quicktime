@@ -53,6 +53,17 @@ int AudioOutput::outputDevice() const
 	return m_device;
 }
 
+void AudioOutput::updateVolume( AbstractMediaProducer* mp ) const
+{
+	int xinevolume = int(m_volume * 100);
+	if( xinevolume > 200) xinevolume = 200;
+	if( xinevolume < 0) xinevolume = 0;
+
+	xine_stream_t* stream = mp->stream();
+	if( stream )
+		xine_set_param( stream, XINE_PARAM_AUDIO_AMP_LEVEL, xinevolume );
+}
+
 void AudioOutput::setVolume( float newVolume )
 {
 	m_volume = newVolume;

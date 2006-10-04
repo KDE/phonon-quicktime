@@ -29,6 +29,7 @@ namespace Phonon
 {
 namespace Xine
 {
+	class AbstractMediaProducer;
 	class AudioOutput : public AbstractAudioOutput
 	{
 		Q_OBJECT
@@ -37,6 +38,7 @@ namespace Xine
 			~AudioOutput();
 
 			xine_audio_port_t* audioPort() const { return m_audioPort; }
+			void updateVolume( AbstractMediaProducer* mp ) const;
 
 		public slots:
 			// Attributes Getters:
