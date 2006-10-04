@@ -124,11 +124,19 @@ bool AudioPath::removeEffect( QObject* effect )
 void AudioPath::addMediaProducer( AbstractMediaProducer* mp )
 {
 	m_producers.append( mp );
+	if( m_output )
+		m_output->updateVolume( mp );
 }
 
 void AudioPath::removeMediaProducer( AbstractMediaProducer* mp )
 {
 	m_producers.removeAll( mp );
+}
+
+void AudioPath::updateVolume( AbstractMediaProducer* mp ) const
+{
+	if( m_output )
+		m_output->updateVolume( mp );
 }
 
 }}
