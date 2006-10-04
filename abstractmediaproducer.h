@@ -93,9 +93,11 @@ namespace Xine
 			virtual void reachedPlayingState() {}
 			virtual void leftPlayingState() {}
 			VideoPath* videoPath() const { return m_videoPath; }
+			bool outputPortsNotChanged() const;
 
-		protected Q_SLOTS:
+		protected slots:
 			virtual void emitTick();
+			void delayedInit() const;
 
 		private slots:
 			void getStartTime();
@@ -112,6 +114,8 @@ namespace Xine
 			int m_startTime;
 			AudioPath *m_audioPath;
 			VideoPath *m_videoPath;
+			xine_audio_port_t *m_audioPort;
+			xine_video_port_t *m_videoPort;
 
 			QHash<const QObject*, QString> m_selectedAudioStream;
 			QHash<const QObject*, QString> m_selectedVideoStream;

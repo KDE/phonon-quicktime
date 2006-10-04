@@ -50,6 +50,8 @@ KUrl MediaObject::url() const
 
 qint64 MediaObject::totalTime() const
 {
+	delayedInit();
+
 	if( xine_get_status( stream() ) == XINE_STATUS_IDLE && m_url.isValid() )
 		xine_open( stream(), m_url.url().toUtf8() );
 
@@ -80,15 +82,26 @@ qint32 MediaObject::aboutToFinishTime() const
 	return m_aboutToFinishTime;
 }
 
+//#define DISABLE_MEDIAOBJECT
+
 void MediaObject::setUrl( const KUrl& url )
 {
 	//kDebug( 610 ) << k_funcinfo << endl;
-	stop();
+#ifdef DISABLE_MEDIAOBJECT
+	Q_UNUSED( url );
+	setState( Phonon::ErrorState );
+#else
+	if( state() != Phonon::LoadingState )
+		stop();
+	delayedInit();
+
 	m_url = url;
 	kDebug( 610 ) << "url = " << m_url.url() << endl;
 	xine_open( stream(), m_url.url().toUtf8() );
 	emit length( totalTime() );
 	updateMetaData();
+	setState( Phonon::StoppedState );
+#endif
 }
 
 void MediaObject::setAboutToFinishTime( qint32 newAboutToFinishTime )
@@ -110,6 +123,7 @@ void MediaObject::setAboutToFinishTime( qint32 newAboutToFinishTime )
 void MediaObject::play()
 {
 	//kDebug( 610 ) << k_funcinfo << endl;
+	delayedInit();
 
 	if( state() == PausedState )
 		xine_set_param( stream(), XINE_PARAM_SPEED, XINE_SPEED_NORMAL );
@@ -136,16 +150,19 @@ void MediaObject::stop()
 {
 	//kDebug( 610 ) << k_funcinfo << endl;
 
-	xine_stop( stream() );
-	AbstractMediaProducer::stop();
-	m_aboutToFinishNotEmitted = true;
-	xine_close( stream() );
+	if( stream() )
+	{
+		xine_stop( stream() );
+		AbstractMediaProducer::stop();
+		m_aboutToFinishNotEmitted = true;
+		xine_close( stream() );
+	}
 }
 
 void MediaObject::seek( qint64 time )
 {
 	//kDebug( 610 ) << k_funcinfo << endl;
-	if( !isSeekable() )
+	if( !isSeekable() || !stream() )
 		return;
 
 	AbstractMediaProducer::seek( time );
@@ -192,6 +209,10 @@ void MediaObject::emitTick()
 void MediaObject::recreateStream()
 {
 	kDebug( 610 ) << k_funcinfo << endl;
+	if( !stream() )
+		return;
+	if( outputPortsNotChanged() )
+		return;
 
 	// store state
 	Phonon::State oldstate = state();
