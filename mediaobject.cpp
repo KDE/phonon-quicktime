@@ -97,7 +97,11 @@ void MediaObject::setUrl( const KUrl& url )
 
 	m_url = url;
 	kDebug( 610 ) << "url = " << m_url.url() << endl;
-	xine_open( stream(), m_url.url().toUtf8() );
+	if( 0 == xine_open( stream(), m_url.url().toUtf8() ) ) // error
+	{
+		setState( Phonon::ErrorState );
+		return;
+	}
 	emit length( totalTime() );
 	updateMetaData();
 	setState( Phonon::StoppedState );
