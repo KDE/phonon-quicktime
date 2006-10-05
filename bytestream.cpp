@@ -64,7 +64,7 @@ void ByteStream::xineOpen()
 {
 	if( ( m_intstate != AboutToOpenState ) && ( m_intstate != ( AboutToOpenState | StreamAtEndState ) ) )
 	{
-		kDebug( 610 ) << k_funcinfo << "not ready yet! state = " << m_intstate << endl;
+		//kDebug( 610 ) << k_funcinfo << "not ready yet! state = " << m_intstate << endl;
 		return;
 	}
 	if( !isSeekable() && currentPosition() > 0 )
@@ -73,7 +73,7 @@ void ByteStream::xineOpen()
 		return;
 	}
 
-	kDebug( 610 ) << k_funcinfo << m_intstate << endl;
+	//kDebug( 610 ) << k_funcinfo << m_intstate << endl;
 
 	delayedInit();
 
@@ -106,7 +106,7 @@ void ByteStream::xineOpen()
 
 void ByteStream::setStreamSize( qint64 x )
 {
-	kDebug( 610 ) << k_funcinfo << x << endl;
+	//kDebug( 610 ) << k_funcinfo << x << endl;
 	m_streamSize = x;
 	stateTransition( m_intstate | InternalByteStreamInterface::StreamSizeSetState );
 }
@@ -165,7 +165,7 @@ qint32 ByteStream::aboutToFinishTime() const
 
 void ByteStream::setAboutToFinishTime( qint32 newAboutToFinishTime )
 {
-	kDebug( 610 ) << k_funcinfo << newAboutToFinishTime << endl;
+	//kDebug( 610 ) << k_funcinfo << newAboutToFinishTime << endl;
 	m_aboutToFinishTime = newAboutToFinishTime;
 	if( m_aboutToFinishTime > 0 )
 	{
@@ -183,7 +183,7 @@ void ByteStream::setAboutToFinishTime( qint32 newAboutToFinishTime )
 
 void ByteStream::play()
 {
-	kDebug( 610 ) << k_funcinfo << endl;
+	//kDebug( 610 ) << k_funcinfo << endl;
 	delayedInit();
 
 	if( state() == PausedState )
@@ -200,7 +200,7 @@ void ByteStream::play()
 
 void ByteStream::pause()
 {
-	kDebug( 610 ) << k_funcinfo << endl;
+	//kDebug( 610 ) << k_funcinfo << endl;
 	if( state() == Phonon::PlayingState || state() == Phonon::BufferingState )
 	{
 		xine_set_param( stream(), XINE_PARAM_SPEED, XINE_SPEED_PAUSE );
@@ -210,7 +210,7 @@ void ByteStream::pause()
 
 void ByteStream::stop()
 {
-	kDebug( 610 ) << k_funcinfo << endl;
+	//kDebug( 610 ) << k_funcinfo << endl;
 
 	if( stream() )
 	{
@@ -310,7 +310,7 @@ void ByteStream::recreateStream()
 
 void ByteStream::reachedPlayingState()
 {
-	kDebug( 610 ) << k_funcinfo << endl;
+	//kDebug( 610 ) << k_funcinfo << endl;
 	if( m_aboutToFinishTime > 0 )
 	{
 		const qint64 time = currentTime();
@@ -320,7 +320,7 @@ void ByteStream::reachedPlayingState()
 
 void ByteStream::leftPlayingState()
 {
-	kDebug( 610 ) << k_funcinfo << endl;
+	//kDebug( 610 ) << k_funcinfo << endl;
 	if( m_aboutToFinishTimer )
 		m_aboutToFinishTimer->stop();
 }
@@ -330,7 +330,7 @@ void ByteStream::stateTransition( int newState )
 	if( m_intstate == newState )
 		return;
 
-	kDebug( 610 ) << k_funcinfo << newState << endl;
+	//kDebug( 610 ) << k_funcinfo << newState << endl;
 	InternalByteStreamInterface::stateTransition( newState );
 	switch( newState )
 	{
@@ -382,7 +382,7 @@ void ByteStream::emitAboutToFinish()
 
 bool ByteStream::event( QEvent* ev )
 {
-	kDebug( 610 ) << k_funcinfo << endl;
+	//kDebug( 610 ) << k_funcinfo << endl;
 	switch( ev->type() )
 	{
 		case Xine::MediaFinishedEvent:
