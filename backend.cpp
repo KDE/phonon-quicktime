@@ -174,7 +174,7 @@ QStringList Backend::knownMimeTypes()
 		foreach( QString mimeType, lstMimeTypes )
 			m_supportedMimeTypes << mimeType.left( mimeType.indexOf( ':' ) ).trimmed();
 		if( m_supportedMimeTypes.contains( "application/x-ogg" ) )
-			m_supportedMimeTypes << QLatin1String( "audio/vorbis" );
+			m_supportedMimeTypes << QLatin1String( "audio/vorbis" ) << QLatin1String( "application/ogg" );
 	}
 
 	return m_supportedMimeTypes;
