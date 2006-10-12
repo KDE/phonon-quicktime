@@ -63,7 +63,7 @@ namespace Xine
 		protected:
 			virtual void emitTick();
 			virtual bool event( QEvent* ev );
-			virtual void recreateStream();
+			virtual bool recreateStream();
 			virtual void reachedPlayingState();
 			virtual void leftPlayingState();
 

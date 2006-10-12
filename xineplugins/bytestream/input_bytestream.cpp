@@ -58,7 +58,7 @@ typedef struct {
 static uint32_t kbytestream_plugin_get_capabilities (input_plugin_t *this_gen) {
     kbytestream_input_plugin_t *that = (kbytestream_input_plugin_t *) this_gen;
 
-    return INPUT_CAP_PREVIEW | (that->bytestream->isSeekable() ? INPUT_CAP_SEEKABLE : 0);
+    return INPUT_CAP_PREVIEW | (that->bytestream->streamSeekable() ? INPUT_CAP_SEEKABLE : 0);
 }
 
 static off_t kbytestream_plugin_read (input_plugin_t *this_gen, char *buf, off_t len) {
@@ -93,9 +93,7 @@ static buf_element_t *kbytestream_plugin_read_block (input_plugin_t *this_gen, f
 }
 
 static off_t kbytestream_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin) {
-    printf( "kbytestream_plugin_seek: sizeof(off_t) = %d\n", sizeof( off_t ) );
-    printf( "kbytestream_plugin_seek %d\n", ( int )offset );
-    printf( "kbytestream_plugin_seek %d\n", ( int )origin );
+    //printf( "kbytestream_plugin_seek: sizeof(off_t) = %d\n", sizeof( off_t ) );
     kbytestream_input_plugin_t *that = (kbytestream_input_plugin_t *) this_gen;
     switch( origin )
     {
@@ -112,8 +110,7 @@ static off_t kbytestream_plugin_seek (input_plugin_t *this_gen, off_t offset, in
     }
     printf( "kbytestream_plugin_seek %d\n", ( int )offset );
 
-    that->bytestream->seekBuffer( offset );
-    return offset;
+    return that->bytestream->seekBuffer( offset );
 }
 
 static off_t kbytestream_plugin_get_current_pos (input_plugin_t *this_gen){

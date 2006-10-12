@@ -30,6 +30,7 @@
 #include <QMultiMap>
 #include <QEvent>
 #include <QtDebug>
+#include <seekthread.h>
 
 namespace Phonon
 {
@@ -46,10 +47,14 @@ AbstractMediaProducer::AbstractMediaProducer( QObject* parent )
 	, m_videoPath( 0 )
 	, m_audioPort( 0 )
 	, m_videoPort( 0 )
+	, m_seekThread( new SeekThread )
 	, m_currentTimeOverride( -1 )
 {
 	connect( m_tickTimer, SIGNAL( timeout() ), SLOT( emitTick() ) );
 	QTimer::singleShot( 0, this, SLOT( delayedInit() ) );
+
+	m_seekThread->start();
+	connect( this, SIGNAL(asyncSeek(xine_stream_t*,qint64,bool)), m_seekThread, SLOT(seek(xine_stream_t*,qint64,bool)), Qt::QueuedConnection );
 }
 
 void AbstractMediaProducer::delayedInit() const
@@ -60,6 +65,7 @@ void AbstractMediaProducer::delayedInit() const
 
 AbstractMediaProducer::~AbstractMediaProducer()
 {
+	m_seekThread->exit();
 	if( m_event_queue )
 		xine_event_dispose_queue( m_event_queue );
 	if( m_stream )
@@ -103,6 +109,9 @@ bool AbstractMediaProducer::outputPortsNotChanged() const
 
 void AbstractMediaProducer::createStream()
 {
+	if( m_state == Phonon::ErrorState )
+		return;
+
 	xine_audio_port_t *audioPort = NULL;
 	xine_video_port_t *videoPort = NULL;
 	if( m_audioPath )
@@ -127,12 +136,14 @@ void AbstractMediaProducer::createStream()
 		xine_set_param( m_stream, XINE_PARAM_IGNORE_VIDEO, 1 );
 }
 
-void AbstractMediaProducer::recreateStream()
+bool AbstractMediaProducer::recreateStream()
 {
 	// save state
 	int params[ 33 ];
 	for( int i = 1; i < 33; ++i )
 		params[ i ] = xine_get_param( m_stream, i );
+
+	stop();
 
 	// dispose of old xine objects
 	Q_ASSERT( m_event_queue );
@@ -145,6 +156,8 @@ void AbstractMediaProducer::recreateStream()
 	// restore state
 	//for( int i = 1; i < 33; ++i )
 		//xine_set_param( m_stream, i, params[ i ] );
+
+	return true;
 }
 
 bool AbstractMediaProducer::event( QEvent* ev )
@@ -229,7 +242,8 @@ bool AbstractMediaProducer::addVideoPath( QObject* videoPath )
 
 	if( m_stream )
 	{
-		recreateStream();
+		if( !recreateStream() )
+			return false;
 		if( m_videoPath->hasOutput() )
 			xine_set_param( m_stream, XINE_PARAM_IGNORE_VIDEO, 0 );
 		else
@@ -247,7 +261,8 @@ bool AbstractMediaProducer::addAudioPath( QObject* audioPath )
 	m_audioPath->addMediaProducer( this );
 	if( m_stream )
 	{
-		recreateStream();
+		if( !recreateStream() )
+			return false;
 		if( m_audioPath->hasOutput() )
 			xine_set_param( m_stream, XINE_PARAM_IGNORE_AUDIO, 0 );
 		else
@@ -467,14 +482,17 @@ void AbstractMediaProducer::seek( qint64 time )
 		case Phonon::PausedState:
 		case Phonon::BufferingState:
 		case Phonon::PlayingState:
-			kDebug( 610 ) << k_funcinfo << "seeking xine stream to " << time << endl;
+			kDebug( 610 ) << k_funcinfo << "seeking xine stream to " << time << "ms" << endl;
 			// xine_trick_mode aborts :(
 			//if( 0 == xine_trick_mode( m_stream, XINE_TRICK_MODE_SEEK_TO_TIME, time ) )
 			{
+				emit asyncSeek( m_stream, time, Phonon::PausedState == state() );
+				/*
 				xine_play( m_stream, 0, time );
 				if( Phonon::PausedState == state() )
 					// go back to paused speed after seek
 					xine_set_param( m_stream, XINE_PARAM_SPEED, XINE_SPEED_PAUSE );
+				*/
 				m_currentTimeOverride = time;
 			}
 			break;
@@ -497,10 +515,23 @@ void AbstractMediaProducer::setState( State newstate )
 		case Phonon::PlayingState:
 			reachedPlayingState();
 			break;
-		case Phonon::PausedState:
-		case Phonon::BufferingState:
-		case Phonon::StoppedState:
 		case Phonon::ErrorState:
+			if( m_event_queue )
+			{
+				xine_event_dispose_queue( m_event_queue );
+				m_event_queue = 0;
+			}
+			if( m_stream )
+			{
+				xine_dispose( m_stream );
+				m_stream = 0;
+			}
+			// fall through
+		case Phonon::BufferingState:
+			kDebug( 610 ) << k_funcinfo << kBacktrace() << endl;
+			// fall through
+		case Phonon::PausedState:
+		case Phonon::StoppedState:
 		case Phonon::LoadingState:
 			if( oldstate == Phonon::PlayingState )
 				leftPlayingState();

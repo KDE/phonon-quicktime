@@ -35,9 +35,10 @@ class QTimer;
 
 namespace Phonon
 {
-
 namespace Xine
 {
+	class SeekThread;
+
 	class AbstractMediaProducer : public QObject, public MediaProducerInterface
 	{
 		Q_OBJECT
@@ -84,12 +85,13 @@ namespace Xine
 			void stateChanged( Phonon::State newstate, Phonon::State oldstate );
 			void tick( qint64 time );
 			void metaDataChanged( const QMultiMap<QString, QString>& );
+			void asyncSeek( xine_stream_t*, qint64, bool );
 
 		protected:
 			void setState( State );
 			virtual bool event( QEvent* ev );
 			void updateMetaData();
-			virtual void recreateStream();
+			virtual bool recreateStream();
 			virtual void reachedPlayingState() {}
 			virtual void leftPlayingState() {}
 			VideoPath* videoPath() const { return m_videoPath; }
@@ -121,6 +123,7 @@ namespace Xine
 			QHash<const QObject*, QString> m_selectedVideoStream;
 			QHash<const QObject*, QString> m_selectedSubtitleStream;
 			QMultiMap<QString, QString> m_metaDataMap;
+			SeekThread* m_seekThread;
 
 			mutable int m_currentTimeOverride;
 	};
