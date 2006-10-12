@@ -17,44 +17,31 @@
 
 */
 
-#ifndef PHONON_XINE_MEDIAQUEUE_H
-#define PHONON_XINE_MEDIAQUEUE_H
+#ifndef SEEKTHREAD_H
+#define SEEKTHREAD_H
 
-#include "mediaobject.h"
-#include <kurl.h>
+#include <QThread>
+#include <xine.h>
 
 namespace Phonon
 {
 namespace Xine
 {
-	class MediaQueue : public MediaObject
-	{
-		Q_OBJECT
-		public:
-			MediaQueue( QObject *parent = 0 );
-			~MediaQueue();
 
-			Q_INVOKABLE KUrl nextUrl() const { return m_nextUrl; }
-			Q_INVOKABLE void setNextUrl( const KUrl& url );
+class SeekThread : public QThread
+{
+	Q_OBJECT
+	public:
+		SeekThread( QObject *parent = 0 );
 
-			Q_INVOKABLE bool doCrossfade() const { return m_doCrossfade; }
-			Q_INVOKABLE void setDoCrossfade( bool );
+	public slots:
+		void seek( xine_stream_t*, qint64, bool );
 
-			Q_INVOKABLE qint32 timeBetweenMedia() const { return m_timeBetweenMedia; }
-			Q_INVOKABLE void setTimeBetweenMedia( qint32 );
+	protected:
+		virtual void run() { exec(); }
+};
 
-		signals:
-			void needNextUrl();
-
-		protected:
-			virtual bool recreateStream();
-			virtual bool event( QEvent* ev );
-
-		private:
-			KUrl m_nextUrl;
-			bool m_doCrossfade;
-			qint32 m_timeBetweenMedia;
-	};
 } // namespace Xine
 } // namespace Phonon
-#endif // PHONON_XINE_MEDIAQUEUE_H
+
+#endif // SEEKTHREAD_H

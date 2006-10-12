@@ -210,13 +210,13 @@ void MediaObject::emitTick()
 	}
 }
 
-void MediaObject::recreateStream()
+bool MediaObject::recreateStream()
 {
 	kDebug( 610 ) << k_funcinfo << endl;
 	if( !stream() )
-		return;
+		return true;
 	if( outputPortsNotChanged() )
-		return;
+		return true;
 
 	// store state
 	Phonon::State oldstate = state();
@@ -245,6 +245,7 @@ void MediaObject::recreateStream()
 		case Phonon::ErrorState:
 			break;
 	}
+	return true;
 }
 
 void MediaObject::reachedPlayingState()

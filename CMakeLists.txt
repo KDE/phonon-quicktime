@@ -14,6 +14,7 @@ install(TARGETS phononxineengine DESTINATION ${LIB_INSTALL_DIR})
 ADD_DEFINITIONS(-D_FILE_OFFSET_BITS=64)
 
 set(phonon_xine_PART_SRCS
+    seekthread.cpp
     abstractmediaproducer.cpp
     abstractaudiooutput.cpp
     audiodataoutput.cpp

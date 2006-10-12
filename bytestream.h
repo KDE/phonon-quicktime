@@ -76,7 +76,7 @@ namespace Xine
 		protected:
 			virtual void emitTick();
 			virtual bool event( QEvent* ev );
-			virtual void recreateStream();
+			virtual bool recreateStream();
 			virtual void reachedPlayingState();
 			virtual void leftPlayingState();
 			virtual void stateTransition( int newState );
@@ -86,7 +86,7 @@ namespace Xine
 		private slots:
 			void emitAboutToFinish();
 			void slotSeekStream( qint64 );
-			void xineOpen();
+			bool xineOpen();
 
 		private:
 			void emitAboutToFinishIn( int timeToAboutToFinishSignal );

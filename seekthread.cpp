@@ -17,44 +17,28 @@
 
 */
 
-#ifndef PHONON_XINE_MEDIAQUEUE_H
-#define PHONON_XINE_MEDIAQUEUE_H
-
-#include "mediaobject.h"
-#include <kurl.h>
+#include "seekthread.h"
 
 namespace Phonon
 {
 namespace Xine
 {
-	class MediaQueue : public MediaObject
-	{
-		Q_OBJECT
-		public:
-			MediaQueue( QObject *parent = 0 );
-			~MediaQueue();
 
-			Q_INVOKABLE KUrl nextUrl() const { return m_nextUrl; }
-			Q_INVOKABLE void setNextUrl( const KUrl& url );
+SeekThread::SeekThread( QObject *parent )
+	: QThread( parent )
+{
+}
 
-			Q_INVOKABLE bool doCrossfade() const { return m_doCrossfade; }
-			Q_INVOKABLE void setDoCrossfade( bool );
+void SeekThread::seek( xine_stream_t* stream, qint64 time, bool pause )
+{
+	xine_play( stream, 0, time );
+	if( pause )
+		// go back to paused speed after seek
+		xine_set_param( stream, XINE_PARAM_SPEED, XINE_SPEED_PAUSE );
+}
 
-			Q_INVOKABLE qint32 timeBetweenMedia() const { return m_timeBetweenMedia; }
-			Q_INVOKABLE void setTimeBetweenMedia( qint32 );
-
-		signals:
-			void needNextUrl();
-
-		protected:
-			virtual bool recreateStream();
-			virtual bool event( QEvent* ev );
-
-		private:
-			KUrl m_nextUrl;
-			bool m_doCrossfade;
-			qint32 m_timeBetweenMedia;
-	};
 } // namespace Xine
 } // namespace Phonon
-#endif // PHONON_XINE_MEDIAQUEUE_H
+
+#include "seekthread.moc"
+// vim: sw=4 ts=4 noet

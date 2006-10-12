@@ -87,10 +87,11 @@ void MediaQueue::setTimeBetweenMedia( qint32 time )
 	m_timeBetweenMedia = time;
 }
 
-void MediaQueue::recreateStream()
+bool MediaQueue::recreateStream()
 {
-	MediaObject::recreateStream();
+	bool ret = MediaObject::recreateStream();
 	xine_set_param( stream(), XINE_PARAM_EARLY_FINISHED_EVENT, 1 );
+	return ret;
 }
 
 bool MediaQueue::event( QEvent* ev )
