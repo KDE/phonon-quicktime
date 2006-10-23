@@ -4,7 +4,7 @@ add_subdirectory(ui)
 set(xine_engine_LIB_SRCS
     xine_engine.cpp
    )
-kde4_automoc(xine_engine ${xine_engine_LIB_SRCS})
+kde4_automoc(${xine_engine_LIB_SRCS})
 kde4_add_library(phononxineengine SHARED ${xine_engine_LIB_SRCS})
 target_link_libraries(phononxineengine ${QT_QTCORE_LIBRARY} ${XINE_LIBRARY})
 set_target_properties(phononxineengine PROPERTIES VERSION ${GENERIC_LIB_VERSION} SOVERSION ${GENERIC_LIB_SOVERSION})
@@ -36,7 +36,7 @@ set(phonon_xine_PART_SRCS
     xineplugins/bytestream/plugin.c
    )
 
-kde4_automoc(phonon_xine ${phonon_xine_PART_SRCS})
+kde4_automoc(${phonon_xine_PART_SRCS})
 kde4_add_plugin(phonon_xine ${phonon_xine_PART_SRCS})
 target_link_libraries(phonon_xine ${KDE4_KDECORE_LIBS} phononcore phononxineengine)
 
