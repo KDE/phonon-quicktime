@@ -30,6 +30,7 @@
 #include "xine_engine.h"
 #include <QObject>
 #include <phonon/objectdescription.h>
+#include <phonon/backendinterface.h>
 
 class KUrl;
 
@@ -39,29 +40,16 @@ namespace Xine
 {
 	class AudioOutput;
 
-	class Backend : public QObject
+    class Backend : public QObject, public BackendInterface
 	{
 		Q_OBJECT
+        Q_INTERFACES(Phonon::BackendInterface)
 		public:
 			Backend( QObject* parent, const QStringList& args );
 			~Backend();
 
-			Q_INVOKABLE QObject* createMediaObject( QObject* parent );
-			Q_INVOKABLE QObject* createAvCapture( QObject* parent );
-			Q_INVOKABLE QObject* createByteStream( QObject* parent );
-			Q_INVOKABLE QObject* createMediaQueue( QObject* parent );
-
-			Q_INVOKABLE QObject* createAudioPath( QObject* parent );
-			Q_INVOKABLE QObject* createAudioEffect( int effectId, QObject* parent );
-			Q_INVOKABLE QObject* createVolumeFaderEffect( QObject* parent );
-			Q_INVOKABLE QObject* createAudioOutput( QObject* parent );
-			Q_INVOKABLE QObject* createAudioDataOutput( QObject* parent );
-			Q_INVOKABLE QObject* createVisualization( QObject* parent );
-
-			Q_INVOKABLE QObject* createVideoPath( QObject* parent );
-			Q_INVOKABLE QObject* createVideoEffect( int effectId, QObject* parent );
-			Q_INVOKABLE QObject* createBrightnessControl( QObject* parent );
-			Q_INVOKABLE QObject* createVideoDataOutput( QObject* parent );
+            QObject* createObject0(BackendInterface::Class0, QObject *parent);
+            QObject* createObject1(BackendInterface::Class1, QObject *parent, QVariant arg1);
 
 			Q_INVOKABLE bool supportsVideo() const;
 			Q_INVOKABLE bool supportsOSD() const;
@@ -75,14 +63,14 @@ namespace Xine
 			Q_INVOKABLE QString objectDescriptionName( ObjectDescriptionType, int ) const;
 
 		public slots:
-			QStringList knownMimeTypes();
+            QStringList knownMimeTypes() const;
 			const char* uiLibrary() const;
 			//const char* uiSymbol() const;
 
 		private:
-			QStringList m_supportedMimeTypes;	
+            mutable QStringList m_supportedMimeTypes;	
 	};
 }} // namespace Phonon::Xine
 
-// vim: sw=4 ts=4 noet tw=80
+// vim: sw=4 ts=4 tw=80
 #endif // Phonon_XINE_BACKEND_H
