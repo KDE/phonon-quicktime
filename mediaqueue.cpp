@@ -61,7 +61,9 @@ MediaQueue::MediaQueue( QObject *parent )
 	: MediaObject( parent )
 	, m_doCrossfade( false )
 {
-	xine_set_param( stream(), XINE_PARAM_EARLY_FINISHED_EVENT, 1 );
+    if (stream()) {
+        xine_set_param(stream(), XINE_PARAM_EARLY_FINISHED_EVENT, 1);
+    }
 }
 
 MediaQueue::~MediaQueue()
@@ -130,4 +132,4 @@ bool MediaQueue::event( QEvent* ev )
 } // namespace Phonon
 
 #include "mediaqueue.moc"
-// vim: sw=4 ts=4 noet
+// vim: sw=4 ts=4
