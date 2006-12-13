@@ -38,4 +38,4 @@ class AbstractVideoOutput
 Q_DECLARE_INTERFACE( Phonon::Xine::AbstractVideoOutput, "org.kde.Phonon.Xine.AbstractVideoOutput/0.1" )
 
 #endif // PHONON_XINE_ABSTRACTVIDEOOUTPUT_H
-// vim: sw=4 ts=4 noet
+// vim: sw=4 ts=4

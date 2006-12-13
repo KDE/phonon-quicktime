@@ -41,4 +41,4 @@ void SeekThread::seek( xine_stream_t* stream, qint64 time, bool pause )
 } // namespace Phonon
 
 #include "seekthread.moc"
-// vim: sw=4 ts=4 noet
+// vim: sw=4 ts=4

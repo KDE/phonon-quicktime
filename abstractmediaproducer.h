@@ -30,6 +30,7 @@
 #include "xine_engine.h"
 #include <phonon/mediaproducerinterface.h>
 #include <QMultiMap>
+#include "xinestream.h"
 
 class QTimer;
 
@@ -92,8 +93,8 @@ namespace Xine
 			virtual bool event( QEvent* ev );
 			void updateMetaData();
 			virtual bool recreateStream();
-			virtual void reachedPlayingState() {}
-			virtual void leftPlayingState() {}
+			virtual void reachedPlayingState();
+			virtual void leftPlayingState();
 			VideoPath* videoPath() const { return m_videoPath; }
 			bool outputPortsNotChanged() const;
 
@@ -107,27 +108,21 @@ namespace Xine
 		private:
 			void createStream();
 
-			xine_stream_t *m_stream;
-			xine_event_queue_t *m_event_queue;
-			State m_state;
+            XineStream m_stream;
 			QTimer *m_tickTimer;
 			qint32 m_tickInterval;
 			int m_bufferSize;
 			int m_startTime;
 			AudioPath *m_audioPath;
 			VideoPath *m_videoPath;
-			xine_audio_port_t *m_audioPort;
-			xine_video_port_t *m_videoPort;
 
 			QHash<const QObject*, QString> m_selectedAudioStream;
 			QHash<const QObject*, QString> m_selectedVideoStream;
 			QHash<const QObject*, QString> m_selectedSubtitleStream;
-			QMultiMap<QString, QString> m_metaDataMap;
-			SeekThread* m_seekThread;
 
 			mutable int m_currentTimeOverride;
 	};
 }} //namespace Phonon::Xine
 
-// vim: sw=4 ts=4 tw=80 noet
+// vim: sw=4 ts=4 tw=80
 #endif // Phonon_XINE_ABSTRACTMEDIAPRODUCER_H

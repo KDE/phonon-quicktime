@@ -142,4 +142,4 @@ void AudioPath::updateVolume( AbstractMediaProducer* mp ) const
 }}
 
 #include "audiopath.moc"
-// vim: sw=4 ts=4 noet
+// vim: sw=4 ts=4

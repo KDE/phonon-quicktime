@@ -71,4 +71,4 @@ void VideoDataOutput::setFormat( quint32 fourcc )
 }} //namespace Phonon::Xine
 
 #include "videodataoutput.moc"
-// vim: sw=4 ts=4 noet
+// vim: sw=4 ts=4

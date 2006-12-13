@@ -86,4 +86,4 @@ inline void AudioDataOutput::convertAndEmit( const QVector<float>& buffer )
 }} //namespace Phonon::Xine
 
 #include "audiodataoutput.moc"
-// vim: sw=4 ts=4 noet
+// vim: sw=4 ts=4

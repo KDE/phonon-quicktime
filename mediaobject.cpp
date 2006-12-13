@@ -328,4 +328,4 @@ bool MediaObject::event( QEvent* ev )
 }}
 
 #include "mediaobject.moc"
-// vim: sw=4 ts=4 noet
+// vim: sw=4 ts=4

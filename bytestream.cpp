@@ -438,4 +438,4 @@ bool ByteStream::event( QEvent* ev )
 }} //namespace Phonon::Xine
 
 #include "bytestream.moc"
-// vim: sw=4 ts=4 noet
+// vim: sw=4 ts=4

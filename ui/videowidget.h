@@ -46,6 +46,9 @@ namespace Xine
 			Q_INVOKABLE Phonon::VideoWidget::AspectRatio aspectRatio() const;
 			Q_INVOKABLE void setAspectRatio( Phonon::VideoWidget::AspectRatio aspectRatio );
 
+			Q_INVOKABLE bool isVideoFullScreen() const;
+			Q_INVOKABLE void setVideoFullScreen( bool );
+
 			Q_INVOKABLE QWidget *widget() { return this; }
 
 			xine_video_port_t* videoPort() const { return m_videoPort; }
@@ -68,17 +71,21 @@ namespace Xine
 			virtual void changeEvent( QEvent* );
 
 		private:
+			xine_stream_t* stream() const;
+
 			xine_video_port_t* m_videoPort;
 			x11_visual_t m_visual;
 			Phonon::VideoWidget::AspectRatio m_aspectRatio;
 			VideoPath* m_path;
 
 			Display* m_display;
+			Window m_fullScreenWindow;
 			int m_videoWidth;
 			int m_videoHeight;
 			bool m_clearWindow;
+			bool m_fullScreen;
 	};
 }} //namespace Phonon::Xine
 
-// vim: sw=4 ts=4 tw=80 noet
+// vim: sw=4 ts=4 tw=80
 #endif // PHONON_XINE_VIDEOWIDGET_H
