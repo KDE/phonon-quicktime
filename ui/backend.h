@@ -39,5 +39,5 @@ namespace Xine
 	};
 }} // namespace Phonon::Xine
 
-// vim: sw=4 ts=4 noet tw=80
+// vim: sw=4 ts=4 tw=80
 #endif // Phonon_XINE_UI_BACKEND_H

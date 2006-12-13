@@ -21,7 +21,6 @@
 #include <QVector>
 #include <kdebug.h>
 
-#include <config.h>
 #include <sys/ioctl.h>
 #include <iostream>
 #include <QSet>
@@ -59,9 +58,7 @@ void AudioOutput::updateVolume( AbstractMediaProducer* mp ) const
 	if( xinevolume > 200) xinevolume = 200;
 	if( xinevolume < 0) xinevolume = 0;
 
-	xine_stream_t* stream = mp->stream();
-	if( stream )
-		xine_set_param( stream, XINE_PARAM_AUDIO_AMP_LEVEL, xinevolume );
+    mp->stream().setVolume(xinevolume);
 }
 
 void AudioOutput::setVolume( float newVolume )
@@ -72,17 +69,17 @@ void AudioOutput::setVolume( float newVolume )
 	if( xinevolume > 200) xinevolume = 200;
 	if( xinevolume < 0) xinevolume = 0;
 
-	QSet<xine_stream_t*> streams;
+    QSet<XineStream*> streams;
 	foreach( AudioPath* ap, m_paths )
 	{
 		foreach( AbstractMediaProducer* mp, ap->producers() )
 		{
-			streams << mp->stream();
+            streams << &mp->stream();
 		}
 	}
 	foreach( xine_stream_t* stream, streams )
 	{
-		xine_set_param( stream, XINE_PARAM_AUDIO_AMP_LEVEL, xinevolume );
+        mp->stream()->setVolume(xinevolume);
 	}
 
 	emit volumeChanged( m_volume );
@@ -102,23 +99,23 @@ void AudioOutput::setOutputDevice( int newDevice )
 		return; //false;
 	}
 
-	// notify the connected MediaProducers of the new device
-	QSet<AbstractMediaProducer *> mps;
-	foreach( AudioPath* ap, m_paths )
-	{
-		foreach( AbstractMediaProducer *mp, ap->producers() )
-		{
-			mps << mp;
-		}
-	}
-	foreach( AbstractMediaProducer *mp, mps )
-		mp->checkAudioOutput();
+    // notify the connected XineStreams of the new device
+    QSet<XineStream*> streams;
+    foreach(AudioPath *ap, m_paths) {
+        foreach(AbstractMediaProducer *mp, ap->producers()) {
+            streams << &mp->stream();
+        }
+    }
+    foreach(XineStream *s, streams) {
+        s->setAudioPort(m_audioPort);
+    }
 
-	if( oldAudioPort )
-		xine_close_audio_driver( XineEngine::xine(), oldAudioPort );
+    if(oldAudioPort) {
+        xine_close_audio_driver(XineEngine::xine(), oldAudioPort);
+    }
 }
 
 }} //namespace Phonon::Xine
 
 #include "audiooutput.moc"
-// vim: sw=4 ts=4 noet
+// vim: sw=4 ts=4

@@ -1,3 +1,19 @@
+######### begin: remove when moved back to kdemultimedia ############
+project(phonon-xine-threaded)
+set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules )
+find_package(KDE4 REQUIRED)
+include (KDE4Defaults)
+include (MacroLibrary)
+include (MacroLogFeature)
+find_package(Xine)
+
+add_definitions (${QT_DEFINITIONS} ${QT_QTDBUS_DEFINITIONS} ${KDE4_DEFINITIONS})
+link_directories (${KDE4_LIB_DIR})
+include_directories (${QDBUS_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR} ${KDE4_INCLUDES})
+
+#configure_file (config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
+######### end: remove when moved back to kdemultimedia ##############
+
 add_subdirectory(ui)
 #add_subdirectory(xineplugins)
 
@@ -14,7 +30,7 @@ install(TARGETS phononxineengine DESTINATION ${LIB_INSTALL_DIR})
 ADD_DEFINITIONS(-D_FILE_OFFSET_BITS=64)
 
 set(phonon_xine_PART_SRCS
-    seekthread.cpp
+    xinestream.cpp
     abstractmediaproducer.cpp
     abstractaudiooutput.cpp
     audiodataoutput.cpp
