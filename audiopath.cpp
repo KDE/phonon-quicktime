@@ -41,14 +41,15 @@ AudioPath::~AudioPath()
 
 bool AudioPath::hasOutput() const
 {
-	return ( m_output && m_output->audioPort() != 0 );
+    return m_output;
 }
 
-xine_audio_port_t *AudioPath::audioPort() const
+xine_audio_port_t *AudioPath::audioPort(XineStream* forStream) const
 {
-	if( m_output )
-		return m_output->audioPort();
-	return 0;
+    if (m_output) {
+        return m_output->audioPort(forStream);
+    }
+    return 0;
 }
 
 bool AudioPath::addOutput( QObject* audioOutput )
@@ -61,7 +62,7 @@ bool AudioPath::addOutput( QObject* audioOutput )
 		m_output = ao;
 		m_output->addPath( this );
 		foreach( AbstractMediaProducer *mp, m_producers )
-			mp->checkAudioOutput();
+            mp->setAudioPort(ao->audioPort(&mp->stream()));
 		return true;
 	}
 
@@ -81,7 +82,7 @@ bool AudioPath::removeOutput( QObject* audioOutput )
 		m_output->removePath( this );
 		m_output = 0;
 		foreach( AbstractMediaProducer *mp, m_producers )
-			mp->checkAudioOutput();
+            mp->setAudioPort(0);
 		return true;
 	}
 	AbstractAudioOutput* aao = qobject_cast<AbstractAudioOutput*>( audioOutput );
@@ -124,8 +125,9 @@ bool AudioPath::removeEffect( QObject* effect )
 void AudioPath::addMediaProducer( AbstractMediaProducer* mp )
 {
 	m_producers.append( mp );
-	if( m_output )
-		m_output->updateVolume( mp );
+    if (m_output) {
+        m_output->updateVolume( mp );
+    }
 }
 
 void AudioPath::removeMediaProducer( AbstractMediaProducer* mp )

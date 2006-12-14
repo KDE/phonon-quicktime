@@ -45,25 +45,20 @@ namespace Xine
 		public slots:
 			KUrl url() const;
 			qint64 totalTime() const;
-			//qint64 remainingTime() const;
+            qint64 remainingTime() const;
 			qint32 aboutToFinishTime() const;
 			void setUrl( const KUrl& url );
 			void setAboutToFinishTime( qint32 newAboutToFinishTime );
 
-			void play();
-			void pause();
 			void seek( qint64 time );
-			void stop();
 
 		Q_SIGNALS:
 			void finished();
 			void aboutToFinish( qint32 msec );
-			void length( qint64 length );
+            void length(qint64 length);
 
 		protected:
 			virtual void emitTick();
-			virtual bool event( QEvent* ev );
-			virtual bool recreateStream();
 			virtual void reachedPlayingState();
 			virtual void leftPlayingState();
 
@@ -71,6 +66,7 @@ namespace Xine
 			bool m_aboutToFinishNotEmitted;
 
 		private slots:
+            void handleFinished();
 			void emitAboutToFinish();
 
 		private:

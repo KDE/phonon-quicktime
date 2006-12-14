@@ -1,5 +1,6 @@
 /*  This file is part of the KDE project
     Copyright (C) 2006 Tim Beaulen <tbscope@gmail.com>
+    Copyright (C) 2006 Matthias Kretz <kretz@kde.org>
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -76,11 +77,12 @@ namespace Xine
 			virtual void stop();
 			virtual void seek( qint64 time );
 
-			xine_stream_t* stream() const { return m_stream; }
-			void checkAudioOutput();
+			XineStream& stream() { return m_stream; }
+			const XineStream& stream() const { return m_stream; }
+            void setAudioPort(xine_audio_port_t* port) { m_stream.setAudioPort(port); }
+            void setVideoPort(xine_video_port_t* port) { m_stream.setVideoPort(port); }
 
 		public slots:
-			void checkVideoOutput();
 
 		Q_SIGNALS:
 			void stateChanged( Phonon::State newstate, Phonon::State oldstate );
@@ -90,29 +92,28 @@ namespace Xine
 
 		protected:
 			void setState( State );
-			virtual bool event( QEvent* ev );
 			void updateMetaData();
-			virtual bool recreateStream();
 			virtual void reachedPlayingState();
 			virtual void leftPlayingState();
 			VideoPath* videoPath() const { return m_videoPath; }
 			bool outputPortsNotChanged() const;
 
 		protected slots:
+            void changeState(Phonon::State);
 			virtual void emitTick();
-			void delayedInit() const;
 
 		private slots:
-			void getStartTime();
+            void handleStateChange(Phonon::State newstate, Phonon::State oldstate);
+            void seekDone();
 
 		private:
 			void createStream();
 
+            Phonon::State m_state;
             XineStream m_stream;
 			QTimer *m_tickTimer;
 			qint32 m_tickInterval;
 			int m_bufferSize;
-			int m_startTime;
 			AudioPath *m_audioPath;
 			VideoPath *m_videoPath;
 
@@ -120,6 +121,7 @@ namespace Xine
 			QHash<const QObject*, QString> m_selectedVideoStream;
 			QHash<const QObject*, QString> m_selectedSubtitleStream;
 
+            int m_seeking;
 			mutable int m_currentTimeOverride;
 	};
 }} //namespace Phonon::Xine

@@ -24,6 +24,7 @@
 
 #include "xine_engine.h"
 #include <xine.h>
+#include "xinestream.h"
 
 namespace Phonon
 {
@@ -37,7 +38,7 @@ namespace Xine
 			AudioOutput( QObject* parent );
 			~AudioOutput();
 
-			xine_audio_port_t* audioPort() const { return m_audioPort; }
+            xine_audio_port_t* audioPort(XineStream* forStream);
 			void updateVolume( AbstractMediaProducer* mp ) const;
 
 		public slots:
@@ -55,7 +56,8 @@ namespace Xine
 		private:
 			float m_volume;
 			int m_device;
-			xine_audio_port_t* m_audioPort;
+            typedef QMap<XineStream*, xine_audio_port_t*> PortMap;
+            PortMap m_audioPorts;
 	};
 }} //namespace Phonon::Xine
 

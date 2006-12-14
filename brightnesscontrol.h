@@ -22,6 +22,7 @@
 
 #include "videoeffect.h"
 #include <xine.h>
+#include "xinestream.h"
 
 namespace Phonon
 {
@@ -43,7 +44,7 @@ namespace Xine
 			virtual void setPath( VideoPath* );
 
 		private:
-			xine_stream_t* stream() const;
+            XineStream* stream();
 
 			int m_brightness;
 	};
@@ -51,3 +52,5 @@ namespace Xine
 } // namespace Phonon
 
 #endif // BRIGHTNESSCONTROL_H
+
+// vim: sw=4 ts=4 sts=4 et

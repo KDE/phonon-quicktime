@@ -54,6 +54,9 @@ namespace Xine
 			bool insertEffect( QObject* newEffect, QObject* insertBefore = 0 );
 			bool removeEffect( QObject* effect );
 
+        private slots:
+            void videoPortChanged();
+
 		private:
 			VideoWidgetInterface *m_output;
 			QList<VideoEffect*> m_effects;

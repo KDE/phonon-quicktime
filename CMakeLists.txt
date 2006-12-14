@@ -14,7 +14,7 @@ include_directories (${QDBUS_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DI
 #configure_file (config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 ######### end: remove when moved back to kdemultimedia ##############
 
-add_subdirectory(ui)
+#add_subdirectory(ui)
 #add_subdirectory(xineplugins)
 
 set(xine_engine_LIB_SRCS
@@ -37,9 +37,9 @@ set(phonon_xine_PART_SRCS
     audioeffect.cpp
     audiooutput.cpp
     audiopath.cpp
-    bytestream.cpp
+    #    bytestream.cpp
     mediaobject.cpp
-    mediaqueue.cpp
+    #mediaqueue.cpp
     avcapture.cpp
     videoeffect.cpp
     brightnesscontrol.cpp
@@ -48,14 +48,14 @@ set(phonon_xine_PART_SRCS
     visualization.cpp
     backend.cpp
     volumefadereffect.cpp
-    xineplugins/bytestream/input_bytestream.cpp
-    xineplugins/bytestream/plugin.c
+    #xineplugins/bytestream/input_bytestream.cpp
+    #xineplugins/bytestream/plugin.c
    )
 
 kde4_automoc(${phonon_xine_PART_SRCS})
-kde4_add_plugin(phonon_xine ${phonon_xine_PART_SRCS})
-target_link_libraries(phonon_xine ${KDE4_KDECORE_LIBS} phononcore phononxineengine)
+kde4_add_plugin(phonon_xine_threaded ${phonon_xine_PART_SRCS})
+target_link_libraries(phonon_xine_threaded ${KDE4_KDECORE_LIBS} phononcore phononxineengine)
 
 
-install(TARGETS phonon_xine DESTINATION ${PLUGIN_INSTALL_DIR})
-install(FILES xine.desktop DESTINATION ${SERVICES_INSTALL_DIR}/phononbackends)
+install(TARGETS phonon_xine_threaded DESTINATION ${PLUGIN_INSTALL_DIR})
+install(FILES xinet.desktop DESTINATION ${SERVICES_INSTALL_DIR}/phononbackends)

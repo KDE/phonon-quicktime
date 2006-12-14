@@ -31,6 +31,7 @@ namespace Xine
 	class AbstractAudioOutput;
 	class AbstractMediaProducer;
 	class AudioOutput;
+class XineStream;
 
 	class AudioPath : public QObject
 	{
@@ -44,7 +45,7 @@ namespace Xine
 			QList<AbstractMediaProducer*> producers() { return m_producers; }
 
 			bool hasOutput() const;
-			xine_audio_port_t *audioPort() const;
+            xine_audio_port_t *audioPort(XineStream *forStream) const;
 			void updateVolume( AbstractMediaProducer* mp ) const;
 
 		public slots:

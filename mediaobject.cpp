@@ -28,12 +28,23 @@ namespace Phonon
 {
 namespace Xine
 {
-MediaObject::MediaObject( QObject* parent )
-	: AbstractMediaProducer( parent )
-	, m_aboutToFinishNotEmitted( true )
-	, m_aboutToFinishTimer( 0 )
+MediaObject::MediaObject(QObject *parent)
+    : AbstractMediaProducer(parent),
+    m_aboutToFinishNotEmitted(true),
+    m_aboutToFinishTimer(0)
 {
-	//kDebug( 610 ) << k_funcinfo << endl;
+    connect(&stream(), SIGNAL(finished()), SLOT(handleFinished()));
+    connect(&stream(), SIGNAL(length(qint64)), SIGNAL(length(qint64)));
+}
+
+void MediaObject::handleFinished()
+{
+    m_aboutToFinishNotEmitted = true;
+    if (videoPath()) {
+        videoPath()->streamFinished();
+    }
+    kDebug(610) << "emit finished()" << endl;
+    emit finished();
 }
 
 MediaObject::~MediaObject()
@@ -50,31 +61,13 @@ KUrl MediaObject::url() const
 
 qint64 MediaObject::totalTime() const
 {
-	delayedInit();
-
-	if( xine_get_status( stream() ) == XINE_STATUS_IDLE && m_url.isValid() )
-		xine_open( stream(), m_url.url().toUtf8() );
-
-	int lengthtime = 0;
-	if( xine_get_pos_length( stream(), 0, 0, &lengthtime ) == 1 )
-		if( lengthtime >= 0 )
-			return lengthtime;
-	return -1;
+    return stream().totalTime();
 }
 
-/*
 qint64 MediaObject::remainingTime() const
 {
-	int positionstream = 0;
-	int positiontime = 0;
-	int lengthtime = 0;
-
-	if( xine_get_pos_length( stream(), &positionstream, &positiontime, &lengthtime ) == 1 )
-		if( lengthtime - positiontime > 0 )
-			return lengthtime - positiontime;
-	return 0;
+    return stream().remainingTime();
 }
-*/
 
 qint32 MediaObject::aboutToFinishTime() const
 {
@@ -91,239 +84,102 @@ void MediaObject::setUrl( const KUrl& url )
 	Q_UNUSED( url );
 	setState( Phonon::ErrorState );
 #else
-	if( state() != Phonon::LoadingState )
-		stop();
-	delayedInit();
-
-	m_url = url;
-	kDebug( 610 ) << "url = " << m_url.url() << endl;
-	if( 0 == xine_open( stream(), m_url.url().toUtf8() ) ) // error
-	{
-		setState( Phonon::ErrorState );
-		return;
-	}
-	emit length( totalTime() );
-	updateMetaData();
-	setState( Phonon::StoppedState );
+    if (state() != Phonon::LoadingState) {
+        stop();
+    }
+    stream().setUrl(url);
+    m_url = url;
 #endif
 }
 
 void MediaObject::setAboutToFinishTime( qint32 newAboutToFinishTime )
 {
-	kDebug( 610 ) << k_funcinfo << newAboutToFinishTime << endl;
-	m_aboutToFinishTime = newAboutToFinishTime;
-	if( m_aboutToFinishTime > 0 )
-	{
-		const qint64 time = currentTime();
-		if( time < totalTime() - m_aboutToFinishTime ) // not about to finish
-		{
-			m_aboutToFinishNotEmitted = true;
-			if( state() == Phonon::PlayingState )
-				emitAboutToFinishIn( totalTime() - m_aboutToFinishTime - time );
-		}
-	}
+    m_aboutToFinishTime = newAboutToFinishTime;
+    if (m_aboutToFinishTime > 0) {
+        const qint64 time = currentTime();
+        const qint64 total = totalTime();
+        if (time < total - m_aboutToFinishTime) { // not about to finish
+            m_aboutToFinishNotEmitted = true;
+            if (state() == Phonon::PlayingState)
+                emitAboutToFinishIn( total - m_aboutToFinishTime - time );
+        }
+    }
 }
 
-void MediaObject::play()
+void MediaObject::seek(qint64 time)
 {
-	//kDebug( 610 ) << k_funcinfo << endl;
-	delayedInit();
+    if (!isSeekable()) {
+        return;
+    }
 
-	if( state() == PausedState )
-		xine_set_param( stream(), XINE_PARAM_SPEED, XINE_SPEED_NORMAL );
-	else
-	{
-		if( xine_get_status( stream() ) == XINE_STATUS_IDLE )
-			xine_open( stream(), m_url.url().toUtf8() );
-		xine_play( stream(), 0, 0 );
-	}
-	AbstractMediaProducer::play();
-}
+    AbstractMediaProducer::seek(time);
 
-void MediaObject::pause()
-{
-	//kDebug( 610 ) << k_funcinfo << endl;
-	if( state() == PlayingState || state() == BufferingState )
-	{
-		xine_set_param( stream(), XINE_PARAM_SPEED, XINE_SPEED_PAUSE );
-		AbstractMediaProducer::pause();
-	}
-}
-
-void MediaObject::stop()
-{
-	//kDebug( 610 ) << k_funcinfo << endl;
-
-	if( stream() )
-	{
-		xine_stop( stream() );
-		AbstractMediaProducer::stop();
-		m_aboutToFinishNotEmitted = true;
-		xine_close( stream() );
-	}
-}
-
-void MediaObject::seek( qint64 time )
-{
-	//kDebug( 610 ) << k_funcinfo << endl;
-	if( !isSeekable() || !stream() )
-		return;
-
-	AbstractMediaProducer::seek( time );
-
-	int timeAfter;
-	int totalTime;
-	xine_get_pos_length( stream(), 0, &timeAfter, &totalTime );
-	//kDebug( 610 ) << k_funcinfo << "time after seek: " << timeAfter << endl;
-	// xine_get_pos_length doesn't work immediately after seek :(
-	timeAfter = time;
-
-	if( m_aboutToFinishTime > 0 && timeAfter < totalTime - m_aboutToFinishTime ) // not about to finish
-	{
-		m_aboutToFinishNotEmitted = true;
-		emitAboutToFinishIn( totalTime - m_aboutToFinishTime - timeAfter );
-	}
+    const int total = stream().totalTime();
+    if (m_aboutToFinishTime > 0 && time < total - m_aboutToFinishTime) { // not about to finish
+        m_aboutToFinishNotEmitted = true;
+        emitAboutToFinishIn(total - m_aboutToFinishTime - time);
+    }
 }
 
 void MediaObject::emitTick()
 {
-	AbstractMediaProducer::emitTick();
-	if( m_aboutToFinishNotEmitted && m_aboutToFinishTime > 0 )
-	{
-		int currentTime = 0;
-		int totalTime = 0;
-
-		xine_get_pos_length( stream(), 0, &currentTime, &totalTime );
-		const int remainingTime = totalTime - currentTime;
-		const int timeToAboutToFinishSignal = remainingTime - m_aboutToFinishTime;
-		if( timeToAboutToFinishSignal <= tickInterval() ) // about to finish
-		{
-			if( timeToAboutToFinishSignal > 100 )
-				emitAboutToFinishIn( timeToAboutToFinishSignal );
-			else
-			{
-				m_aboutToFinishNotEmitted = false;
-				kDebug( 610 ) << "emitting aboutToFinish( " << remainingTime << " )" << endl;
-				emit aboutToFinish( remainingTime );
-			}
-		}
-	}
-}
-
-bool MediaObject::recreateStream()
-{
-	kDebug( 610 ) << k_funcinfo << endl;
-	if( !stream() )
-		return true;
-	if( outputPortsNotChanged() )
-		return true;
-
-	// store state
-	Phonon::State oldstate = state();
-	int position;
-	xine_get_pos_length( stream(), &position, 0, 0 );
-
-	AbstractMediaProducer::recreateStream();
-	// restore state
-	kDebug( 610 ) << "xine_open URL: " << m_url << endl;
-	xine_open( stream(), m_url.url().toUtf8() );
-	switch( oldstate )
-	{
-		case Phonon::PausedState:
-			kDebug( 610 ) << "xine_play" << endl;
-			xine_play( stream(), position, 0 );
-			kDebug( 610 ) << "pause" << endl;
-			xine_set_param( stream(), XINE_PARAM_SPEED, XINE_SPEED_PAUSE );
-			break;
-		case Phonon::PlayingState:
-		case Phonon::BufferingState:
-			kDebug( 610 ) << "xine_play" << endl;
-			xine_play( stream(), position, 0 );
-			break;
-		case Phonon::StoppedState:
-		case Phonon::LoadingState:
-		case Phonon::ErrorState:
-			break;
-	}
-	return true;
+    AbstractMediaProducer::emitTick();
+    if (m_aboutToFinishNotEmitted && m_aboutToFinishTime > 0) {
+        const int remainingTime = stream().remainingTime();
+        const int timeToAboutToFinishSignal = remainingTime - m_aboutToFinishTime;
+        if (timeToAboutToFinishSignal <= tickInterval()) { // about to finish
+            if (timeToAboutToFinishSignal > 100) {
+                emitAboutToFinishIn(timeToAboutToFinishSignal);
+            } else {
+                m_aboutToFinishNotEmitted = false;
+                kDebug(610) << "emitting aboutToFinish( " << remainingTime << " )" << endl;
+                emit aboutToFinish(remainingTime);
+            }
+        }
+    }
 }
 
 void MediaObject::reachedPlayingState()
 {
-	kDebug( 610 ) << k_funcinfo << endl;
-	if( m_aboutToFinishTime > 0 )
-	{
-		const qint64 time = currentTime();
-		emitAboutToFinishIn( totalTime() - m_aboutToFinishTime - time );
-	}
+    if (m_aboutToFinishTime > 0) {
+        emitAboutToFinishIn(stream().remainingTime() - m_aboutToFinishTime);
+    }
+    AbstractMediaProducer::reachedPlayingState();
 }
 
 void MediaObject::leftPlayingState()
 {
-	kDebug( 610 ) << k_funcinfo << endl;
-	if( m_aboutToFinishTimer )
-		m_aboutToFinishTimer->stop();
+    m_aboutToFinishNotEmitted = true;
+    if (m_aboutToFinishTimer) {
+        m_aboutToFinishTimer->stop();
+    }
+    AbstractMediaProducer::leftPlayingState();
 }
 
-void MediaObject::emitAboutToFinishIn( int timeToAboutToFinishSignal )
+void MediaObject::emitAboutToFinishIn(int timeToAboutToFinishSignal)
 {
-	kDebug( 610 ) << k_funcinfo << timeToAboutToFinishSignal << endl;
-	Q_ASSERT( m_aboutToFinishTime > 0 );
-	if( !m_aboutToFinishTimer )
-	{
-		m_aboutToFinishTimer = new QTimer( this );
-		m_aboutToFinishTimer->setSingleShot( true );
-		connect( m_aboutToFinishTimer, SIGNAL( timeout() ), SLOT( emitAboutToFinish() ) );
-	}
-	m_aboutToFinishTimer->start( timeToAboutToFinishSignal );
+    Q_ASSERT(m_aboutToFinishTime > 0);
+    if (!m_aboutToFinishTimer) {
+        m_aboutToFinishTimer = new QTimer(this);
+        m_aboutToFinishTimer->setSingleShot(true);
+        connect(m_aboutToFinishTimer, SIGNAL(timeout()), SLOT(emitAboutToFinish()));
+    }
+    m_aboutToFinishTimer->start(timeToAboutToFinishSignal);
 }
 
 void MediaObject::emitAboutToFinish()
 {
-	kDebug( 610 ) << k_funcinfo << endl;
-	if( m_aboutToFinishNotEmitted )
-	{
-		int currentTime = 0;
-		int totalTime = 0;
+    if (m_aboutToFinishNotEmitted && m_aboutToFinishTime > 0) {
+        const int remainingTime = stream().remainingTime();
 
-		xine_get_pos_length( stream(), 0, &currentTime, &totalTime );
-		const int remainingTime = totalTime - currentTime;
-
-		if( remainingTime <= m_aboutToFinishTime + 150 )
-		{
-			m_aboutToFinishNotEmitted = false;
-			kDebug( 610 ) << "emitting aboutToFinish( " << remainingTime << " )" << endl;
-			emit aboutToFinish( remainingTime );
-		}
-		else
-		{
-			kDebug( 610 ) << "not yet" << endl;
-			emitAboutToFinishIn( totalTime - m_aboutToFinishTime - remainingTime );
-		}
-	}
+        if (remainingTime <= m_aboutToFinishTime + 150) {
+            m_aboutToFinishNotEmitted = false;
+            emit aboutToFinish(remainingTime);
+        } else {
+            emitAboutToFinishIn(remainingTime - m_aboutToFinishTime);
+        }
+    }
 }
-
-bool MediaObject::event( QEvent* ev )
-{
-	kDebug( 610 ) << k_funcinfo << endl;
-	switch( ev->type() )
-	{
-		case Xine::MediaFinishedEvent:
-			AbstractMediaProducer::stop();
-			m_aboutToFinishNotEmitted = true;
-			if( videoPath() )
-				videoPath()->streamFinished();
-			kDebug( 610 ) << "emit finished()" << endl;
-			emit finished();
-			xine_close( stream() );
-			ev->accept();
-			return true;
-		default:
-			break;
-	}
-	return AbstractMediaProducer::event( ev );
-}
-
 
 }}
 

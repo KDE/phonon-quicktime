@@ -34,7 +34,6 @@ namespace Xine
 AudioOutput::AudioOutput( QObject* parent )
 	: AbstractAudioOutput( parent )
 	, m_device( 1 )
-	, m_audioPort( 0 )
 {
 }
 
@@ -77,41 +76,46 @@ void AudioOutput::setVolume( float newVolume )
             streams << &mp->stream();
 		}
 	}
-	foreach( xine_stream_t* stream, streams )
-	{
-        mp->stream()->setVolume(xinevolume);
+    foreach (XineStream *stream, streams) {
+        stream->setVolume(xinevolume);
 	}
 
 	emit volumeChanged( m_volume );
 }
 
+xine_audio_port_t* AudioOutput::audioPort(XineStream* forStream)
+{
+    if (!m_audioPorts.contains(forStream)) {
+        const char *const *outputPlugins = xine_list_audio_output_plugins(XineEngine::xine());
+        kDebug(610) << k_funcinfo << "use output plugin: " << outputPlugins[m_device - 10000] << endl;
+        m_audioPorts[forStream] = xine_open_audio_driver(XineEngine::xine(), outputPlugins[m_device - 10000], 0);
+    }
+    return m_audioPorts[forStream];
+}
+
 void AudioOutput::setOutputDevice( int newDevice )
 {
-	m_device = newDevice;
-	xine_audio_port_t* oldAudioPort = m_audioPort;
+    m_device = newDevice;
+    const char *const *outputPlugins = xine_list_audio_output_plugins(XineEngine::xine());
+    kDebug(610) << k_funcinfo << "use output plugin: " << outputPlugins[newDevice - 10000] << endl;
 
-	const char* const* outputPlugins = xine_list_audio_output_plugins( XineEngine::xine() );
-	kDebug( 610 ) << k_funcinfo << "use output plugin: " << outputPlugins[ newDevice - 10000 ] << endl;
-	m_audioPort = xine_open_audio_driver( XineEngine::xine(), outputPlugins[ newDevice - 10000 ], NULL );
-	if( !m_audioPort )
-	{
-		m_audioPort = oldAudioPort;
-		return; //false;
-	}
-
-    // notify the connected XineStreams of the new device
-    QSet<XineStream*> streams;
-    foreach(AudioPath *ap, m_paths) {
-        foreach(AbstractMediaProducer *mp, ap->producers()) {
-            streams << &mp->stream();
+    PortMap::Iterator it = m_audioPorts.begin();
+    const PortMap::Iterator end = m_audioPorts.end();
+    for (; it != end; ++it) {
+        xine_audio_port_t *newAudioPort = xine_open_audio_driver(XineEngine::xine(), outputPlugins[newDevice - 10000], 0);
+        if (!newAudioPort) {
+            return;
         }
-    }
-    foreach(XineStream *s, streams) {
-        s->setAudioPort(m_audioPort);
-    }
 
-    if(oldAudioPort) {
-        xine_close_audio_driver(XineEngine::xine(), oldAudioPort);
+        // notify the connected XineStream of the new device
+        it.key()->setAudioPort(newAudioPort);
+
+        // FIXME: the setAudioPort call is async, xine_close_audio_driver has to wait until the call
+        // is done
+        if(it.value()) {
+            xine_close_audio_driver(XineEngine::xine(), it.value());
+        }
+        it.value() = newAudioPort;
     }
 }
 
