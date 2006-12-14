@@ -52,11 +52,10 @@ void BrightnessControl::setBrightness( int newBrightness )
 	if( m_brightness != newBrightness )
 	{
 		m_brightness = newBrightness;
-		xine_stream_t *s = stream();
-		if( s )
-		{
+        XineStream *s = stream();
+		if (s) {
 			kDebug( 610 ) << k_funcinfo << m_brightness << endl;
-			xine_set_param( s, XINE_PARAM_VO_BRIGHTNESS, m_brightness );
+            s->setParam(XINE_PARAM_VO_BRIGHTNESS, m_brightness);
 		}
 	}
 }
@@ -71,11 +70,12 @@ int BrightnessControl::lowerBound() const
 	return 0;
 }
 
-xine_stream_t *BrightnessControl::stream() const
+XineStream* BrightnessControl::stream()
 {
-	if( path() && path()->producer() )
-		return path()->producer()->stream();
-	return 0;
+    if (path() && path()->producer()) {
+        return &path()->producer()->stream();
+    }
+    return 0;
 }
 
 } // namespace Xine

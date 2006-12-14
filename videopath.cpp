@@ -58,9 +58,17 @@ bool VideoPath::hasOutput() const
 
 xine_video_port_t *VideoPath::videoPort() const
 {
-	if( m_output )
-		return m_output->videoPort();
-	return 0;
+    if (m_output) {
+        return m_output->videoPort();
+    }
+    return 0;
+}
+
+void VideoPath::videoPortChanged()
+{
+    if (m_producer) {
+        m_producer->setVideoPort(m_output->videoPort());
+    }
 }
 
 bool VideoPath::addOutput( QObject* videoOutput )
@@ -73,8 +81,8 @@ bool VideoPath::addOutput( QObject* videoOutput )
 		m_output = vwi;
 		m_output->setPath( this );
 		if( m_producer && m_output->videoPort() != 0 )
-			m_producer->checkVideoOutput();
-		connect( videoOutput, SIGNAL( videoPortChanged() ), m_producer, SLOT( checkVideoOutput() ) );
+            m_producer->setVideoPort(m_output->videoPort());
+        connect(videoOutput, SIGNAL(videoPortChanged()), SLOT(videoPortChanged()));
 		return true;
 	}
 
@@ -94,8 +102,8 @@ bool VideoPath::removeOutput( QObject* videoOutput )
 		m_output->unsetPath( this );
 		m_output = 0;
 		if( m_producer )
-			m_producer->checkVideoOutput();
-		disconnect( videoOutput, SIGNAL( videoPortChanged() ), m_producer, SLOT( checkVideoOutput() ) );
+            m_producer->setVideoPort(0);
+        disconnect(videoOutput, SIGNAL(videoPortChanged()), this, SLOT(videoPortChanged()));
 		return true;
 	}
 
@@ -140,16 +148,16 @@ bool VideoPath::removeEffect( QObject* effect )
 	return false;
 }
 
-void VideoPath::setMediaProducer( AbstractMediaProducer* mp )
+void VideoPath::setMediaProducer(AbstractMediaProducer *mp)
 {
-	Q_ASSERT( m_producer == 0 );
-	m_producer = mp;
+    Q_ASSERT(m_producer == 0);
+    m_producer = mp;
 }
 
 void VideoPath::unsetMediaProducer( AbstractMediaProducer* mp )
 {
-	Q_ASSERT( m_producer == mp );
-	m_producer = 0;
+    Q_ASSERT(m_producer == mp);
+    m_producer = 0;
 }
 
 }}

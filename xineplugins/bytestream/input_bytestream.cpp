@@ -38,7 +38,7 @@ extern "C" {
 #include <xine/xineutils.h>
 #undef this
 }
-#include "../../internalbytestreaminterface.h"
+#include "../../bytestream.h"
 
 typedef struct {
     input_class_t     input_class;
@@ -52,7 +52,7 @@ typedef struct {
 
     xine_stream_t    *stream;
     char *mrl;
-    InternalByteStreamInterface *bytestream;
+    Phonon::Xine::ByteStream *bytestream;
 } kbytestream_input_plugin_t;
 
 static uint32_t kbytestream_plugin_get_capabilities (input_plugin_t *this_gen) {
@@ -193,7 +193,7 @@ static input_plugin_t *kbytestream_class_get_instance (input_class_t *cls_gen, x
 
         ++encoded;
     }
-    that->bytestream = ( InternalByteStreamInterface* )addr;
+    that->bytestream = ( Phonon::Xine::ByteStream* )addr;
 
     that->input_plugin.open               = kbytestream_plugin_open;
     that->input_plugin.get_capabilities   = kbytestream_plugin_get_capabilities;

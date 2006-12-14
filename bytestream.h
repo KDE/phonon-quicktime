@@ -25,7 +25,14 @@
 
 #include "xine_engine.h"
 #include <phonon/bytestreaminterface.h>
-#include "internalbytestreaminterface.h"
+#include <QByteArray>
+#include <QQueue>
+#include <kdebug.h>
+#include <QCoreApplication>
+#include <QMutex>
+#include <QWaitCondition>
+#include <pthread.h>
+#include <cstdlib>
 
 class QTimer;
 
@@ -33,7 +40,7 @@ namespace Phonon
 {
 namespace Xine
 {
-	class ByteStream : public AbstractMediaProducer, public ByteStreamInterface, public InternalByteStreamInterface
+	class ByteStream : public AbstractMediaProducer, public ByteStreamInterface
 	{
 		Q_OBJECT
 		Q_INTERFACES( Phonon::ByteStreamInterface )
@@ -75,11 +82,12 @@ namespace Xine
 
 		protected:
 			virtual void emitTick();
-			virtual bool event( QEvent* ev );
 			virtual bool recreateStream();
 			virtual void reachedPlayingState();
 			virtual void leftPlayingState();
 			virtual void stateTransition( int newState );
+            void syncSeekStream(qint64 offset);
+            bool canRecreateStream() const;
 
 			bool m_aboutToFinishNotEmitted;
 
@@ -89,12 +97,37 @@ namespace Xine
 			bool xineOpen();
 
 		private:
+            enum State
+            {
+                CreatedState = 1,
+                PreviewReadyState = 2,
+                StreamSizeSetState = 4,
+                AboutToOpenState = CreatedState | PreviewReadyState | StreamSizeSetState,
+                OpenedState = 8,
+                PlayingState = 16,
+                StreamAtEndState = 32
+            };
+
 			void emitAboutToFinishIn( int timeToAboutToFinishSignal );
 
 			bool m_seekable;
 			qint32 m_aboutToFinishTime;
 			QTimer *m_aboutToFinishTimer;
 			qint64 m_streamSize;
+
+		QByteArray m_preview;
+		int m_intstate;
+		QMutex m_mutex;
+		QMutex m_seekMutex;
+		QWaitCondition m_waitForDataCondition;
+		QWaitCondition m_seekWaitCondition;
+
+		size_t m_buffersize;
+		int m_offset;
+		QQueue<QByteArray> m_buffers;
+		pthread_t m_mainThread;
+		qint64 m_currentPosition;
+		bool m_inReadFromBuffer;
 	};
 }} //namespace Phonon::Xine
 

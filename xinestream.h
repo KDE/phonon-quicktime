@@ -23,6 +23,9 @@
 #include <QThread>
 #include <QMutex>
 #include <QMultiMap>
+#include <phonon/phononnamespace.h>
+#include <xine.h>
+#include <QWaitCondition>
 
 namespace Phonon
 {
@@ -44,11 +47,25 @@ class XineStream : public QThread
         XineStream(QObject *parent = 0);
 
         Phonon::State state() const { return m_state; }
+
+        int totalTime() const;
+        int remainingTime() const;
+        int currentTime() const;
         bool hasVideo() const;
         bool isSeekable() const;
         void setVolume(int vol);
         void setAudioPort(xine_audio_port_t *port);
         void setVideoPort(xine_video_port_t *port);
+
+        void setParam(int param, int value) { xine_set_param(m_stream, param, value); }
+
+    public slots:
+        void setUrl(const KUrl &url);
+        void setMrl(const QByteArray &mrl);
+        void play();
+        void pause();
+        void stop();
+        void seek(qint64 time);
 
     Q_SIGNALS:
         /**
@@ -59,12 +76,26 @@ class XineStream : public QThread
          * emitted from the xine thread
          */
         void metaDataChanged(const QMultiMap<QString, QString>&);
+        /**
+         * emitted from the xine thread
+         */
+        void length(qint64);
+        /**
+         * emitted from the xine thread
+         */
+        void seekDone();
 
     protected:
         bool event(QEvent *ev);
         void run();
 
+    private slots:
+        void getStartTime();
+
     private:
+        void xineOpen();
+        void updateMetaData();
+        void recreateStream();
         bool createStream();
         void changeState(Phonon::State newstate);
 
@@ -76,14 +107,18 @@ class XineStream : public QThread
 
         Phonon::State m_state;
 
-        QMutex m_mutex;
+        mutable QMutex m_mutex;
+        mutable QWaitCondition m_waitingForXineOpen;
+        mutable QWaitCondition m_waitingForStreamInfo;
         QMultiMap<QString, QString> m_metaDataMap;
+        QByteArray m_mrl;
 
         int m_volume;
-        bool m_streamInfoReady;
-        bool m_hasVideo;
-        bool m_isSeekable;
-        bool m_recreateEventSent;
+        int m_startTime;
+        bool m_streamInfoReady : 1;
+        bool m_hasVideo : 1;
+        bool m_isSeekable : 1;
+        bool m_recreateEventSent : 1;
 };
 
 } // namespace Xine
