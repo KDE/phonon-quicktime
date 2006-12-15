@@ -61,24 +61,35 @@ MediaQueue::MediaQueue( QObject *parent )
 	: MediaObject( parent )
 	, m_doCrossfade( false )
 {
-    if (stream()) {
-        xine_set_param(stream(), XINE_PARAM_EARLY_FINISHED_EVENT, 1);
-    }
+    stream().useGaplessPlayback(true);
+    connect(&stream(), SIGNAL(needNextUrl()), SLOT(streamNeedsUrl()));
 }
 
 MediaQueue::~MediaQueue()
 {
 }
 
+void MediaQueue::streamNeedsUrl()
+{
+    if (m_nextUrl.isEmpty()) {
+        emit needNextUrl();
+    }
+    if (!m_nextUrl.isEmpty()) {
+        stream().gaplessSwitchTo(m_nextUrl);
+        m_url = m_nextUrl;
+        m_nextUrl.clear();
+        m_aboutToFinishNotEmitted = true;
+    }
+}
+
 void MediaQueue::setNextUrl( const KUrl& url )
 {
-	m_nextUrl = url;
+    m_nextUrl = url;
 }
 
 void MediaQueue::setDoCrossfade( bool xfade )
 {
-	if( xfade )
-	{
+    if (xfade) {
 		kWarning( 610 ) << "crossfades with Xine are not implemented yet" << endl;
 	}
 	//m_doCrossfade = xfade;
@@ -87,45 +98,6 @@ void MediaQueue::setDoCrossfade( bool xfade )
 void MediaQueue::setTimeBetweenMedia( qint32 time )
 {
 	m_timeBetweenMedia = time;
-}
-
-bool MediaQueue::recreateStream()
-{
-	bool ret = MediaObject::recreateStream();
-	xine_set_param( stream(), XINE_PARAM_EARLY_FINISHED_EVENT, 1 );
-	return ret;
-}
-
-bool MediaQueue::event( QEvent* ev )
-{
-	switch( ev->type() )
-	{
-		case Xine::MediaFinishedEvent:
-			if( !m_doCrossfade )
-			{
-				if( m_nextUrl.isEmpty() )
-					emit needNextUrl();
-				if( !m_nextUrl.isEmpty() )
-				{
-					xine_set_param( stream(), XINE_PARAM_GAPLESS_SWITCH, 1 );
-					if( !xine_open( stream(), m_nextUrl.url().toUtf8() ) )
-						xine_set_param( stream(), XINE_PARAM_GAPLESS_SWITCH, 0 );
-					xine_play( stream(), 0, 0 );
-					m_url = m_nextUrl;
-					m_nextUrl.clear();
-
-					m_aboutToFinishNotEmitted = true;
-					kDebug( 610 ) << "emit finished()" << endl;
-					emit finished();
-					emit length( totalTime() );
-					ev->accept();
-					return true;
-				}
-			}
-		default:
-			break;
-	}
-	return MediaObject::event( ev );
 }
 
 } // namespace Xine

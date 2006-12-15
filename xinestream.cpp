@@ -38,7 +38,9 @@ enum {
     PauseCommand = 2005,
     StopCommand = 2006,
     SeekCommand = 2007,
-    XineOpen = 2008
+    XineOpen = 2008,
+    GaplessPlaybackChanged = 2009,
+    GaplessSwitch = 2010
 };
 
 class SeekCommandEvent : public QEvent
@@ -64,9 +66,9 @@ XineStream::XineStream(QObject *parent)
     m_streamInfoReady(false),
     m_hasVideo(false),
     m_isSeekable(false),
-    m_recreateEventSent(false)
+    m_recreateEventSent(false),
+    m_useGaplessPlayback(false)
 {
-    //moveToThread(this);
 }
 
 // xine thread
@@ -108,7 +110,7 @@ int XineStream::totalTime() const
         QCoreApplication::postEvent(const_cast<XineStream*>(this), new QEvent(static_cast<QEvent::Type>(XineOpen)));
         // wait a few ms, perhaps the other thread finishes the event in time and this method
         // can return a useful value
-        if (!m_waitingForXineOpen.wait(&m_mutex, 40)) {
+        if (!m_waitingForXineOpen.wait(&m_mutex, 60)) {
             kDebug(610) << k_funcinfo << "waitcondition timed out" << endl;
             return -1;
         }
@@ -164,7 +166,7 @@ bool XineStream::hasVideo() const
         // wait a few ms, perhaps the other thread finishes the event in time and this method
         // can return a useful value
         QMutexLocker locker(&m_mutex);
-        if (!m_waitingForStreamInfo.wait(&m_mutex, 40)) {
+        if (!m_waitingForStreamInfo.wait(&m_mutex, 80)) {
             kDebug(610) << k_funcinfo << "waitcondition timed out" << endl;
             return false;
         }
@@ -180,7 +182,7 @@ bool XineStream::isSeekable() const
         // wait a few ms, perhaps the other thread finishes the event in time and this method
         // can return a useful value
         QMutexLocker locker(&m_mutex);
-        if (!m_waitingForStreamInfo.wait(&m_mutex, 40)) {
+        if (!m_waitingForStreamInfo.wait(&m_mutex, 80)) {
             kDebug(610) << k_funcinfo << "waitcondition timed out" << endl;
             return false;
         }
@@ -222,6 +224,12 @@ bool XineStream::createStream()
     }
     if (!m_videoPort) {
         xine_set_param(m_stream, XINE_PARAM_IGNORE_VIDEO, 1);
+    }
+
+    if (m_useGaplessPlayback) {
+        xine_set_param(m_stream, XINE_PARAM_EARLY_FINISHED_EVENT, 1);
+    } else {
+        xine_set_param(m_stream, XINE_PARAM_EARLY_FINISHED_EVENT, 0);
     }
 
     return true;
@@ -268,6 +276,30 @@ void XineStream::setVideoPort(xine_video_port_t *port)
     m_mutex.unlock();
     // schedule m_stream recreation
     recreateStream();
+}
+
+// called from main thread
+void XineStream::useGaplessPlayback(bool b)
+{
+    if (m_useGaplessPlayback == b) {
+        return;
+    }
+    m_useGaplessPlayback = b;
+    QCoreApplication::postEvent(this, new QEvent(static_cast<QEvent::Type>(GaplessPlaybackChanged)));
+}
+
+// called from main thread
+void XineStream::gaplessSwitchTo(const KUrl &url)
+{
+    m_mrl = url.url().toUtf8();
+    QCoreApplication::postEvent(this, new QEvent(static_cast<QEvent::Type>(GaplessSwitch)));
+}
+
+// called from main thread
+void XineStream::gaplessSwitchTo(const QByteArray &mrl)
+{
+    m_mrl = mrl;
+    QCoreApplication::postEvent(this, new QEvent(static_cast<QEvent::Type>(GaplessSwitch)));
 }
 
 // called from main thread
@@ -338,8 +370,28 @@ bool XineStream::event(QEvent *ev)
     //Q_ASSERT(QThread::currentThread() == this);
     switch (ev->type()) {
         case Xine::MediaFinishedEvent:
-            changeState(Phonon::StoppedState);
-            emit finished();
+            if (m_useGaplessPlayback) {
+                emit needNextUrl();
+            } else {
+                changeState(Phonon::StoppedState);
+                emit finished();
+            }
+            ev->accept();
+            return true;
+        case GaplessSwitch:
+            {
+                xine_set_param(m_stream, XINE_PARAM_GAPLESS_SWITCH, 1);
+                if (!xine_open(m_stream, m_mrl)) {
+                    xine_set_param(m_stream, XINE_PARAM_GAPLESS_SWITCH, 0);
+                }
+                xine_play(m_stream, 0, 0);
+
+                emit finished();
+                int total;
+                xine_get_pos_length(m_stream, 0, 0, &total);
+                emit length(total);
+                updateMetaData();
+            }
             ev->accept();
             return true;
         case Xine::NewMetaDataEvent:
@@ -380,6 +432,16 @@ bool XineStream::event(QEvent *ev)
             return true;
         case XineOpen:
             xineOpen();
+            ev->accept();
+            return true;
+        case GaplessPlaybackChanged:
+            if (m_stream) {
+                if (m_useGaplessPlayback) {
+                    xine_set_param(m_stream, XINE_PARAM_EARLY_FINISHED_EVENT, 1);
+                } else {
+                    xine_set_param(m_stream, XINE_PARAM_EARLY_FINISHED_EVENT, 0);
+                }
+            }
             ev->accept();
             return true;
         case RecreateStream:

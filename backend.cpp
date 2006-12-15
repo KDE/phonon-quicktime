@@ -74,8 +74,7 @@ QObject* Backend::createObject0(BackendInterface::Class0 c, QObject *parent)
         case MediaObjectClass:
             return new MediaObject(parent);
         case MediaQueueClass:
-            return 0;
-            //return new MediaQueue(parent);
+            return new MediaQueue(parent);
         case AvCaptureClass:
             return new AvCapture(parent);
         case ByteStreamClass:
