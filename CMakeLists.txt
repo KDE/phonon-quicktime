@@ -39,7 +39,7 @@ set(phonon_xine_PART_SRCS
     audiopath.cpp
     #    bytestream.cpp
     mediaobject.cpp
-    #mediaqueue.cpp
+    mediaqueue.cpp
     avcapture.cpp
     videoeffect.cpp
     brightnesscontrol.cpp

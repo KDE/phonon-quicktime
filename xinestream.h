@@ -58,6 +58,9 @@ class XineStream : public QThread
         void setVideoPort(xine_video_port_t *port);
 
         void setParam(int param, int value) { xine_set_param(m_stream, param, value); }
+        void useGaplessPlayback(bool);
+        void gaplessSwitchTo(const KUrl &url);
+        void gaplessSwitchTo(const QByteArray &mrl);
 
     public slots:
         void setUrl(const KUrl &url);
@@ -84,6 +87,10 @@ class XineStream : public QThread
          * emitted from the xine thread
          */
         void seekDone();
+        /**
+         * emitted from the xine thread
+         */
+        void needNextUrl();
 
     protected:
         bool event(QEvent *ev);
@@ -119,6 +126,7 @@ class XineStream : public QThread
         bool m_hasVideo : 1;
         bool m_isSeekable : 1;
         bool m_recreateEventSent : 1;
+        bool m_useGaplessPlayback : 1;
 };
 
 } // namespace Xine

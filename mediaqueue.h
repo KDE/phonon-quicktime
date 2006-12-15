@@ -46,9 +46,8 @@ namespace Xine
 		signals:
 			void needNextUrl();
 
-		protected:
-			virtual bool recreateStream();
-			virtual bool event( QEvent* ev );
+        private slots:
+            void streamNeedsUrl();
 
 		private:
 			KUrl m_nextUrl;
@@ -58,3 +57,5 @@ namespace Xine
 } // namespace Xine
 } // namespace Phonon
 #endif // PHONON_XINE_MEDIAQUEUE_H
+
+// vim: sw=4 ts=4 sts=4 et tw=100
