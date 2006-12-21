@@ -27,6 +27,11 @@
 #include <xine.h>
 #include <QWaitCondition>
 
+#include <sys/time.h>
+#include <time.h>
+
+class QTimer;
+
 namespace Phonon
 {
 namespace Xine
@@ -56,11 +61,14 @@ class XineStream : public QThread
         void setVolume(int vol);
         void setAudioPort(xine_audio_port_t *port);
         void setVideoPort(xine_video_port_t *port);
+        void setTickInterval(qint32 interval);
+        void setAboutToFinishTime(qint32 time);
 
         void setParam(int param, int value) { xine_set_param(m_stream, param, value); }
         void useGaplessPlayback(bool);
         void gaplessSwitchTo(const KUrl &url);
         void gaplessSwitchTo(const QByteArray &mrl);
+        void closeBlocking();
 
     public slots:
         void setUrl(const KUrl &url);
@@ -70,27 +78,17 @@ class XineStream : public QThread
         void stop();
         void seek(qint64 time);
 
+        /**
+         * all signals emitted from the xine thread
+         */
     Q_SIGNALS:
-        /**
-         * emitted from the xine thread
-         */
         void stateChanged(Phonon::State newstate, Phonon::State oldstate);
-        /**
-         * emitted from the xine thread
-         */
         void metaDataChanged(const QMultiMap<QString, QString>&);
-        /**
-         * emitted from the xine thread
-         */
         void length(qint64);
-        /**
-         * emitted from the xine thread
-         */
         void seekDone();
-        /**
-         * emitted from the xine thread
-         */
         void needNextUrl();
+        void tick(qint64);
+        void aboutToFinish(qint32);
 
     protected:
         bool event(QEvent *ev);
@@ -98,13 +96,18 @@ class XineStream : public QThread
 
     private slots:
         void getStartTime();
+        void emitAboutToFinish();
+        void emitTick();
 
     private:
+        void getStreamInfo();
         void xineOpen();
         void updateMetaData();
         void recreateStream();
         bool createStream();
         void changeState(Phonon::State newstate);
+        void emitAboutToFinishIn(int timeToAboutToFinishSignal);
+        bool updateTime();
 
         xine_stream_t *m_stream;
         xine_event_queue_t *m_event_queue;
@@ -115,18 +118,29 @@ class XineStream : public QThread
         Phonon::State m_state;
 
         mutable QMutex m_mutex;
-        mutable QWaitCondition m_waitingForXineOpen;
+        mutable QMutex m_streamInfoMutex;
+        mutable QMutex m_updateTimeMutex;
+        mutable QWaitCondition m_waitingForUpdateTime;
         mutable QWaitCondition m_waitingForStreamInfo;
+        QWaitCondition m_waitingForClose;
         QMultiMap<QString, QString> m_metaDataMap;
         QByteArray m_mrl;
+        QTimer *m_tickTimer;
+        QTimer *m_aboutToFinishTimer;
+        struct timeval m_lastTimeUpdate;
 
+        qint32 m_aboutToFinishTime;
         int m_volume;
         int m_startTime;
+        int m_totalTime;
+        int m_currentTime;
         bool m_streamInfoReady : 1;
         bool m_hasVideo : 1;
         bool m_isSeekable : 1;
         bool m_recreateEventSent : 1;
         bool m_useGaplessPlayback : 1;
+        bool m_aboutToFinishNotEmitted : 1;
+        bool m_ticking : 1;
 };
 
 } // namespace Xine

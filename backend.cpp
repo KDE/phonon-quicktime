@@ -52,7 +52,7 @@ Backend::Backend( QObject* parent, const QStringList& )
 {
 	char configfile[2048];
 
-	//xine_engine_set_param( XineEngine::xine(), XINE_ENGINE_PARAM_VERBOSITY, 99 );
+    //xine_engine_set_param(XineEngine::xine(), XINE_ENGINE_PARAM_VERBOSITY, 99);
 	sprintf(configfile, "%s%s", xine_get_homedir(), "/.xine/config");
 	xine_config_load( XineEngine::xine(), configfile );
 	xine_init( XineEngine::xine() );
@@ -78,8 +78,7 @@ QObject* Backend::createObject0(BackendInterface::Class0 c, QObject *parent)
         case AvCaptureClass:
             return new AvCapture(parent);
         case ByteStreamClass:
-            return 0;
-            //return new ByteStream(parent);
+            return new ByteStream(parent);
         case AudioPathClass:
             return new AudioPath(parent);
         case VolumeFaderEffectClass:

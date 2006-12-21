@@ -37,7 +37,7 @@ set(phonon_xine_PART_SRCS
     audioeffect.cpp
     audiooutput.cpp
     audiopath.cpp
-    #    bytestream.cpp
+    bytestream.cpp
     mediaobject.cpp
     mediaqueue.cpp
     avcapture.cpp
@@ -48,8 +48,8 @@ set(phonon_xine_PART_SRCS
     visualization.cpp
     backend.cpp
     volumefadereffect.cpp
-    #xineplugins/bytestream/input_bytestream.cpp
-    #xineplugins/bytestream/plugin.c
+    xineplugins/bytestream/input_bytestream.cpp
+    xineplugins/bytestream/plugin.c
    )
 
 kde4_automoc(${phonon_xine_PART_SRCS})

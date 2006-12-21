@@ -40,7 +40,10 @@ enum {
     SeekCommand = 2007,
     XineOpen = 2008,
     GaplessPlaybackChanged = 2009,
-    GaplessSwitch = 2010
+    GaplessSwitch = 2010,
+    UpdateTime = 2011,
+    SetTickInterval = 2012,
+    SetAboutToFinishTime = 2013
 };
 
 class SeekCommandEvent : public QEvent
@@ -48,9 +51,26 @@ class SeekCommandEvent : public QEvent
     public:
         SeekCommandEvent(qint64 time) : QEvent(static_cast<QEvent::Type>(SeekCommand)), m_time(time) {}
         qint64 time() const { return m_time; }
-
     private:
         qint64 m_time;
+};
+
+class SetTickIntervalEvent : public QEvent
+{
+    public:
+        SetTickIntervalEvent(qint32 interval) : QEvent(static_cast<QEvent::Type>(SetTickInterval)), m_interval(interval) {}
+        qint32 interval() const { return m_interval; }
+    private:
+        qint32 m_interval;
+};
+
+class SetAboutToFinishTimeEvent : public QEvent
+{
+    public:
+        SetAboutToFinishTimeEvent(qint32 interval) : QEvent(static_cast<QEvent::Type>(SetAboutToFinishTime)), m_interval(interval) {}
+        qint32 time() const { return m_interval; }
+    private:
+        qint32 m_interval;
 };
 
 // called from main thread
@@ -61,13 +81,19 @@ XineStream::XineStream(QObject *parent)
     m_audioPort(0),
     m_videoPort(0),
     m_state(Phonon::LoadingState),
+    m_tickTimer(0),
+    m_aboutToFinishTimer(0),
     m_volume(100),
 //    m_startTime(-1),
+    m_totalTime(-1),
+    m_currentTime(-1),
     m_streamInfoReady(false),
     m_hasVideo(false),
     m_isSeekable(false),
     m_recreateEventSent(false),
-    m_useGaplessPlayback(false)
+    m_useGaplessPlayback(false),
+    m_aboutToFinishNotEmitted(true),
+    m_ticking(false)
 {
 }
 
@@ -75,6 +101,18 @@ XineStream::XineStream(QObject *parent)
 void XineStream::xineOpen()
 {
     Q_ASSERT(QThread::currentThread() == this);
+    if (m_mrl.isEmpty()) {
+        m_mutex.lock();
+        if (m_stream && xine_get_status(m_stream) != XINE_STATUS_IDLE) {
+            xine_close(m_stream);
+            m_streamInfoReady = false;
+            m_aboutToFinishNotEmitted = true;
+            changeState(Phonon::LoadingState);
+        }
+        m_mutex.unlock();
+        m_waitingForClose.wakeAll();
+        return;
+    }
     m_mutex.lock();
     if (!m_stream) {
         createStream();
@@ -82,17 +120,25 @@ void XineStream::xineOpen()
             return;
         }
     }
-    const int ret = xine_open(m_stream, m_mrl);
     m_mutex.unlock();
-    m_waitingForXineOpen.wakeAll();
-    if (ret == 0) {
-        changeState(Phonon::ErrorState);
-    } else {
-        int total;
-        xine_get_pos_length(m_stream, 0, 0, &total);
-        emit length(total);
-        updateMetaData();
-        changeState(Phonon::StoppedState);
+    // only call xine_open if it's not already open
+    if (xine_get_status(m_stream) == XINE_STATUS_IDLE) {
+        // xine_open can call functions from ByteStream which will block waiting for data therefore
+        // m_mutex must be unlocked so that the main thread won't get blocked on m_mutex
+        //kDebug(610) << "xine_open(" << m_mrl.constData() << ")" << endl;
+        const int ret = xine_open(m_stream, m_mrl);
+        //m_waitingForXineOpen.wakeAll();
+        if (ret == 0) {
+            kDebug(610) << "xine_open failed for m_mrl = " << m_mrl.constData() << endl;
+            changeState(Phonon::ErrorState);
+        } else {
+            m_lastTimeUpdate.tv_sec = 0;
+            xine_get_pos_length(m_stream, 0, &m_currentTime, &m_totalTime);
+            getStreamInfo();
+            emit length(m_totalTime);
+            updateMetaData();
+            changeState(Phonon::StoppedState);
+        }
     }
 }
 
@@ -102,25 +148,7 @@ int XineStream::totalTime() const
     if (!m_stream || m_mrl.isEmpty()) {
         return -1;
     }
-
-    int total;
-    QMutexLocker locker(&m_mutex);
-
-    if (xine_get_status(m_stream) == XINE_STATUS_IDLE) {
-        QCoreApplication::postEvent(const_cast<XineStream*>(this), new QEvent(static_cast<QEvent::Type>(XineOpen)));
-        // wait a few ms, perhaps the other thread finishes the event in time and this method
-        // can return a useful value
-        if (!m_waitingForXineOpen.wait(&m_mutex, 60)) {
-            kDebug(610) << k_funcinfo << "waitcondition timed out" << endl;
-            return -1;
-        }
-    }
-    if (xine_get_pos_length(m_stream, 0, 0, &total) == 1) {
-        if( total >= 0 ) {
-            return total;
-        }
-    }
-    return -1;
+    return m_totalTime;
 }
 
 // called from main thread
@@ -129,14 +157,14 @@ int XineStream::remainingTime() const
     if (!m_stream || m_mrl.isEmpty()) {
         return 0;
     }
-
-    int current, total;
-    if (xine_get_pos_length(m_stream, 0, &current, &total) == 1) {
-        if (total - current > 0) {
-            return total - current;
-        }
+    QMutexLocker locker(&m_updateTimeMutex);
+    if (m_state == Phonon::PlayingState && m_lastTimeUpdate.tv_sec > 0) {
+        struct timeval now;
+        gettimeofday(&now, 0);
+        const int diff = (now.tv_sec - m_lastTimeUpdate.tv_sec) * 1000 + (now.tv_usec - m_lastTimeUpdate.tv_usec) / 1000;
+        return m_totalTime - (m_currentTime + diff);
     }
-    return 0;
+    return m_totalTime - m_currentTime;
 }
 
 // called from main thread
@@ -145,28 +173,27 @@ int XineStream::currentTime() const
     if (!m_stream || m_mrl.isEmpty()) {
         return -1;
     }
-
-    int positiontime;
-    QMutexLocker locker(&m_mutex);
-    if (xine_get_pos_length(m_stream, 0, &positiontime, 0) != 1)
-        return -1;
-
-//X     if (m_startTime == -1) {
-        return positiontime;
-//X     } else {
-//X         return positiontime - m_startTime;
-//X     }
+    QMutexLocker locker(&m_updateTimeMutex);
+    if (m_state == Phonon::PlayingState && m_lastTimeUpdate.tv_sec > 0) {
+        struct timeval now;
+        gettimeofday(&now, 0);
+        const int diff = (now.tv_sec - m_lastTimeUpdate.tv_sec) * 1000 + (now.tv_usec - m_lastTimeUpdate.tv_usec) / 1000;
+        return m_currentTime + diff;
+    }
+    return m_currentTime;
 }
 
 // called from main thread
 bool XineStream::hasVideo() const
 {
     if (!m_streamInfoReady) {
+        QMutexLocker locker(&m_streamInfoMutex);
         QCoreApplication::postEvent(const_cast<XineStream*>(this), new QEvent(static_cast<QEvent::Type>(GetStreamInfo)));
         // wait a few ms, perhaps the other thread finishes the event in time and this method
         // can return a useful value
-        QMutexLocker locker(&m_mutex);
-        if (!m_waitingForStreamInfo.wait(&m_mutex, 80)) {
+        // FIXME: this is non-deterministic: a program might fail sometimes and sometimes work
+        // because of this
+        if (!m_waitingForStreamInfo.wait(&m_streamInfoMutex, 80)) {
             kDebug(610) << k_funcinfo << "waitcondition timed out" << endl;
             return false;
         }
@@ -178,16 +205,36 @@ bool XineStream::hasVideo() const
 bool XineStream::isSeekable() const
 {
     if (!m_streamInfoReady) {
+        QMutexLocker locker(&m_streamInfoMutex);
         QCoreApplication::postEvent(const_cast<XineStream*>(this), new QEvent(static_cast<QEvent::Type>(GetStreamInfo)));
         // wait a few ms, perhaps the other thread finishes the event in time and this method
         // can return a useful value
-        QMutexLocker locker(&m_mutex);
-        if (!m_waitingForStreamInfo.wait(&m_mutex, 80)) {
+        // FIXME: this is non-deterministic: a program might fail sometimes and sometimes work
+        // because of this
+        if (!m_waitingForStreamInfo.wait(&m_streamInfoMutex, 80)) {
             kDebug(610) << k_funcinfo << "waitcondition timed out" << endl;
             return false;
         }
     }
     return m_isSeekable;
+}
+
+// xine thread
+void XineStream::getStreamInfo()
+{
+    if (m_stream && !m_streamInfoReady && !m_mrl.isEmpty()) {
+        if (xine_get_status(m_stream) == XINE_STATUS_IDLE) {
+            xineOpen();
+            if (xine_get_status(m_stream) == XINE_STATUS_IDLE) {
+                return;
+            }
+        }
+        QMutexLocker locker(&m_streamInfoMutex);
+        m_hasVideo   = xine_get_stream_info(m_stream, XINE_STREAM_INFO_HAS_VIDEO);
+        m_isSeekable = xine_get_stream_info(m_stream, XINE_STREAM_INFO_SEEKABLE);
+        m_streamInfoReady = true;
+    }
+    m_waitingForStreamInfo.wakeAll();
 }
 
 // xine thread
@@ -279,6 +326,18 @@ void XineStream::setVideoPort(xine_video_port_t *port)
 }
 
 // called from main thread
+void XineStream::setTickInterval(qint32 interval)
+{
+    QCoreApplication::postEvent(this, new SetTickIntervalEvent(interval));
+}
+
+// called from main thread
+void XineStream::setAboutToFinishTime(qint32 time)
+{
+    QCoreApplication::postEvent(this, new SetAboutToFinishTimeEvent(time));
+}
+
+// called from main thread
 void XineStream::useGaplessPlayback(bool b)
 {
     if (m_useGaplessPlayback == b) {
@@ -322,11 +381,27 @@ void XineStream::changeState(Phonon::State newstate)
     }
     Phonon::State oldstate = m_state;
     m_state = newstate;
-    emit stateChanged(newstate, oldstate);
-    if (newstate == Phonon::StoppedState && oldstate != Phonon::LoadingState) {
+    if (newstate == Phonon::PlayingState) {
+        if (m_ticking) {
+            m_tickTimer->start();
+            //kDebug(610) << "tickTimer started." << endl;
+        }
+        if (m_aboutToFinishTime > 0) {
+            emitAboutToFinish();
+        }
+    } else if (oldstate == Phonon::PlayingState) {
+        m_tickTimer->stop();
+        //kDebug(610) << "tickTimer stopped." << endl;
+        m_aboutToFinishNotEmitted = true;
+        if (m_aboutToFinishTimer) {
+            m_aboutToFinishTimer->stop();
+        }
+    } else if (newstate == Phonon::StoppedState && oldstate != Phonon::LoadingState) {
         xine_close(m_stream); // TODO: is it necessary? should xine_close be called as late as possible?
-    }
-    if (newstate == Phonon::ErrorState) {
+        m_streamInfoReady = false;
+        m_aboutToFinishNotEmitted = true;
+    } else if (newstate == Phonon::ErrorState) {
+        //kDebug(610) << kBacktrace() << endl;
         if (m_event_queue) {
             xine_event_dispose_queue(m_event_queue);
             m_event_queue = 0;
@@ -336,6 +411,7 @@ void XineStream::changeState(Phonon::State newstate)
             m_stream = 0;
         }
     }
+    emit stateChanged(newstate, oldstate);
 }
 
 // xine thread
@@ -360,7 +436,7 @@ void XineStream::updateMetaData()
     if(metaDataMap == m_metaDataMap)
         return;
     m_metaDataMap = metaDataMap;
-    kDebug(610) << "emitting metaDataChanged(" << m_metaDataMap << ")" << endl;
+    //kDebug(610) << "emitting metaDataChanged(" << m_metaDataMap << ")" << endl;
     emit metaDataChanged(m_metaDataMap);
 }
 
@@ -374,25 +450,39 @@ bool XineStream::event(QEvent *ev)
                 emit needNextUrl();
             } else {
                 changeState(Phonon::StoppedState);
+                m_aboutToFinishNotEmitted = true;
                 emit finished();
             }
             ev->accept();
             return true;
+        case UpdateTime:
+            updateTime();
+            ev->accept();
+            return true;
         case GaplessSwitch:
+            ev->accept();
             {
+                if (m_mrl.isEmpty()) {
+                    m_aboutToFinishNotEmitted = true;
+                    emit finished();
+                    return true;
+                }
                 xine_set_param(m_stream, XINE_PARAM_GAPLESS_SWITCH, 1);
                 if (!xine_open(m_stream, m_mrl)) {
+                    kWarning(610) << "xine_open for gapless playback failed!" << endl;
                     xine_set_param(m_stream, XINE_PARAM_GAPLESS_SWITCH, 0);
+                    emit finished();
+                    return true; // FIXME: correct?
                 }
                 xine_play(m_stream, 0, 0);
 
+                m_aboutToFinishNotEmitted = true;
+                getStreamInfo();
                 emit finished();
-                int total;
-                xine_get_pos_length(m_stream, 0, 0, &total);
-                emit length(total);
+                xine_get_pos_length(m_stream, 0, &m_currentTime, &m_totalTime);
+                emit length(m_totalTime);
                 updateMetaData();
             }
-            ev->accept();
             return true;
         case Xine::NewMetaDataEvent:
             updateMetaData();
@@ -415,13 +505,7 @@ bool XineStream::event(QEvent *ev)
             ev->accept();
             return true;
         case GetStreamInfo:
-            if (m_stream && !m_streamInfoReady) {
-                QMutexLocker locker(&m_mutex);
-                m_hasVideo   = xine_get_stream_info(m_stream, XINE_STREAM_INFO_HAS_VIDEO);
-                m_isSeekable = xine_get_stream_info(m_stream, XINE_STREAM_INFO_SEEKABLE);
-                m_streamInfoReady = true;
-            }
-            m_waitingForStreamInfo.wakeAll();
+            getStreamInfo();
             ev->accept();
             return true;
         case UpdateVolume:
@@ -513,36 +597,107 @@ bool XineStream::event(QEvent *ev)
             ev->accept();
             return true;
         case PlayCommand:
+            ev->accept();
+            if (m_mrl.isEmpty()) {
+                changeState(Phonon::ErrorState);
+                return true;
+            }
+            if (!m_stream) {
+                QMutexLocker locker(&m_mutex);
+                createStream();
+                if (!m_stream) {
+                    changeState(Phonon::ErrorState);
+                    return true;
+                }
+            }
             if (m_state == Phonon::PausedState) {
                 xine_set_param(m_stream, XINE_PARAM_SPEED, XINE_SPEED_NORMAL);
                 changeState(Phonon::PlayingState);
             } else {
-//X                 int total;
-//X                 if (xine_get_pos_length(stream(), 0, &m_startTime, &total) == 1) {
-//X                     if (total > 0 && m_startTime < total && m_startTime >= 0)
-//X                         m_startTime = -1;
-//X                 } else {
-//X                     m_startTime = -1;
-//X                 }
+                //X                 int total;
+                //X                 if (xine_get_pos_length(stream(), 0, &m_startTime, &total) == 1) {
+                //X                     if (total > 0 && m_startTime < total && m_startTime >= 0)
+                //X                         m_startTime = -1;
+                //X                 } else {
+                //X                     m_startTime = -1;
+                //X                 }
                 if (xine_get_status(m_stream) == XINE_STATUS_IDLE) {
                     xineOpen();
                 }
                 xine_play(m_stream, 0, 0);
                 changeState(Phonon::PlayingState);
             }
-            ev->accept();
             return true;
         case PauseCommand:
+            ev->accept();
+            if (m_mrl.isEmpty()) {
+                changeState(Phonon::ErrorState);
+                return true;
+            }
+            if (!m_stream) {
+                QMutexLocker locker(&m_mutex);
+                createStream();
+                if (!m_stream) {
+                    changeState(Phonon::ErrorState);
+                    return true;
+                }
+            }
             if (m_state == Phonon::PlayingState || state() == Phonon::BufferingState) {
                 xine_set_param(m_stream, XINE_PARAM_SPEED, XINE_SPEED_PAUSE);
                 changeState(Phonon::PausedState);
             }
-            ev->accept();
             return true;
         case StopCommand:
+            ev->accept();
+            if (m_mrl.isEmpty()) {
+                changeState(Phonon::ErrorState);
+                return true;
+            }
+            if (!m_stream) {
+                QMutexLocker locker(&m_mutex);
+                createStream();
+                if (!m_stream) {
+                    changeState(Phonon::ErrorState);
+                    return true;
+                }
+            }
             xine_stop(m_stream);
             changeState(Phonon::StoppedState);
+            return true;
+        case SetTickInterval:
             ev->accept();
+            {
+                SetTickIntervalEvent *e = static_cast<SetTickIntervalEvent*>(ev);
+                if (e->interval() <= 0) {
+                    // disable ticks
+                    m_ticking = false;
+                    m_tickTimer->stop();
+                    //kDebug(610) << "tickTimer stopped." << endl;
+                } else {
+                    m_tickTimer->setInterval(e->interval());
+                    if (m_ticking == false && m_state == Phonon::PlayingState) {
+                        m_tickTimer->start();
+                        //kDebug(610) << "tickTimer started." << endl;
+                    }
+                    m_ticking = true;
+                }
+            }
+            return true;
+        case SetAboutToFinishTime:
+            ev->accept();
+            {
+                SetAboutToFinishTimeEvent *e = static_cast<SetAboutToFinishTimeEvent*>(ev);
+                m_aboutToFinishTime = e->time();
+                if (m_aboutToFinishTime > 0) {
+                    updateTime();
+                    if (m_currentTime < m_totalTime - m_aboutToFinishTime) { // not about to finish
+                        m_aboutToFinishNotEmitted = true;
+                        if (m_state == Phonon::PlayingState) {
+                            emitAboutToFinishIn(m_totalTime - m_aboutToFinishTime - m_currentTime);
+                        }
+                    }
+                }
+            }
             return true;
         case SeekCommand:
             {
@@ -567,6 +722,17 @@ bool XineStream::event(QEvent *ev)
                     case Phonon::LoadingState:
                         break; // cannot seek
                 }
+                const int timeToSignal = m_totalTime - m_aboutToFinishTime - e->time();
+                if (m_aboutToFinishTime > 0) {
+                    if (timeToSignal > 0 ) { // not about to finish
+                        m_aboutToFinishNotEmitted = true;
+                        emitAboutToFinishIn(timeToSignal);
+                    } else if (m_aboutToFinishNotEmitted) {
+                        m_aboutToFinishNotEmitted = false;
+                        kDebug(610) << "emitting aboutToFinish(" << timeToSignal + m_aboutToFinishTime << ")" << endl;
+                        emit aboutToFinish(timeToSignal + m_aboutToFinishTime);
+                    }
+                }
             }
             ev->accept();
             return true;
@@ -575,39 +741,140 @@ bool XineStream::event(QEvent *ev)
     }
 }
 
+void XineStream::closeBlocking()
+{
+    m_mutex.lock();
+    if (m_stream && xine_get_status(m_stream) != XINE_STATUS_IDLE) {
+        m_waitingForClose.wait(&m_mutex);
+    }
+    m_mutex.unlock();
+}
+
 void XineStream::setUrl(const KUrl &url)
 {
-    m_mrl = url.url().toUtf8();
-    QCoreApplication::postEvent(this, new QEvent(static_cast<QEvent::Type>(XineOpen)));
+    setMrl(url.url().toUtf8());
 }
 
 void XineStream::setMrl(const QByteArray &mrl)
 {
+    if (m_mrl == mrl) {
+        return;
+    }
     m_mrl = mrl;
+    // FIXME: if the stream is already open and the MRL has changed nothing will happen :(
     QCoreApplication::postEvent(this, new QEvent(static_cast<QEvent::Type>(XineOpen)));
 }
 
 void XineStream::play()
 {
-    // FIXME: There should be an immediate state change
     QCoreApplication::postEvent(this, new QEvent(static_cast<QEvent::Type>(PlayCommand)));
 }
 
 void XineStream::pause()
 {
-    // FIXME: There should be an immediate state change
     QCoreApplication::postEvent(this, new QEvent(static_cast<QEvent::Type>(PauseCommand)));
 }
 
 void XineStream::stop()
 {
-    // FIXME: There should be an immediate state change
     QCoreApplication::postEvent(this, new QEvent(static_cast<QEvent::Type>(StopCommand)));
 }
 
 void XineStream::seek(qint64 time)
 {
     QCoreApplication::postEvent(this, new SeekCommandEvent(time));
+}
+
+// xine thread
+bool XineStream::updateTime()
+{
+    Q_ASSERT(QThread::currentThread() == this);
+    if (m_stream) {
+        if (xine_get_status(m_stream) == XINE_STATUS_IDLE) {
+            xineOpen();
+        }
+        QMutexLocker locker(&m_updateTimeMutex);
+        if (xine_get_pos_length(m_stream, 0, &m_currentTime, &m_totalTime) != 1) {
+            m_currentTime = -1;
+            m_totalTime = -1;
+            m_lastTimeUpdate.tv_sec = 0;
+            return false;
+        }
+        if (m_currentTime == 0) {
+            // are we seeking? when xine seeks xine_get_pos_length returns 0 for m_currentTime
+            m_lastTimeUpdate.tv_sec = 0;
+            // XineStream::currentTime will return 0 now
+            return false;
+        }
+        if (m_state == Phonon::PlayingState) {
+            gettimeofday(&m_lastTimeUpdate, 0);
+        } else {
+            m_lastTimeUpdate.tv_sec = 0;
+        }
+    }
+    return true;
+}
+
+// xine thread
+void XineStream::emitAboutToFinishIn(int timeToAboutToFinishSignal)
+{
+    Q_ASSERT(QThread::currentThread() == this);
+    //kDebug(610) << k_funcinfo << timeToAboutToFinishSignal << kBacktrace() << endl;
+    Q_ASSERT(m_aboutToFinishTime > 0);
+    if (!m_aboutToFinishTimer) {
+        m_aboutToFinishTimer = new QTimer(this);
+        m_aboutToFinishTimer->setObjectName("aboutToFinish timer");
+        Q_ASSERT(m_aboutToFinishTimer->thread() == this);
+        m_aboutToFinishTimer->setSingleShot(true);
+        connect(m_aboutToFinishTimer, SIGNAL(timeout()), SLOT(emitAboutToFinish()), Qt::DirectConnection);
+    }
+    m_aboutToFinishTimer->start(timeToAboutToFinishSignal);
+}
+
+// xine thread
+void XineStream::emitAboutToFinish()
+{
+    Q_ASSERT(QThread::currentThread() == this);
+    kDebug(610) << k_funcinfo << endl;
+    if (m_aboutToFinishNotEmitted && m_aboutToFinishTime > 0) {
+        updateTime();
+        const int remainingTime = m_totalTime - m_currentTime;
+
+        if (remainingTime <= m_aboutToFinishTime + 150) {
+            m_aboutToFinishNotEmitted = false;
+            kDebug(610) << "emitting aboutToFinish(" << remainingTime << ")" << endl;
+            emit aboutToFinish(remainingTime);
+        } else {
+            emitAboutToFinishIn(remainingTime - m_aboutToFinishTime);
+        }
+    }
+}
+
+// xine thread
+void XineStream::emitTick()
+{
+    Q_ASSERT(QThread::currentThread() == this);
+    if (!updateTime()) {
+        kDebug(610) << k_funcinfo << "no useful time information available. skipped." << endl;
+        return;
+    }
+    //kDebug(610) << k_funcinfo << m_currentTime << endl;
+    if (m_ticking) {
+        emit tick(m_currentTime);
+    }
+    if (m_aboutToFinishNotEmitted && m_aboutToFinishTime > 0) {
+        const int remainingTime = m_totalTime - m_currentTime;
+        const int timeToAboutToFinishSignal = remainingTime - m_aboutToFinishTime;
+        if (timeToAboutToFinishSignal <= m_tickTimer->interval()) { // about to finish
+            if (timeToAboutToFinishSignal > 100) {
+                emitAboutToFinishIn(timeToAboutToFinishSignal);
+            } else {
+                m_aboutToFinishNotEmitted = false;
+                kDebug(610) << "emitting aboutToFinish(" << remainingTime << ")" << endl;
+                emit aboutToFinish(remainingTime);
+            }
+        }
+    }
 }
 
 // xine thread
@@ -632,6 +899,10 @@ void XineStream::getStartTime()
 void XineStream::run()
 {
     Q_ASSERT(QThread::currentThread() == this);
+    m_tickTimer = new QTimer;
+    m_tickTimer->setObjectName("tick timer");
+    m_tickTimer->moveToThread(this);
+    connect(m_tickTimer, SIGNAL(timeout()), SLOT(emitTick()), Qt::DirectConnection);
     exec();
 
     // clean ups
@@ -643,6 +914,10 @@ void XineStream::run()
         xine_dispose(m_stream);
         m_stream = 0;
     }
+    delete m_aboutToFinishTimer;
+    m_aboutToFinishTimer = 0;
+    delete m_tickTimer;
+    m_tickTimer = 0;
 }
 
 } // namespace Xine
