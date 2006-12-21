@@ -38,7 +38,7 @@ enum {
     PauseCommand = 2005,
     StopCommand = 2006,
     SeekCommand = 2007,
-    XineOpen = 2008,
+    MrlChanged = 2008,
     GaplessPlaybackChanged = 2009,
     GaplessSwitch = 2010,
     UpdateTime = 2011,
@@ -101,45 +101,27 @@ XineStream::XineStream(QObject *parent)
 void XineStream::xineOpen()
 {
     Q_ASSERT(QThread::currentThread() == this);
+    Q_ASSERT(m_stream);
     if (m_mrl.isEmpty()) {
-        m_mutex.lock();
-        if (m_stream && xine_get_status(m_stream) != XINE_STATUS_IDLE) {
-            xine_close(m_stream);
-            m_streamInfoReady = false;
-            m_aboutToFinishNotEmitted = true;
-            changeState(Phonon::LoadingState);
-        }
-        m_mutex.unlock();
-        m_waitingForClose.wakeAll();
         return;
     }
-    m_mutex.lock();
-    if (!m_stream) {
-        createStream();
-        if (!m_stream) {
-            m_mutex.unlock();
-            return;
-        }
-    }
-    m_mutex.unlock();
     // only call xine_open if it's not already open
-    if (xine_get_status(m_stream) == XINE_STATUS_IDLE) {
-        // xine_open can call functions from ByteStream which will block waiting for data therefore
-        // m_mutex must be unlocked so that the main thread won't get blocked on m_mutex
-        //kDebug(610) << "xine_open(" << m_mrl.constData() << ")" << endl;
-        const int ret = xine_open(m_stream, m_mrl);
-        //m_waitingForXineOpen.wakeAll();
-        if (ret == 0) {
-            kDebug(610) << "xine_open failed for m_mrl = " << m_mrl.constData() << endl;
-            changeState(Phonon::ErrorState);
-        } else {
-            m_lastTimeUpdate.tv_sec = 0;
-            xine_get_pos_length(m_stream, 0, &m_currentTime, &m_totalTime);
-            getStreamInfo();
-            emit length(m_totalTime);
-            updateMetaData();
-            changeState(Phonon::StoppedState);
-        }
+    Q_ASSERT(xine_get_status(m_stream) == XINE_STATUS_IDLE);
+
+    // xine_open can call functions from ByteStream which will block waiting for data.
+    //kDebug(610) << "xine_open(" << m_mrl.constData() << ")" << endl;
+    const int ret = xine_open(m_stream, m_mrl);
+    //m_waitingForXineOpen.wakeAll();
+    if (ret == 0) {
+        kDebug(610) << "xine_open failed for m_mrl = " << m_mrl.constData() << endl;
+        changeState(Phonon::ErrorState);
+    } else {
+        m_lastTimeUpdate.tv_sec = 0;
+        xine_get_pos_length(m_stream, 0, &m_currentTime, &m_totalTime);
+        getStreamInfo();
+        emit length(m_totalTime);
+        updateMetaData();
+        changeState(Phonon::StoppedState);
     }
 }
 
@@ -402,7 +384,7 @@ void XineStream::changeState(Phonon::State newstate)
         m_streamInfoReady = false;
         m_aboutToFinishNotEmitted = true;
     } else if (newstate == Phonon::ErrorState) {
-        //kDebug(610) << kBacktrace() << endl;
+        kDebug(610) << "reached error state from: " << kBacktrace() << endl;
         if (m_event_queue) {
             xine_event_dispose_queue(m_event_queue);
             m_event_queue = 0;
@@ -515,9 +497,28 @@ bool XineStream::event(QEvent *ev)
             }
             ev->accept();
             return true;
-        case XineOpen:
-            xineOpen();
+        case MrlChanged:
             ev->accept();
+            if (!m_stream) {
+                m_state = Phonon::LoadingState;
+                m_mutex.lock();
+                createStream();
+                m_mutex.unlock();
+                if (!m_stream) {
+                    changeState(Phonon::ErrorState);
+                    return true;
+                }
+            } else if (xine_get_status(m_stream) != XINE_STATUS_IDLE) {
+                m_mutex.lock();
+                xine_close(m_stream);
+                m_streamInfoReady = false;
+                m_aboutToFinishNotEmitted = true;
+                changeState(Phonon::LoadingState);
+                m_mutex.unlock();
+                m_waitingForClose.wakeAll();
+            }
+            // m_stream is valid and idle
+            xineOpen();
             return true;
         case GaplessPlaybackChanged:
             if (m_stream) {
@@ -762,8 +763,7 @@ void XineStream::setMrl(const QByteArray &mrl)
         return;
     }
     m_mrl = mrl;
-    // FIXME: if the stream is already open and the MRL has changed nothing will happen :(
-    QCoreApplication::postEvent(this, new QEvent(static_cast<QEvent::Type>(XineOpen)));
+    QCoreApplication::postEvent(this, new QEvent(static_cast<QEvent::Type>(MrlChanged)));
 }
 
 void XineStream::play()
