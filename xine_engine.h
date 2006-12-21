@@ -20,9 +20,20 @@
 #ifndef xine_engine
 #define xine_engine
 
+#include <kdemacros.h>
 #include <xine.h>
 #include <QEvent>
 #include <QString>
+
+#ifdef Q_OS_WIN
+# ifdef MAKE_PHONONXINEENGINE_LIB
+#  define PHONON_XINE_ENGINE_EXPORT KDE_EXPORT
+# else
+#  define PHONON_XINE_ENGINE_EXPORT KDE_IMPORT
+# endif
+#else
+# define PHONON_XINE_ENGINE_EXPORT KDE_EXPORT
+#endif
 
 namespace Phonon
 {
@@ -35,7 +46,7 @@ namespace Xine
 		ProgressEvent = 5402
 	};
 
-	class XineProgressEvent : public QEvent
+	class PHONON_XINE_ENGINE_EXPORT XineProgressEvent : public QEvent
 	{
 		public:
 			XineProgressEvent( const QString& description, int percent );
@@ -47,7 +58,7 @@ namespace Xine
 			int m_percent;
 	};
 
-	class XineEngine
+	class PHONON_XINE_ENGINE_EXPORT XineEngine
 	{
 		public:
 			~XineEngine();
