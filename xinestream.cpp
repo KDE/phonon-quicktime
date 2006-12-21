@@ -117,6 +117,7 @@ void XineStream::xineOpen()
     if (!m_stream) {
         createStream();
         if (!m_stream) {
+            m_mutex.unlock();
             return;
         }
     }
