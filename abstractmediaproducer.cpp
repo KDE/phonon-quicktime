@@ -280,7 +280,7 @@ void AbstractMediaProducer::selectSubtitleStream(const QString& streamName, cons
 
 void AbstractMediaProducer::play()
 {
-    if (m_state == Phonon::PlayingState) {
+    if (m_state == Phonon::PlayingState || m_state == Phonon::ErrorState) {
         return;
     }
 
