@@ -108,7 +108,7 @@ static off_t kbytestream_plugin_seek (input_plugin_t *this_gen, off_t offset, in
         default:
             exit(1);
     }
-    printf( "kbytestream_plugin_seek %d\n", ( int )offset );
+    //printf( "kbytestream_plugin_seek %d\n", ( int )offset );
 
     return that->bytestream->seekBuffer( offset );
 }
