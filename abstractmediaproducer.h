@@ -33,8 +33,6 @@
 #include <QMultiMap>
 #include "xinestream.h"
 
-class QTimer;
-
 namespace Phonon
 {
 namespace Xine
@@ -57,6 +55,8 @@ namespace Xine
 			virtual bool hasVideo() const;
 			virtual bool isSeekable() const;
 			virtual qint64 currentTime() const;
+            qint64 totalTime() const;
+            qint64 remainingTime() const;
 			virtual qint32 tickInterval() const;
 
 			virtual QStringList availableAudioStreams() const;
@@ -93,14 +93,13 @@ namespace Xine
 		protected:
 			void setState( State );
 			void updateMetaData();
-			virtual void reachedPlayingState();
-			virtual void leftPlayingState();
+            virtual void reachedPlayingState() {}
+            virtual void leftPlayingState() {}
 			VideoPath* videoPath() const { return m_videoPath; }
 			bool outputPortsNotChanged() const;
 
 		protected slots:
             void changeState(Phonon::State);
-			virtual void emitTick();
 
 		private slots:
             void handleStateChange(Phonon::State newstate, Phonon::State oldstate);
@@ -111,11 +110,9 @@ namespace Xine
 
             Phonon::State m_state;
             XineStream m_stream;
-			QTimer *m_tickTimer;
-			qint32 m_tickInterval;
-			int m_bufferSize;
-			AudioPath *m_audioPath;
-			VideoPath *m_videoPath;
+            qint32 m_tickInterval;
+            AudioPath *m_audioPath;
+            VideoPath *m_videoPath;
 
 			QHash<const QObject*, QString> m_selectedAudioStream;
 			QHash<const QObject*, QString> m_selectedVideoStream;

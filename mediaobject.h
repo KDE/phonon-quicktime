@@ -28,7 +28,6 @@
 #include <phonon/mediaobjectinterface.h>
 
 class KUrl;
-class QTimer;
 
 namespace Phonon
 {
@@ -44,13 +43,11 @@ namespace Xine
 
 		public slots:
 			KUrl url() const;
-			qint64 totalTime() const;
-            qint64 remainingTime() const;
+            qint64 totalTime() const { return AbstractMediaProducer::totalTime(); }
+            qint64 remainingTime() const { return AbstractMediaProducer::remainingTime(); }
 			qint32 aboutToFinishTime() const;
 			void setUrl( const KUrl& url );
 			void setAboutToFinishTime( qint32 newAboutToFinishTime );
-
-			void seek( qint64 time );
 
 		Q_SIGNALS:
 			void finished();
@@ -58,22 +55,13 @@ namespace Xine
             void length(qint64 length);
 
 		protected:
-			virtual void emitTick();
-			virtual void reachedPlayingState();
-			virtual void leftPlayingState();
-
 			KUrl m_url;
-			bool m_aboutToFinishNotEmitted;
 
 		private slots:
             void handleFinished();
-			void emitAboutToFinish();
 
 		private:
-			void emitAboutToFinishIn( int timeToAboutToFinishSignal );
-
-			qint32 m_aboutToFinishTime;
-			QTimer *m_aboutToFinishTimer;
+            qint32 m_aboutToFinishTime;
 	};
 }} //namespace Phonon::Xine
 

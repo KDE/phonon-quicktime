@@ -19,7 +19,6 @@
 */
 
 #include "abstractmediaproducer.h"
-#include <QTimer>
 #include "videopath.h"
 #include "audiopath.h"
 #include <kdebug.h>
@@ -42,7 +41,6 @@ AbstractMediaProducer::AbstractMediaProducer(QObject *parent)
     : QObject( parent ),
     m_state(Phonon::LoadingState),
     m_stream(0),
-    m_tickTimer(new QTimer(this)),
     m_audioPath(0),
     m_videoPath(0),
     m_seeking(0),
@@ -52,24 +50,29 @@ AbstractMediaProducer::AbstractMediaProducer(QObject *parent)
     m_stream.moveToThread(&m_stream);
     qRegisterMetaType<QMultiMap<QString,QString> >("QMultiMap<QString,QString>");
     qRegisterMetaType<Phonon::State>("Phonon::State");
+    qRegisterMetaType<qint64>("qint64");
     connect(&m_stream, SIGNAL(stateChanged(Phonon::State, Phonon::State)),
             SLOT(handleStateChange(Phonon::State, Phonon::State)));
     connect(&m_stream, SIGNAL(metaDataChanged(const QMultiMap<QString, QString>&)),
             SIGNAL(metaDataChanged(const QMultiMap<QString, QString>&)));
     connect(&m_stream, SIGNAL(seekDone()), SLOT(seekDone()));
-
-    connect(m_tickTimer, SIGNAL(timeout()), SLOT(emitTick()));
+    connect(&m_stream, SIGNAL(tick(qint64)), SIGNAL(tick(qint64)));
 }
 
 void AbstractMediaProducer::seekDone()
 {
+    //kDebug(610) << k_funcinfo << endl;
     --m_seeking;
 }
 
 AbstractMediaProducer::~AbstractMediaProducer()
 {
     m_stream.quit();
-    m_stream.wait();
+    if (!m_stream.wait( 2000 )) {
+        kWarning(610) << "XineStream hangs and is terminated." << endl;
+        m_stream.wait();
+        //m_stream.terminate();
+    }
 }
 
 bool AbstractMediaProducer::addVideoPath(QObject *videoPath)
@@ -137,6 +140,7 @@ bool AbstractMediaProducer::isSeekable() const
 
 qint64 AbstractMediaProducer::currentTime() const
 {
+    //kDebug(610) << k_funcinfo << kBacktrace() << endl;
     switch(m_stream.state()) {
         case Phonon::PausedState:
         case Phonon::BufferingState:
@@ -146,10 +150,12 @@ qint64 AbstractMediaProducer::currentTime() const
                     return m_currentTimeOverride;
                 }
                 const int current = m_stream.currentTime();
-                if (current < 0) {
-                    return m_currentTimeOverride;
-                } else if (m_currentTimeOverride > 0) {
-                    m_currentTimeOverride = -1;
+                if (m_currentTimeOverride >= 0) {
+                    if (current <= 0) {
+                        return m_currentTimeOverride;
+                    } else {
+                        m_currentTimeOverride = -1;
+                    }
                 }
                 return current;
             }
@@ -163,6 +169,41 @@ qint64 AbstractMediaProducer::currentTime() const
     return -1;
 }
 
+qint64 AbstractMediaProducer::totalTime() const
+{
+    const qint64 ret = stream().totalTime();
+    //kDebug(610) << k_funcinfo << "returning " << ret << endl;
+    return ret;
+}
+
+qint64 AbstractMediaProducer::remainingTime() const
+{
+    switch(m_stream.state()) {
+        case Phonon::PausedState:
+        case Phonon::BufferingState:
+        case Phonon::PlayingState:
+            {
+                if (m_seeking) {
+                    const qint64 ret = stream().totalTime() - m_currentTimeOverride;
+                    //kDebug(610) << k_funcinfo << "returning " << ret << endl;
+                    return ret;
+                }
+                const qint64 ret = stream().remainingTime();
+                //kDebug(610) << k_funcinfo << "returning " << ret << endl;
+                return ret;
+            }
+            break;
+        case Phonon::StoppedState:
+        case Phonon::LoadingState:
+            //kDebug(610) << k_funcinfo << "returning 0" << endl;
+            return 0;
+        case Phonon::ErrorState:
+            break;
+    }
+    //kDebug(610) << k_funcinfo << "returning -1" << endl;
+    return -1;
+}
+
 qint32 AbstractMediaProducer::tickInterval() const
 {
     return m_tickInterval;
@@ -171,7 +212,7 @@ qint32 AbstractMediaProducer::tickInterval() const
 void AbstractMediaProducer::setTickInterval(qint32 newTickInterval)
 {
     m_tickInterval = newTickInterval;
-    m_tickTimer->setInterval(newTickInterval);
+    m_stream.setTickInterval(m_tickInterval);
 }
 
 QStringList AbstractMediaProducer::availableAudioStreams() const
@@ -243,9 +284,9 @@ void AbstractMediaProducer::play()
         return;
     }
 
-    m_stream.play();
     m_currentTimeOverride = -1;
     changeState(Phonon::BufferingState);
+    m_stream.play();
 }
 
 void AbstractMediaProducer::pause()
@@ -264,6 +305,7 @@ void AbstractMediaProducer::stop()
 
 void AbstractMediaProducer::seek(qint64 time)
 {
+    //kDebug(610) << k_funcinfo << time << endl;
     if (!isSeekable()) {
         return;
     }
@@ -314,21 +356,6 @@ void AbstractMediaProducer::handleStateChange(Phonon::State newstate, Phonon::St
         leftPlayingState();
     }
     emit stateChanged(newstate, oldstate);
-}
-
-void AbstractMediaProducer::reachedPlayingState()
-{
-    m_tickTimer->start();
-}
-
-void AbstractMediaProducer::leftPlayingState()
-{
-    m_tickTimer->stop();
-}
-
-void AbstractMediaProducer::emitTick()
-{
-    emit tick(currentTime());
 }
 
 }}

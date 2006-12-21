@@ -78,7 +78,6 @@ void MediaQueue::streamNeedsUrl()
         stream().gaplessSwitchTo(m_nextUrl);
         m_url = m_nextUrl;
         m_nextUrl.clear();
-        m_aboutToFinishNotEmitted = true;
     }
 }
 
