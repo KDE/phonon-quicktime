@@ -33,7 +33,7 @@ extern "C" {
 #undef this
 }
 
-//#define VERBOSE_DEBUG
+#define VERBOSE_DEBUG
 #ifdef VERBOSE_DEBUG
 #  define PXINE_VDEBUG kDebug( 610 )
 #else
@@ -50,7 +50,7 @@ namespace Phonon
 namespace Xine
 {
 ByteStream::ByteStream(QObject* parent)
-    : MediaObject(parent),
+    : MediaObjectBase(parent),
     m_seekable(false),
     m_streamSize(0),
     m_intstate(CreatedState),
@@ -281,6 +281,9 @@ off_t ByteStream::seekBuffer(qint64 offset)
     m_eod = false;
 
     m_currentPosition = offset;
+    PXINE_VDEBUG << "seeking to a position that's not in the buffered data: clear the buffer. "
+        "m_buffersize = " << m_buffersize << ", m_offset = " << m_offset << ", m_eod = " << m_eod
+        << ", m_currentPosition = " << m_currentPosition << endl;
     //kDebug(610) << "UNLOCKING m_mutex: " << k_funcinfo << endl;
     m_mutex.unlock();
 
@@ -410,7 +413,7 @@ bool ByteStream::streamSeekable() const
 bool ByteStream::isSeekable() const
 {
     if (m_seekable) {
-        return MediaObject::isSeekable();
+        return AbstractMediaProducer::isSeekable();
     }
     return false;
 }

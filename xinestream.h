@@ -108,6 +108,7 @@ class XineStream : public QThread
         void changeState(Phonon::State newstate);
         void emitAboutToFinishIn(int timeToAboutToFinishSignal);
         bool updateTime();
+        void playbackFinished();
 
         xine_stream_t *m_stream;
         xine_event_queue_t *m_event_queue;
@@ -141,6 +142,7 @@ class XineStream : public QThread
         bool m_useGaplessPlayback : 1;
         bool m_aboutToFinishNotEmitted : 1;
         bool m_ticking : 1;
+        bool m_closing : 1;
 };
 
 } // namespace Xine

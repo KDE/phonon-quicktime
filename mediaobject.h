@@ -33,35 +33,46 @@ namespace Phonon
 {
 namespace Xine
 {
-	class MediaObject : public AbstractMediaProducer, public MediaObjectInterface
+    class MediaObjectBase : public AbstractMediaProducer
+    {
+        Q_OBJECT
+        public:
+            MediaObjectBase(QObject* parent);
+            ~MediaObjectBase();
+
+        public slots:
+            qint32 aboutToFinishTime() const;
+            void setAboutToFinishTime(qint32 newAboutToFinishTime);
+
+        signals:
+            void finished();
+            void aboutToFinish(qint32 msec);
+            void length(qint64 length);
+
+        private slots:
+            void handleFinished();
+
+        private:
+            qint32 m_aboutToFinishTime;
+    };
+
+    class MediaObject : public MediaObjectBase, public MediaObjectInterface
 	{
 		Q_OBJECT
 		Q_INTERFACES( Phonon::MediaObjectInterface )
 		public:
 			MediaObject( QObject* parent );
-			~MediaObject();
 
 		public slots:
 			KUrl url() const;
             qint64 totalTime() const { return AbstractMediaProducer::totalTime(); }
             qint64 remainingTime() const { return AbstractMediaProducer::remainingTime(); }
-			qint32 aboutToFinishTime() const;
+            void setAboutToFinishTime(qint32 newAboutToFinishTime) { MediaObjectBase::setAboutToFinishTime(newAboutToFinishTime); }
+            qint32 aboutToFinishTime() const { return MediaObjectBase::aboutToFinishTime(); }
 			void setUrl( const KUrl& url );
-			void setAboutToFinishTime( qint32 newAboutToFinishTime );
-
-		Q_SIGNALS:
-			void finished();
-			void aboutToFinish( qint32 msec );
-            void length(qint64 length);
 
 		protected:
 			KUrl m_url;
-
-		private slots:
-            void handleFinished();
-
-		private:
-            qint32 m_aboutToFinishTime;
 	};
 }} //namespace Phonon::Xine
 

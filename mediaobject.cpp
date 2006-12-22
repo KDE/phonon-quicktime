@@ -27,7 +27,7 @@ namespace Phonon
 {
 namespace Xine
 {
-MediaObject::MediaObject(QObject *parent)
+MediaObjectBase::MediaObjectBase(QObject *parent)
     : AbstractMediaProducer(parent)
 {
     connect(&stream(), SIGNAL(finished()), SLOT(handleFinished()), Qt::QueuedConnection);
@@ -35,7 +35,12 @@ MediaObject::MediaObject(QObject *parent)
     connect(&stream(), SIGNAL(aboutToFinish(qint32)), SIGNAL(aboutToFinish(qint32)), Qt::QueuedConnection);
 }
 
-void MediaObject::handleFinished()
+MediaObject::MediaObject(QObject *parent)
+    : MediaObjectBase(parent)
+{
+}
+
+void MediaObjectBase::handleFinished()
 {
     if (videoPath()) {
         videoPath()->streamFinished();
@@ -44,7 +49,7 @@ void MediaObject::handleFinished()
     emit finished();
 }
 
-MediaObject::~MediaObject()
+MediaObjectBase::~MediaObjectBase()
 {
 	//kDebug( 610 ) << k_funcinfo << endl;
 	stop();
@@ -56,7 +61,7 @@ KUrl MediaObject::url() const
 	return m_url;
 }
 
-qint32 MediaObject::aboutToFinishTime() const
+qint32 MediaObjectBase::aboutToFinishTime() const
 {
 	//kDebug( 610 ) << k_funcinfo << endl;
 	return m_aboutToFinishTime;
@@ -79,7 +84,7 @@ void MediaObject::setUrl( const KUrl& url )
 #endif
 }
 
-void MediaObject::setAboutToFinishTime( qint32 newAboutToFinishTime )
+void MediaObjectBase::setAboutToFinishTime( qint32 newAboutToFinishTime )
 {
     m_aboutToFinishTime = newAboutToFinishTime;
     stream().setAboutToFinishTime(newAboutToFinishTime);
