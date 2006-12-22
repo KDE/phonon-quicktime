@@ -38,7 +38,7 @@ namespace Phonon
 {
 namespace Xine
 {
-    class ByteStream : public MediaObject, public ByteStreamInterface
+    class ByteStream : public MediaObjectBase, public ByteStreamInterface
     {
         Q_OBJECT
         Q_INTERFACES( Phonon::ByteStreamInterface )
@@ -47,8 +47,8 @@ namespace Xine
             ~ByteStream();
 
         public slots:
-            qint64 totalTime() const { return MediaObject::totalTime(); }
-            qint64 remainingTime() const { return MediaObject::remainingTime(); }
+            qint64 totalTime() const { return AbstractMediaProducer::totalTime(); }
+            qint64 remainingTime() const { return AbstractMediaProducer::remainingTime(); }
             virtual bool isSeekable() const;
 
             void writeData(const QByteArray &data);
@@ -64,8 +64,8 @@ namespace Xine
 			void setStreamSize( qint64 );
 			qint64 streamSize() const;
 
-            void setAboutToFinishTime(qint32 newAboutToFinishTime) { MediaObject::setAboutToFinishTime(newAboutToFinishTime); }
-            qint32 aboutToFinishTime() const { return MediaObject::aboutToFinishTime(); }
+            void setAboutToFinishTime(qint32 newAboutToFinishTime) { MediaObjectBase::setAboutToFinishTime(newAboutToFinishTime); }
+            qint32 aboutToFinishTime() const { return MediaObjectBase::aboutToFinishTime(); }
 
             // for the xine input plugin:
             int peekBuffer(void *buf);
@@ -74,7 +74,7 @@ namespace Xine
             off_t currentPosition() const;
 
         signals:
-            /* finished, aboutToFinish and length are emitted by MediaObject already */
+            /* finished, aboutToFinish and length are emitted by MediaObjectBase already */
             void needData();
             void needDataQueued();
             void enoughData();
