@@ -69,6 +69,7 @@ class XineStream : public QThread
         void gaplessSwitchTo(const KUrl &url);
         void gaplessSwitchTo(const QByteArray &mrl);
         void closeBlocking();
+        void waitForEventLoop();
 
     public slots:
         void setUrl(const KUrl &url);
@@ -98,6 +99,7 @@ class XineStream : public QThread
         void getStartTime();
         void emitAboutToFinish();
         void emitTick();
+        void eventLoopReady();
 
     private:
         void getStreamInfo();
@@ -121,8 +123,8 @@ class XineStream : public QThread
         mutable QMutex m_mutex;
         mutable QMutex m_streamInfoMutex;
         mutable QMutex m_updateTimeMutex;
-        mutable QWaitCondition m_waitingForUpdateTime;
         mutable QWaitCondition m_waitingForStreamInfo;
+        QWaitCondition m_waitingForEventLoop;
         QWaitCondition m_waitingForClose;
         QMultiMap<QString, QString> m_metaDataMap;
         QByteArray m_mrl;
@@ -143,6 +145,7 @@ class XineStream : public QThread
         bool m_aboutToFinishNotEmitted : 1;
         bool m_ticking : 1;
         bool m_closing : 1;
+        bool m_eventLoopReady : 1;
 };
 
 } // namespace Xine

@@ -92,6 +92,7 @@ namespace Xine
 
         private:
             QByteArray mrl() const;
+            void setMrl();
             void pullBuffer(char *buf, int len);
             enum State
             {
@@ -99,11 +100,11 @@ namespace Xine
                 PreviewReadyState = 2,
                 StreamSizeSetState = 4,
                 AboutToOpenState = CreatedState | PreviewReadyState | StreamSizeSetState,
-                OpenedState = 8,
                 PlaybackState = 16
             };
 
             bool m_seekable;
+            bool m_mrlSet;
             qint64 m_streamSize;
 
 		QByteArray m_preview;
@@ -118,7 +119,6 @@ namespace Xine
 		QQueue<QByteArray> m_buffers;
 		pthread_t m_mainThread;
 		qint64 m_currentPosition;
-		bool m_inReadFromBuffer;
         bool m_inDtor;
         bool m_eod;
 	};
