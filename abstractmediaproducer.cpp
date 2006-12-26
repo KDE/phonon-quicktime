@@ -46,8 +46,8 @@ AbstractMediaProducer::AbstractMediaProducer(QObject *parent)
     m_seeking(0),
     m_currentTimeOverride(-1)
 {
-    m_stream.start();
     m_stream.moveToThread(&m_stream);
+    m_stream.start();
     qRegisterMetaType<QMultiMap<QString,QString> >("QMultiMap<QString,QString>");
     qRegisterMetaType<Phonon::State>("Phonon::State");
     qRegisterMetaType<qint64>("qint64");
@@ -67,6 +67,9 @@ void AbstractMediaProducer::seekDone()
 
 AbstractMediaProducer::~AbstractMediaProducer()
 {
+    // we have to be sure that the event loop of m_stream is already started at this point, else the
+    // quit function will be ignored
+    m_stream.waitForEventLoop();
     m_stream.quit();
     if (!m_stream.wait( 2000 )) {
         kWarning(610) << "XineStream hangs and is terminated." << endl;

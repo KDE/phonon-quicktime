@@ -33,7 +33,7 @@ extern "C" {
 #undef this
 }
 
-#define VERBOSE_DEBUG
+//#define VERBOSE_DEBUG
 #ifdef VERBOSE_DEBUG
 #  define PXINE_VDEBUG kDebug( 610 )
 #else
@@ -52,12 +52,12 @@ namespace Xine
 ByteStream::ByteStream(QObject* parent)
     : MediaObjectBase(parent),
     m_seekable(false),
+    m_mrlSet(false),
     m_streamSize(0),
     m_intstate(CreatedState),
     m_buffersize(0),
     m_offset(0),
     m_currentPosition(0),
-    m_inReadFromBuffer(false),
     m_inDtor(false),
     m_eod(false)
 {
@@ -68,6 +68,15 @@ ByteStream::ByteStream(QObject* parent)
 
     connect(this, SIGNAL(needDataQueued()), this, SIGNAL(needData()), Qt::QueuedConnection);
     connect(this, SIGNAL(seekStreamQueued(qint64)), this, SLOT(syncSeekStream(qint64)), Qt::QueuedConnection);
+}
+
+void ByteStream::setMrl()
+{
+    if (m_mrlSet) {
+        return;
+    }
+    m_mrlSet = true;
+    stream().setMrl(mrl());
 }
 
 void ByteStream::pullBuffer(char *buf, int len)
@@ -146,9 +155,6 @@ qint64 ByteStream::readFromBuffer(void *buf, size_t count)
     // never called from main thread
     Q_ASSERT(m_mainThread != pthread_self());
 
-    Q_ASSERT(!m_inReadFromBuffer);
-    m_inReadFromBuffer = true;
-
     qint64 currentPosition = m_currentPosition;
 
     PXINE_VDEBUG << k_funcinfo << count << endl;
@@ -157,10 +163,10 @@ qint64 ByteStream::readFromBuffer(void *buf, size_t count)
     qint64 previewsize = qMax(static_cast<qint64>(0), static_cast<qint64>(m_preview.size()) - m_currentPosition);
     if (previewsize + m_buffersize < count && !m_eod) {
         // the thread needs to sleep until a wait condition is signalled from writeData
-        PXINE_VDEBUG << k_funcinfo << "xine waits for data: " << previewsize + m_buffersize << ", " << m_eod << ", " << (m_intstate & OpenedState) << endl;
+        PXINE_VDEBUG << k_funcinfo << "xine waits for data: " << previewsize + m_buffersize << ", " << m_eod << endl;
         m_mutex.lock();
         //kDebug(610) << "LOCKED m_mutex: " << k_funcinfo << endl;
-        while (previewsize + m_buffersize < count && !m_eod) {// && (m_intstate & OpenedState)) {
+        while (previewsize + m_buffersize < count && !m_eod) {
             emit needDataQueued();
             if (!m_inDtor) {
                 m_waitingForData.wait(&m_mutex);
@@ -168,6 +174,7 @@ qint64 ByteStream::readFromBuffer(void *buf, size_t count)
             if (m_inDtor) {
                 //kDebug(610) << "UNLOCKING m_mutex: " << k_funcinfo << endl;
                 m_mutex.unlock();
+                PXINE_DEBUG << k_funcinfo << "returning 0, m_inDtor = true" << endl;
                 return 0;
             }
         }
@@ -184,19 +191,19 @@ qint64 ByteStream::readFromBuffer(void *buf, size_t count)
             << ", m_buffersize = " << m_buffersize << endl;
         pullBuffer(static_cast<char*>(buf), count);
         m_currentPosition += count;
-        m_inReadFromBuffer = false;
         return count;
     } else if (previewsize + m_buffersize > 0) {
+        Q_ASSERT(m_eod);
         PXINE_VDEBUG << k_funcinfo << "calling pullBuffer with previewsize = " << previewsize
             << ", m_buffersize = " << m_buffersize << endl;
         size_t tmp = m_buffersize + previewsize;
         pullBuffer(static_cast<char*>(buf), tmp);
         m_currentPosition += tmp;
-        m_inReadFromBuffer = false;
+        PXINE_DEBUG << k_funcinfo << "returning less data than requested, the stream is at its end" << endl;
         return tmp;
     }
-    PXINE_VDEBUG << k_funcinfo << "return 0" << endl;
-    m_inReadFromBuffer = false;
+    Q_ASSERT(m_eod);
+    PXINE_DEBUG << k_funcinfo << "return 0, the stream is at its end" << endl;
     return 0;
 }
 
@@ -288,6 +295,9 @@ off_t ByteStream::seekBuffer(qint64 offset)
     m_mutex.unlock();
 
     m_seekMutex.lock();
+    if (m_inDtor) {
+        return 0;
+    }
     emit seekStreamQueued(qMax(static_cast<qint64>(m_preview.size()), offset)); //calls syncSeekStream from the main thread
     m_seekWaitCondition.wait(&m_seekMutex); // waits until the seekStream signal returns
     m_seekMutex.unlock();
@@ -303,9 +313,11 @@ ByteStream::~ByteStream()
 {
     PXINE_DEBUG << k_funcinfo << endl;
     m_mutex.lock();
+    m_seekMutex.lock();
     m_inDtor = true;
     // the other thread is now not between m_mutex.lock() and m_waitingForData.wait(&m_mutex), so it
     // won't get stuck in m_waitingForData.wait if it's not there right now
+    m_seekMutex.unlock();
     m_mutex.unlock();
     stream().setMrl(QByteArray());
     m_seekWaitCondition.wakeAll();
@@ -391,6 +403,7 @@ void ByteStream::endOfData()
 {
     PXINE_VDEBUG << k_funcinfo << endl;
     m_eod = true;
+    // FIXME: the following line has no effect - a reset of the XineStream was intended
     stream().setMrl(mrl());
     m_waitingForData.wakeAll();
 }
@@ -495,6 +508,7 @@ void ByteStream::play()
 			else
 				setState( Phonon::ErrorState );
     } else {*/
+    setMrl();
         AbstractMediaProducer::play(); // goes into Phonon::BufferingState/PlayingState
         stateTransition(m_intstate | PlaybackState);
     //}
@@ -506,6 +520,7 @@ void ByteStream::stop()
 	//if( stream() )
 	//{
 		// don't call stateTransition so that xineOpen isn't called automatically
+    setMrl();
 		m_intstate &= AboutToOpenState;
 
 		AbstractMediaProducer::stop();
@@ -518,15 +533,12 @@ void ByteStream::stateTransition( int newState )
 		return;
 
 	PXINE_VDEBUG << k_funcinfo << newState << endl;
-    // if the OpenedState was unset
-    if (!(newState & OpenedState) && (m_intstate & OpenedState)) {
-        m_waitingForData.wakeAll();
-    }
     m_intstate = newState;
 	switch( newState )
 	{
 		case AboutToOpenState:
-            stream().setMrl(mrl());
+            setMrl();
+            //stream().setMrl(mrl());
 			break;
 		default:
 			break;

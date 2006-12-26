@@ -101,7 +101,8 @@ XineStream::XineStream(QObject *parent)
     m_useGaplessPlayback(false),
     m_aboutToFinishNotEmitted(true),
     m_ticking(false),
-    m_closing(false)
+    m_closing(false),
+    m_eventLoopReady(false)
 {
 }
 
@@ -215,6 +216,7 @@ void XineStream::getStreamInfo()
 {
     if (m_stream && !m_streamInfoReady && !m_mrl.isEmpty()) {
         if (xine_get_status(m_stream) == XINE_STATUS_IDLE) {
+            kDebug(610) << "calling xineOpen from " << k_funcinfo << endl;
             xineOpen();
             if (xine_get_status(m_stream) == XINE_STATUS_IDLE) {
                 return;
@@ -525,11 +527,12 @@ bool XineStream::event(QEvent *ev)
                 }
                 m_mrl = e->mrl;
                 if (!m_stream) {
-                    m_state = Phonon::LoadingState;
+                    changeState(Phonon::LoadingState);
                     m_mutex.lock();
                     createStream();
                     m_mutex.unlock();
                     if (!m_stream) {
+                        kError(610) << "MrlChangedEvent: createStream didn't create a stream. This should not happen." << endl;
                         changeState(Phonon::ErrorState);
                         return true;
                     }
@@ -541,9 +544,11 @@ bool XineStream::event(QEvent *ev)
                     changeState(Phonon::LoadingState);
                     m_mutex.unlock();
                 }
-                if (m_mrl.isEmpty()) {
+                if (m_closing || m_mrl.isEmpty()) {
+                    kDebug(610) << "MrlChanged: don't call xineOpen. m_closing = " << m_closing << ", m_mrl = " << m_mrl.constData() << endl;
                     m_waitingForClose.wakeAll();
                 } else {
+                    kDebug(610) << "calling xineOpen from MrlChanged" << endl;
                     xineOpen();
                 }
             }
@@ -629,6 +634,7 @@ bool XineStream::event(QEvent *ev)
         case PlayCommand:
             ev->accept();
             if (m_mrl.isEmpty()) {
+                kError(610) << "PlayCommand: m_mrl is empty. This should not happen." << endl;
                 changeState(Phonon::ErrorState);
                 return true;
             }
@@ -636,6 +642,7 @@ bool XineStream::event(QEvent *ev)
                 QMutexLocker locker(&m_mutex);
                 createStream();
                 if (!m_stream) {
+                    kError(610) << "PlayCommand: createStream didn't create a stream. This should not happen." << endl;
                     changeState(Phonon::ErrorState);
                     return true;
                 }
@@ -652,6 +659,7 @@ bool XineStream::event(QEvent *ev)
                 //X                     m_startTime = -1;
                 //X                 }
                 if (xine_get_status(m_stream) == XINE_STATUS_IDLE) {
+                    kDebug(610) << "calling xineOpen from PlayCommand" << endl;
                     xineOpen();
                 }
                 xine_play(m_stream, 0, 0);
@@ -661,6 +669,7 @@ bool XineStream::event(QEvent *ev)
         case PauseCommand:
             ev->accept();
             if (m_mrl.isEmpty()) {
+                kError(610) << "PauseCommand: m_mrl is empty. This should not happen." << endl;
                 changeState(Phonon::ErrorState);
                 return true;
             }
@@ -668,6 +677,7 @@ bool XineStream::event(QEvent *ev)
                 QMutexLocker locker(&m_mutex);
                 createStream();
                 if (!m_stream) {
+                    kError(610) << "PauseCommand: createStream didn't create a stream. This should not happen." << endl;
                     changeState(Phonon::ErrorState);
                     return true;
                 }
@@ -680,6 +690,7 @@ bool XineStream::event(QEvent *ev)
         case StopCommand:
             ev->accept();
             if (m_mrl.isEmpty()) {
+                kError(610) << "StopCommand: m_mrl is empty. This should not happen." << endl;
                 changeState(Phonon::ErrorState);
                 return true;
             }
@@ -687,6 +698,7 @@ bool XineStream::event(QEvent *ev)
                 QMutexLocker locker(&m_mutex);
                 createStream();
                 if (!m_stream) {
+                    kError(610) << "StopCommand: createStream didn't create a stream. This should not happen." << endl;
                     changeState(Phonon::ErrorState);
                     return true;
                 }
@@ -771,6 +783,25 @@ bool XineStream::event(QEvent *ev)
     }
 }
 
+// xine thread
+void XineStream::eventLoopReady()
+{
+    m_mutex.lock();
+    m_eventLoopReady = true;
+    m_mutex.unlock();
+    m_waitingForEventLoop.wakeAll();
+}
+
+// called from main thread
+void XineStream::waitForEventLoop()
+{
+    m_mutex.lock();
+    if (!m_eventLoopReady) {
+        m_waitingForEventLoop.wait(&m_mutex);
+    }
+    m_mutex.unlock();
+}
+
 // called from main thread
 void XineStream::closeBlocking()
 {
@@ -838,6 +869,7 @@ bool XineStream::updateTime()
     Q_ASSERT(QThread::currentThread() == this);
     if (m_stream) {
         if (xine_get_status(m_stream) == XINE_STATUS_IDLE) {
+            kDebug(610) << "calling xineOpen from " << k_funcinfo << endl;
             xineOpen();
         }
         QMutexLocker locker(&m_updateTimeMutex);
@@ -870,7 +902,7 @@ void XineStream::emitAboutToFinishIn(int timeToAboutToFinishSignal)
     Q_ASSERT(m_aboutToFinishTime > 0);
     if (!m_aboutToFinishTimer) {
         m_aboutToFinishTimer = new QTimer(this);
-        m_aboutToFinishTimer->setObjectName("aboutToFinish timer");
+        //m_aboutToFinishTimer->setObjectName("aboutToFinish timer");
         Q_ASSERT(m_aboutToFinishTimer->thread() == this);
         m_aboutToFinishTimer->setSingleShot(true);
         connect(m_aboutToFinishTimer, SIGNAL(timeout()), SLOT(emitAboutToFinish()), Qt::DirectConnection);
@@ -946,11 +978,12 @@ void XineStream::getStartTime()
 void XineStream::run()
 {
     Q_ASSERT(QThread::currentThread() == this);
-    m_tickTimer = new QTimer;
-    m_tickTimer->setObjectName("tick timer");
-    m_tickTimer->moveToThread(this);
+    m_tickTimer = new QTimer(this);
+    //m_tickTimer->setObjectName("tick timer");
     connect(m_tickTimer, SIGNAL(timeout()), SLOT(emitTick()), Qt::DirectConnection);
+    QTimer::singleShot(0, this, SLOT(eventLoopReady()));
     exec();
+    m_eventLoopReady = false;
 
     // clean ups
     if(m_event_queue) {
