@@ -39,6 +39,7 @@ class VideoWidgetInterface
 		virtual void clearWindow() = 0;
 		virtual void setPath( VideoPath* vp ) = 0;
 		virtual void unsetPath( VideoPath* vp ) = 0;
+		virtual void setNavCursor( bool ) = 0;
 };
 
 } // namespace Xine

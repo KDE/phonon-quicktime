@@ -33,7 +33,9 @@ namespace Xine
 	{
 		NewMetaDataEvent = 5400,
 		MediaFinishedEvent = 5401,
-		ProgressEvent = 5402
+		ProgressEvent = 5402,
+		NavButtonIn = 5403,
+		NavButtonOut = 5404
 	};
 
 	class PHONON_XINEENGINE_EXPORT XineProgressEvent : public QEvent
