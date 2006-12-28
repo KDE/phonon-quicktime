@@ -92,6 +92,14 @@ namespace Xine
 					QCoreApplication::postEvent( mp, new XineProgressEvent( QString::fromUtf8( progress->description ), progress->percent ) );
 				}
 				break;
+			case XINE_EVENT_SPU_BUTTON:
+				{
+					xine_spu_button_t* button = static_cast<xine_spu_button_t*>(xineEvent->data);
+					if ( button->direction == 1 ) /* enter a button */
+						QCoreApplication::postEvent( mp, new QEvent( static_cast<QEvent::Type>( Xine::NavButtonIn ) ) );
+					else
+						QCoreApplication::postEvent( mp, new QEvent( static_cast<QEvent::Type>( Xine::NavButtonOut ) ) );
+				}
 		}
 	}
 }
