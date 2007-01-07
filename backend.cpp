@@ -52,7 +52,7 @@ Backend::Backend( QObject* parent, const QStringList& )
 {
 	char configfile[2048];
 
-    //xine_engine_set_param(XineEngine::xine(), XINE_ENGINE_PARAM_VERBOSITY, 99);
+    xine_engine_set_param(XineEngine::xine(), XINE_ENGINE_PARAM_VERBOSITY, 99);
 	sprintf(configfile, "%s%s", xine_get_homedir(), "/.xine/config");
 	xine_config_load( XineEngine::xine(), configfile );
 	xine_init( XineEngine::xine() );
@@ -159,13 +159,7 @@ QSet<int> Backend::objectDescriptionIndexes( ObjectDescriptionType type ) const
 	switch( type )
 	{
 		case Phonon::AudioOutputDeviceType:
-			{
-				// This will list the audio drivers, not the actual devices.
-				const char* const* outputPlugins = xine_list_audio_output_plugins( XineEngine::xine() );
-				for( int i = 0; outputPlugins[i]; ++i )
-					set << 10000 + i;
-				break;
-			}
+            return XineEngine::audioOutputIndexes();
 		case Phonon::AudioCaptureDeviceType:
 			set << 20000 << 20001;
 			break;
@@ -210,13 +204,7 @@ QString Backend::objectDescriptionName( ObjectDescriptionType type, int index ) 
 	switch( type )
 	{
 		case Phonon::AudioOutputDeviceType:
-			{
-				const char* const* outputPlugins = xine_list_audio_output_plugins( XineEngine::xine() );
-				for( int i = 0; outputPlugins[i]; ++i )
-					if( 10000 + i == index )
-						return QLatin1String( outputPlugins[i] );
-				break;
-			}
+            return XineEngine::audioOutputName(index);
 		case Phonon::AudioCaptureDeviceType:
 			switch( index )
 			{
@@ -276,13 +264,7 @@ QString Backend::objectDescriptionDescription( ObjectDescriptionType type, int i
 	switch( type )
 	{
 		case Phonon::AudioOutputDeviceType:
-			{
-				const char* const* outputPlugins = xine_list_audio_output_plugins( XineEngine::xine() );
-				for( int i = 0; outputPlugins[i]; ++i )
-					if( 10000 + i == index )
-						return QLatin1String( xine_get_audio_driver_plugin_description( XineEngine::xine(), outputPlugins[i] ) );
-				break;
-			}
+            return XineEngine::audioOutputDescription(index);
 		case Phonon::AudioCaptureDeviceType:
 			break;
 		case Phonon::VideoOutputDeviceType:

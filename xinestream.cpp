@@ -24,6 +24,7 @@
 #include <QCoreApplication>
 #include <QTimer>
 #include <kurl.h>
+#include "audioport.h"
 
 namespace Phonon
 {
@@ -50,6 +51,13 @@ class MrlChangedEvent : public QEvent
 {
     public:
         MrlChangedEvent(const QByteArray &_mrl) : QEvent(static_cast<QEvent::Type>(MrlChanged)), mrl(_mrl) {}
+        QByteArray mrl;
+};
+
+class GaplessSwitchEvent : public QEvent
+{
+    public:
+        GaplessSwitchEvent(const QByteArray &_mrl) : QEvent(static_cast<QEvent::Type>(GaplessSwitch)), mrl(_mrl) {}
         QByteArray mrl;
 };
 
@@ -85,7 +93,6 @@ XineStream::XineStream(QObject *parent)
     : QThread(parent),
     m_stream(0),
     m_event_queue(0),
-    m_audioPort(0),
     m_videoPort(0),
     m_state(Phonon::LoadingState),
     m_tickTimer(0),
@@ -119,7 +126,7 @@ void XineStream::xineOpen()
 
     // xine_open can call functions from ByteStream which will block waiting for data.
     //kDebug(610) << "xine_open(" << m_mrl.constData() << ")" << endl;
-    const int ret = xine_open(m_stream, m_mrl);
+    const int ret = xine_open(m_stream, m_mrl.constData());
     //m_waitingForXineOpen.wakeAll();
     if (ret == 0) {
         kDebug(610) << "xine_open failed for m_mrl = " << m_mrl.constData() << endl;
@@ -252,16 +259,21 @@ bool XineStream::createStream()
 	kDebug( 610 ) << "XXXXXXXXXXXXXX xine_stream_new( " << ( void* )XineEngine::xine() << ", " << ( void* )audioPort << ", " << ( void* )videoPort << " );" << kBacktrace() << endl;
     */
 
-    m_stream = xine_stream_new(XineEngine::xine(), m_audioPort, m_videoPort);
-    Q_ASSERT(!m_event_queue);
-    m_event_queue = xine_event_new_queue(m_stream);
-    xine_event_create_listener_thread(m_event_queue, &XineEngine::self()->xineEventListener, (void*)this);
-
-    if (!m_audioPort) {
+    m_portMutex.lock();
+    m_audioPort = m_newAudioPort;
+    kDebug(610) << k_funcinfo << "AudioPort.xinePort() = " << m_audioPort.xinePort() << endl;
+    m_stream = xine_stream_new(XineEngine::xine(), m_audioPort.xinePort(), m_videoPort);
+    if (!m_audioPort.isValid()) {
         xine_set_param(m_stream, XINE_PARAM_IGNORE_AUDIO, 1);
     } else if (m_volume != 100) {
         xine_set_param(m_stream, XINE_PARAM_AUDIO_AMP_LEVEL, m_volume);
     }
+    m_portMutex.unlock();
+
+    Q_ASSERT(!m_event_queue);
+    m_event_queue = xine_event_new_queue(m_stream);
+    xine_event_create_listener_thread(m_event_queue, &XineEngine::self()->xineEventListener, (void*)this);
+
     if (!m_videoPort) {
         xine_set_param(m_stream, XINE_PARAM_IGNORE_VIDEO, 1);
     }
@@ -285,18 +297,16 @@ void XineStream::setVolume(int vol)
 }
 
 //called from main thread
-void XineStream::setAudioPort(xine_audio_port_t *port)
+void XineStream::setAudioPort(AudioPort port)
 {
-    if (port == m_audioPort) {
+    m_portMutex.lock();
+    if (m_audioPort == m_newAudioPort && port == m_audioPort) {
+        m_portMutex.unlock();
         return;
     }
-    m_mutex.lock();
-    m_audioPort = port;
-    if (!m_stream) {
-        m_mutex.unlock();
-        return;
-    }
-    m_mutex.unlock();
+    m_newAudioPort = port;
+    m_portMutex.unlock();
+
     // schedule m_stream recreation
     recreateStream();
 }
@@ -307,13 +317,13 @@ void XineStream::setVideoPort(xine_video_port_t *port)
     if (port == m_videoPort) {
         return;
     }
-    m_mutex.lock();
+    //m_mutex.lock();
     m_videoPort = port;
-    if (!m_stream) {
-        m_mutex.unlock();
-        return;
-    }
-    m_mutex.unlock();
+    //if (!m_stream) {
+        //m_mutex.unlock();
+        //return;
+    //}
+    //m_mutex.unlock();
     // schedule m_stream recreation
     recreateStream();
 }
@@ -343,15 +353,13 @@ void XineStream::useGaplessPlayback(bool b)
 // called from main thread
 void XineStream::gaplessSwitchTo(const KUrl &url)
 {
-    m_mrl = url.url().toUtf8();
-    QCoreApplication::postEvent(this, new QEvent(static_cast<QEvent::Type>(GaplessSwitch)));
+    gaplessSwitchTo(url.url().toUtf8());
 }
 
 // called from main thread
 void XineStream::gaplessSwitchTo(const QByteArray &mrl)
 {
-    m_mrl = mrl;
-    QCoreApplication::postEvent(this, new QEvent(static_cast<QEvent::Type>(GaplessSwitch)));
+    QCoreApplication::postEvent(this, new GaplessSwitchEvent(mrl));
 }
 
 // called from main thread
@@ -463,14 +471,16 @@ bool XineStream::event(QEvent *ev)
         case GaplessSwitch:
             ev->accept();
             {
+                GaplessSwitchEvent *e = static_cast<GaplessSwitchEvent*>(ev);
                 m_mutex.lock();
+                m_mrl = e->mrl;
                 if (m_mrl.isEmpty() || m_closing) {
                     m_mutex.unlock();
                     playbackFinished();
                     return true;
                 }
                 xine_set_param(m_stream, XINE_PARAM_GAPLESS_SWITCH, 1);
-                if (!xine_open(m_stream, m_mrl)) {
+                if (!xine_open(m_stream, m_mrl.constData())) {
                     kWarning(610) << "xine_open for gapless playback failed!" << endl;
                     xine_set_param(m_stream, XINE_PARAM_GAPLESS_SWITCH, 0);
                     m_mutex.unlock();
@@ -569,9 +579,10 @@ bool XineStream::event(QEvent *ev)
                 m_recreateEventSent = false;
 
                 // TODO: Q_ASSERT that there were output port changes
-                if (!m_stream) {
-                    createStream();
-                } else {
+
+                // do nothing if there's no stream yet - RecreateStream is called if a port has
+                // changed, there might follow more port changes
+                if (m_stream) {
                     // save state; TODO: not all params are needed
                     Phonon::State oldstate = m_state;
                     int position;
@@ -610,7 +621,7 @@ bool XineStream::event(QEvent *ev)
                         xine_set_param(m_stream, i, params[i]);
                     }*/
                     if (!m_mrl.isEmpty() && !m_closing) {
-                        xine_open(m_stream, m_mrl);
+                        xine_open(m_stream, m_mrl.constData());
                         switch (oldstate) {
                             case Phonon::PausedState:
                                 xine_play(m_stream, position, 0);

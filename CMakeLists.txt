@@ -22,7 +22,7 @@ set(xine_engine_LIB_SRCS
    )
 kde4_automoc(${xine_engine_LIB_SRCS})
 kde4_add_library(phononxineengine SHARED ${xine_engine_LIB_SRCS})
-target_link_libraries(phononxineengine ${QT_QTCORE_LIBRARY} ${XINE_LIBRARY})
+target_link_libraries(phononxineengine ${QT_QTCORE_LIBRARY} ${XINE_LIBRARY} ${KDE4_KALSADEVICELIST_LIBS} ${KDE4_SOLID_LIBS})
 set_target_properties(phononxineengine PROPERTIES VERSION ${GENERIC_LIB_VERSION} SOVERSION ${GENERIC_LIB_SOVERSION})
 install(TARGETS phononxineengine DESTINATION ${LIB_INSTALL_DIR})
 
@@ -30,6 +30,7 @@ install(TARGETS phononxineengine DESTINATION ${LIB_INSTALL_DIR})
 ADD_DEFINITIONS(-D_FILE_OFFSET_BITS=64)
 
 set(phonon_xine_PART_SRCS
+    audioport.cpp
     xinestream.cpp
     abstractmediaproducer.cpp
     abstractaudiooutput.cpp
@@ -54,7 +55,7 @@ set(phonon_xine_PART_SRCS
 
 kde4_automoc(${phonon_xine_PART_SRCS})
 kde4_add_plugin(phonon_xine_threaded ${phonon_xine_PART_SRCS})
-target_link_libraries(phonon_xine_threaded ${KDE4_KDECORE_LIBS} phononcore phononxineengine)
+target_link_libraries(phonon_xine_threaded ${KDE4_KDECORE_LIBS} ${KDE4_PHONONCORE_LIBS} phononxineengine)
 
 
 install(TARGETS phonon_xine_threaded DESTINATION ${PLUGIN_INSTALL_DIR})
