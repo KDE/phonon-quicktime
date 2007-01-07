@@ -52,7 +52,8 @@ void MediaObjectBase::handleFinished()
 MediaObjectBase::~MediaObjectBase()
 {
 	//kDebug( 610 ) << k_funcinfo << endl;
-	stop();
+    // if stop() is called for a XineStream with empty m_mrl we provoke an error
+    //stop();
 }
 
 KUrl MediaObject::url() const

@@ -29,6 +29,7 @@
 
 #include <sys/time.h>
 #include <time.h>
+#include "audioport.h"
 
 class QTimer;
 
@@ -59,7 +60,7 @@ class XineStream : public QThread
         bool hasVideo() const;
         bool isSeekable() const;
         void setVolume(int vol);
-        void setAudioPort(xine_audio_port_t *port);
+        void setAudioPort(AudioPort port);
         void setVideoPort(xine_video_port_t *port);
         void setTickInterval(qint32 interval);
         void setAboutToFinishTime(qint32 time);
@@ -115,11 +116,13 @@ class XineStream : public QThread
         xine_stream_t *m_stream;
         xine_event_queue_t *m_event_queue;
 
-        xine_audio_port_t *m_audioPort;
+        AudioPort m_audioPort;
+        AudioPort m_newAudioPort;
         xine_video_port_t *m_videoPort;
 
         Phonon::State m_state;
 
+        QMutex m_portMutex;
         mutable QMutex m_mutex;
         mutable QMutex m_streamInfoMutex;
         mutable QMutex m_updateTimeMutex;

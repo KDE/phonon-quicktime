@@ -20,10 +20,23 @@
 #ifndef xine_engine
 #define xine_engine
 
+#include <kdemacros.h>
 #include <xine.h>
 #include <QEvent>
 #include <QString>
-#include "phonon_xine_export.h"
+#include <QSet>
+#include <QStringList>
+#include <kconfig.h>
+
+#ifdef Q_OS_WIN
+# ifdef MAKE_PHONONXINEENGINE_LIB
+#  define PHONON_XINE_ENGINE_EXPORT KDE_EXPORT
+# else
+#  define PHONON_XINE_ENGINE_EXPORT KDE_IMPORT
+# endif
+#else
+# define PHONON_XINE_ENGINE_EXPORT KDE_EXPORT
+#endif
 
 namespace Phonon
 {
@@ -33,12 +46,10 @@ namespace Xine
 	{
 		NewMetaDataEvent = 5400,
 		MediaFinishedEvent = 5401,
-		ProgressEvent = 5402,
-		NavButtonIn = 5403,
-		NavButtonOut = 5404
+		ProgressEvent = 5402
 	};
 
-	class PHONON_XINEENGINE_EXPORT XineProgressEvent : public QEvent
+	class PHONON_XINE_ENGINE_EXPORT XineProgressEvent : public QEvent
 	{
 		public:
 			XineProgressEvent( const QString& description, int percent );
@@ -50,7 +61,7 @@ namespace Xine
 			int m_percent;
 	};
 
-	class PHONON_XINEENGINE_EXPORT XineEngine
+	class PHONON_XINE_ENGINE_EXPORT XineEngine
 	{
 		public:
 			~XineEngine();
@@ -59,14 +70,39 @@ namespace Xine
 			static xine_t* xine();
 			static void xineEventListener( void*, const xine_event_t* );
 
+            static QSet<int> audioOutputIndexes();
+            static QString audioOutputName(int audioDevice);
+            static QString audioOutputDescription(int audioDevice);
+            static QString audioDriverFor(int audioDevice);
+            static QStringList alsaDevicesFor(int audioDevice);
+
 		protected:
 			XineEngine();
 
 		private:
+            void checkAudioOutputs();
+            void addAudioOutput(int idx, const QString &n, const QString &desc, const QString &dr, const QStringList &dev);
 			static XineEngine* s_instance;
 			xine_t* m_xine;
+
+            struct AudioOutputInfo
+            {
+                AudioOutputInfo(int idx, const QString &n, const QString &desc, const QString &dr, const QStringList &dev)
+                    : available(false), index(idx), name(n), description(desc), driver(dr), devices(dev)
+                {}
+                bool available;
+                int index;
+                QString name;
+                QString description;
+                QString driver;
+                QStringList devices;
+                bool operator==(const AudioOutputInfo& rhs) { return name == rhs.name && driver == rhs.driver; }
+            };
+            QList<AudioOutputInfo> m_audioOutputInfos;
+            KSharedConfig::Ptr m_config;
 	};
 }
 }
 
 #endif //xine_engine
+// vim: sw=4 ts=4 tw=80 et

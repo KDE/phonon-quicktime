@@ -79,7 +79,7 @@ namespace Xine
 
 			XineStream& stream() { return m_stream; }
 			const XineStream& stream() const { return m_stream; }
-            void setAudioPort(xine_audio_port_t* port) { m_stream.setAudioPort(port); }
+            void setAudioPort(AudioPort port) { m_stream.setAudioPort(port); }
             void setVideoPort(xine_video_port_t* port) { m_stream.setVideoPort(port); }
 
 		public slots:

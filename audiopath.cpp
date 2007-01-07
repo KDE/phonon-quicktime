@@ -44,12 +44,12 @@ bool AudioPath::hasOutput() const
     return m_output;
 }
 
-xine_audio_port_t *AudioPath::audioPort(XineStream* forStream) const
+AudioPort AudioPath::audioPort(XineStream* forStream) const
 {
     if (m_output) {
         return m_output->audioPort(forStream);
     }
-    return 0;
+    return AudioPort();
 }
 
 bool AudioPath::addOutput( QObject* audioOutput )
@@ -82,7 +82,7 @@ bool AudioPath::removeOutput( QObject* audioOutput )
 		m_output->removePath( this );
 		m_output = 0;
 		foreach( AbstractMediaProducer *mp, m_producers )
-            mp->setAudioPort(0);
+            mp->setAudioPort(AudioPort());
 		return true;
 	}
 	AbstractAudioOutput* aao = qobject_cast<AbstractAudioOutput*>( audioOutput );
