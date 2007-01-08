@@ -40,7 +40,7 @@
 #include <QVariant>
 
 typedef KGenericFactory<Phonon::Xine::Backend> XineBackendFactory;
-K_EXPORT_COMPONENT_FACTORY( phonon_xine, XineBackendFactory( "xinebackend" ) )
+K_EXPORT_COMPONENT_FACTORY( phonon_xine_threaded, XineBackendFactory( "xinebackend" ) )
 
 namespace Phonon
 {
@@ -52,7 +52,7 @@ Backend::Backend( QObject* parent, const QStringList& )
 {
 	char configfile[2048];
 
-	xine_engine_set_param( XineEngine::xine(), XINE_ENGINE_PARAM_VERBOSITY, 99 );
+    xine_engine_set_param(XineEngine::xine(), XINE_ENGINE_PARAM_VERBOSITY, 99);
 	sprintf(configfile, "%s%s", xine_get_homedir(), "/.xine/config");
 	xine_config_load( XineEngine::xine(), configfile );
 	xine_init( XineEngine::xine() );
@@ -159,13 +159,7 @@ QSet<int> Backend::objectDescriptionIndexes( ObjectDescriptionType type ) const
 	switch( type )
 	{
 		case Phonon::AudioOutputDeviceType:
-			{
-				// This will list the audio drivers, not the actual devices.
-				const char* const* outputPlugins = xine_list_audio_output_plugins( XineEngine::xine() );
-				for( int i = 0; outputPlugins[i]; ++i )
-					set << 10000 + i;
-				break;
-			}
+            return XineEngine::audioOutputIndexes();
 		case Phonon::AudioCaptureDeviceType:
 			set << 20000 << 20001;
 			break;
@@ -207,23 +201,21 @@ QSet<int> Backend::objectDescriptionIndexes( ObjectDescriptionType type ) const
 
 QHash<QByteArray, QVariant> Backend::objectDescriptionProperties(ObjectDescriptionType type, int index) const
 {
+    kDebug(610) << k_funcinfo << type << index << endl;
     QHash<QByteArray, QVariant> ret;
     switch (type) {
         case Phonon::AudioOutputDeviceType:
             {
-                const char* const* outputPlugins = xine_list_audio_output_plugins(XineEngine::xine());
-                for (int i = 0; outputPlugins[i]; ++i) {
-                    if (10000 + i == index) {
-                        ret.insert("name", QLatin1String(outputPlugins[i]));
-                        ret.insert("description", QLatin1String(xine_get_audio_driver_plugin_description(XineEngine::xine(), outputPlugins[i])));
-                        break;
-                    }
+                ret.insert("name", XineEngine::audioOutputName(index));
+                ret.insert("description", XineEngine::audioOutputDescription(index));
+                QString icon = XineEngine::audioOutputIcon(index);
+                if (!icon.isEmpty()) {
+                    ret.insert("icon", icon);
                 }
             }
             break;
         case Phonon::AudioCaptureDeviceType:
-            switch (index)
-            {
+            switch (index) {
                 case 20000:
                     ret.insert("name", QLatin1String("Soundcard"));
                     break;
@@ -231,10 +223,11 @@ QHash<QByteArray, QVariant> Backend::objectDescriptionProperties(ObjectDescripti
                     ret.insert("name", QLatin1String("DV"));
                     break;
             }
+            kDebug(610) << ret["name"] << endl;
             break;
         case Phonon::VideoOutputDeviceType:
             {
-                const char* const* outputPlugins = xine_list_video_output_plugins(XineEngine::xine());
+                const char *const *outputPlugins = xine_list_video_output_plugins(XineEngine::xine());
                 for (int i = 0; outputPlugins[i]; ++i) {
                     if (40000 + i == index) {
                         ret.insert("name", QLatin1String(outputPlugins[i]));
@@ -247,12 +240,12 @@ QHash<QByteArray, QVariant> Backend::objectDescriptionProperties(ObjectDescripti
         case Phonon::VideoCaptureDeviceType:
             switch (index) {
                 case 30000:
-                    ret.insert("name", QLatin1String("USB Webcam"));
-                    ret.insert("description", QLatin1String("first description"));
+                    ret.insert("name", "USB Webcam");
+                    ret.insert("description", "first description");
                     break;
                 case 30001:
-                    ret.insert("name", QLatin1String("DV"));
-                    ret.insert("description", QLatin1String("second description"));
+                    ret.insert("name", "DV");
+                    ret.insert("description", "second description");
                     break;
             }
             break;
@@ -266,7 +259,7 @@ QHash<QByteArray, QVariant> Backend::objectDescriptionProperties(ObjectDescripti
             break;
         case Phonon::AudioEffectType:
             {
-                const char* const* postPlugins = xine_list_post_plugins_typed(XineEngine::xine(), XINE_POST_TYPE_AUDIO_FILTER);
+                const char *const *postPlugins = xine_list_post_plugins_typed(XineEngine::xine(), XINE_POST_TYPE_AUDIO_FILTER);
                 for (int i = 0; postPlugins[i]; ++i) {
                     if (0x7F000000 + i == index) {
                         ret.insert("name", QLatin1String(postPlugins[i]));
@@ -278,11 +271,10 @@ QHash<QByteArray, QVariant> Backend::objectDescriptionProperties(ObjectDescripti
             break;
         case Phonon::VideoEffectType:
             {
-                const char* const* postPlugins = xine_list_post_plugins_typed(XineEngine::xine(), XINE_POST_TYPE_VIDEO_FILTER);
+                const char *const *postPlugins = xine_list_post_plugins_typed(XineEngine::xine(), XINE_POST_TYPE_VIDEO_FILTER);
                 for (int i = 0; postPlugins[i]; ++i) {
                     if (0x7E000000 + i == index) {
                         ret.insert("name", QLatin1String(postPlugins[i]));
-                        ret.insert("description", QLatin1String(postPlugins[i]));
                         break;
                     }
                 }
