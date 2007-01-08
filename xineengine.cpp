@@ -260,10 +260,10 @@ namespace Xine
                     foreach (Solid::Device device, deviceList) {
                         Solid::AudioHw *dev = device.as<Solid::AudioHw>();
                         Q_ASSERT(dev);
-                        if (dev->type() & Solid::AudioHw::AudioOutput) {
+                        if (dev->deviceType() & Solid::AudioHw::AudioOutput) {
                             addAudioOutput(nextIndex++, dev->name() + QLatin1String(" (OSS)"),
                                     QString(), QString(), QLatin1String("oss"),
-                                    QStringList(dev->driverHandler()));
+                                    dev->driverHandles());
                         }
                     }
                 } else {
