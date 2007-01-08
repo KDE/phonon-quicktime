@@ -18,7 +18,7 @@
 */
 
 #include "xinestream.h"
-#include "xine_engine.h"
+#include "xineengine.h"
 #include <QMutexLocker>
 #include <QEvent>
 #include <QCoreApplication>

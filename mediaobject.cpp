@@ -20,7 +20,7 @@
 #include "mediaobject.h"
 #include <kdebug.h>
 
-#include "xine_engine.h"
+#include "xineengine.h"
 #include <QEvent>
 
 namespace Phonon

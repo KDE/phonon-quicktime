@@ -20,7 +20,7 @@
 #include "bytestream.h"
 #include <kdebug.h>
 
-#include "xine_engine.h"
+#include "xineengine.h"
 #include <QEvent>
 #include <cstring>
 #include <cstdio>

@@ -1,11 +1,9 @@
 /*  This file is part of the KDE project
     Copyright (C) 2006 Tim Beaulen <tbscope@gmail.com>
-    Copyright (C) 2006-2007 Matthias Kretz <kretz@kde.org>
 
-    This program is free software; you can redistribute it and/or
+    This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
-    License as published by the Free Software Foundation; either
-    version 2 of the License, or (at your option) any later version.
+    License version 2 as published by the Free Software Foundation.
 
     This library is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -22,38 +20,91 @@
 #ifndef XINEENGINE_H
 #define XINEENGINE_H
 
-#include <QtCore/QExplicitlySharedDataPointer>
-#include <QtCore/QSharedData>
-
+#include <kdemacros.h>
 #include <xine.h>
+#include <QEvent>
+#include <QString>
+#include <QSet>
+#include <QStringList>
+#include <kconfig.h>
+
+#ifdef Q_OS_WIN
+# ifdef MAKE_PHONONXINEENGINE_LIB
+#  define PHONON_XINE_ENGINE_EXPORT KDE_EXPORT
+# else
+#  define PHONON_XINE_ENGINE_EXPORT KDE_IMPORT
+# endif
+#else
+# define PHONON_XINE_ENGINE_EXPORT KDE_EXPORT
+#endif
 
 namespace Phonon
 {
 namespace Xine
 {
+	enum EventType
+	{
+		NewMetaDataEvent = 5400,
+		MediaFinishedEvent = 5401,
+		ProgressEvent = 5402
+	};
 
-struct XineEngineData : public QSharedData
-{
-    XineEngineData();
-    ~XineEngineData();
+	class PHONON_XINE_ENGINE_EXPORT XineProgressEvent : public QEvent
+	{
+		public:
+			XineProgressEvent( const QString& description, int percent );
+			const QString& description();
+			int percent();
 
-    xine_t *m_xine;
-};
+		private:
+			QString m_description;
+			int m_percent;
+	};
 
-class XineEngine
-{
-    public:
-        inline operator xine_t *() const { Q_ASSERT(d.data() && d->m_xine); return d->m_xine; }
-        inline operator bool() const { return d; }
-        inline bool operator==(const XineEngine &rhs) const { return d == rhs.d; }
-        inline bool operator!=(const XineEngine &rhs) const { return d != rhs.d; }
-        void create();
+	class PHONON_XINE_ENGINE_EXPORT XineEngine
+	{
+		public:
+			~XineEngine();
 
-    private:
-        QExplicitlySharedDataPointer<XineEngineData> d;
-};
+			static XineEngine* self();
+			static xine_t* xine();
+			static void xineEventListener( void*, const xine_event_t* );
 
-} // namespace Xine
-} // namespace Phonon
+            static QSet<int> audioOutputIndexes();
+            static QString audioOutputName(int audioDevice);
+            static QString audioOutputDescription(int audioDevice);
+            static QString audioOutputIcon(int audioDevice);
+            static QString audioDriverFor(int audioDevice);
+            static QStringList alsaDevicesFor(int audioDevice);
+
+		protected:
+			XineEngine();
+
+		private:
+            void checkAudioOutputs();
+            void addAudioOutput(int idx, const QString &n, const QString &desc, const QString &ic, const QString &dr, const QStringList &dev);
+			static XineEngine* s_instance;
+			xine_t* m_xine;
+
+            struct AudioOutputInfo
+            {
+                AudioOutputInfo(int idx, const QString &n, const QString &desc, const QString &ic, const QString &dr, const QStringList &dev)
+                    : available(false), index(idx), name(n), description(desc), icon(ic), driver(dr), devices(dev)
+                {}
+                bool available;
+                int index;
+                QString name;
+                QString description;
+                QString icon;
+                QString driver;
+                QStringList devices;
+                bool operator==(const AudioOutputInfo& rhs) { return name == rhs.name && driver == rhs.driver; }
+            };
+            QList<AudioOutputInfo> m_audioOutputInfos;
+            KSharedConfig::Ptr m_config;
+	};
+}
+}
 
 #endif // XINEENGINE_H
+// vim: sw=4 ts=4 tw=80 et

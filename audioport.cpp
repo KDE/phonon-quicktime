@@ -18,7 +18,7 @@
 */
 
 #include "audioport.h"
-#include "xine_engine.h"
+#include "xineengine.h"
 #include "backend.h"
 #include <QByteArray>
 #include <QStringList>

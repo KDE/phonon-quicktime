@@ -21,7 +21,7 @@
 
 #include "abstractmediaproducer.h"
 
-#include "xine_engine.h"
+#include "xineengine.h"
 
 namespace Phonon
 {
