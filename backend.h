@@ -58,9 +58,8 @@ namespace Xine
 
 			Q_INVOKABLE void freeSoundcardDevices();
 
-			Q_INVOKABLE QSet<int> objectDescriptionIndexes( ObjectDescriptionType ) const;
-			Q_INVOKABLE QString objectDescriptionDescription( ObjectDescriptionType, int ) const;
-			Q_INVOKABLE QString objectDescriptionName( ObjectDescriptionType, int ) const;
+            QSet<int> objectDescriptionIndexes(ObjectDescriptionType) const;
+            QHash<QByteArray, QVariant> objectDescriptionProperties(ObjectDescriptionType, int) const;
 
 		public slots:
             QStringList knownMimeTypes() const;
@@ -68,7 +67,7 @@ namespace Xine
 			//const char* uiSymbol() const;
 
 		private:
-            mutable QStringList m_supportedMimeTypes;
+            mutable QStringList m_supportedMimeTypes;	
 	};
 }} // namespace Phonon::Xine
 
