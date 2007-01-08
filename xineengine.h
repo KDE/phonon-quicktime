@@ -17,8 +17,8 @@
 
 */
 
-#ifndef xine_engine
-#define xine_engine
+#ifndef XINEENGINE_H
+#define XINEENGINE_H
 
 #include <kdemacros.h>
 #include <xine.h>
@@ -106,5 +106,5 @@ namespace Xine
 }
 }
 
-#endif //xine_engine
+#endif // XINEENGINE_H
 // vim: sw=4 ts=4 tw=80 et

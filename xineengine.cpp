@@ -17,7 +17,7 @@
 
 */
 
-#include "xine_engine.h"
+#include "xineengine.h"
 
 //#include <kdebug.h>
 #include "abstractmediaproducer.h"

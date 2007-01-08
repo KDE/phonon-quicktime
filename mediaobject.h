@@ -24,7 +24,7 @@
 
 #include <xine.h>
 
-#include "xine_engine.h"
+#include "xineengine.h"
 #include <phonon/mediaobjectinterface.h>
 
 class KUrl;

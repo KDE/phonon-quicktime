@@ -28,7 +28,7 @@
 #include <QHash>
 
 #include <xine.h>
-#include "xine_engine.h"
+#include "xineengine.h"
 #include <phonon/mediaproducerinterface.h>
 #include <QMultiMap>
 #include "xinestream.h"

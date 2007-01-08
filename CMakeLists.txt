@@ -17,11 +17,11 @@ include_directories (${QDBUS_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DI
 #add_subdirectory(ui)
 #add_subdirectory(xineplugins)
 
-set(xine_engine_LIB_SRCS
-    xine_engine.cpp
+set(xineengine_LIB_SRCS
+    xineengine.cpp
    )
-kde4_automoc(${xine_engine_LIB_SRCS})
-kde4_add_library(phononxineengine SHARED ${xine_engine_LIB_SRCS})
+kde4_automoc(${xineengine_LIB_SRCS})
+kde4_add_library(phononxineengine SHARED ${xineengine_LIB_SRCS})
 target_link_libraries(phononxineengine ${QT_QTCORE_LIBRARY} ${XINE_LIBRARY} ${KDE4_KALSADEVICELIST_LIBS} ${KDE4_SOLID_LIBS})
 set_target_properties(phononxineengine PROPERTIES VERSION ${GENERIC_LIB_VERSION} SOVERSION ${GENERIC_LIB_SOVERSION})
 install(TARGETS phononxineengine DESTINATION ${LIB_INSTALL_DIR})

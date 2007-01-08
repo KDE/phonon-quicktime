@@ -22,7 +22,7 @@
 #include "abstractaudiooutput.h"
 #include <QFile>
 
-#include "xine_engine.h"
+#include "xineengine.h"
 #include <xine.h>
 #include "xinestream.h"
 #include "audioport.h"

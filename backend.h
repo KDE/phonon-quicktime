@@ -27,7 +27,7 @@
 #include <xine.h>
 #include <xine/xineutils.h>
 
-#include "xine_engine.h"
+#include "xineengine.h"
 #include <QObject>
 #include <phonon/objectdescription.h>
 #include <phonon/backendinterface.h>

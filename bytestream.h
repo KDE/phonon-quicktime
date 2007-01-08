@@ -23,7 +23,7 @@
 
 #include <xine.h>
 
-#include "xine_engine.h"
+#include "xineengine.h"
 #include <phonon/bytestreaminterface.h>
 #include <QByteArray>
 #include <QQueue>
