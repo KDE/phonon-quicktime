@@ -1,6 +1,5 @@
 /*  This file is part of the KDE project
     Copyright (C) 2006 Tim Beaulen <tbscope@gmail.com>
-    Copyright (C) 2006 Matthias Kretz <kretz@kde.org>
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -19,7 +18,9 @@
 */
 
 #include "abstractmediaproducer.h"
+#include <QTimer>
 #include "videopath.h"
+#include "videowidgetinterface.h"
 #include "audiopath.h"
 #include <kdebug.h>
 #include <QVector>
@@ -31,199 +32,368 @@
 #include <QEvent>
 #include <QtDebug>
 #include <seekthread.h>
-#include <QMetaType>
-#include "audioport.h"
 
 namespace Phonon
 {
 namespace Xine
 {
-AbstractMediaProducer::AbstractMediaProducer(QObject *parent)
-    : QObject( parent ),
-    m_state(Phonon::LoadingState),
-    m_stream(0),
-    m_audioPath(0),
-    m_videoPath(0),
-    m_seeking(0),
-    m_currentTimeOverride(-1)
+AbstractMediaProducer::AbstractMediaProducer( QObject* parent )
+	: QObject( parent )
+	, m_stream( 0 )
+	, m_event_queue( 0 )
+	, m_state( Phonon::LoadingState )
+	, m_tickTimer( new QTimer( this ) )
+	, m_startTime( -1 )
+	, m_audioPath( 0 )
+	, m_videoPath( 0 )
+	, m_audioPort( 0 )
+	, m_videoPort( 0 )
+	, m_seekThread( new SeekThread )
+	, m_currentTimeOverride( -1 )
 {
-    m_stream.moveToThread(&m_stream);
-    m_stream.start();
-    qRegisterMetaType<QMultiMap<QString,QString> >("QMultiMap<QString,QString>");
-    qRegisterMetaType<Phonon::State>("Phonon::State");
-    qRegisterMetaType<qint64>("qint64");
-    connect(&m_stream, SIGNAL(stateChanged(Phonon::State, Phonon::State)),
-            SLOT(handleStateChange(Phonon::State, Phonon::State)));
-    connect(&m_stream, SIGNAL(metaDataChanged(const QMultiMap<QString, QString>&)),
-            SIGNAL(metaDataChanged(const QMultiMap<QString, QString>&)));
-    connect(&m_stream, SIGNAL(seekDone()), SLOT(seekDone()));
-    connect(&m_stream, SIGNAL(tick(qint64)), SIGNAL(tick(qint64)));
+	connect( m_tickTimer, SIGNAL( timeout() ), SLOT( emitTick() ) );
+	QTimer::singleShot( 0, this, SLOT( delayedInit() ) );
+
+	m_seekThread->start();
+	connect( this, SIGNAL(asyncSeek(xine_stream_t*,qint64,bool)), m_seekThread, SLOT(seek(xine_stream_t*,qint64,bool)), Qt::QueuedConnection );
 }
 
-void AbstractMediaProducer::seekDone()
+void AbstractMediaProducer::delayedInit() const
 {
-    //kDebug(610) << k_funcinfo << endl;
-    --m_seeking;
+	if( !m_stream )
+		const_cast<AbstractMediaProducer*>( this )->createStream();
 }
 
 AbstractMediaProducer::~AbstractMediaProducer()
 {
-    // we have to be sure that the event loop of m_stream is already started at this point, else the
-    // quit function will be ignored
-    m_stream.waitForEventLoop();
-    m_stream.quit();
-    if (!m_stream.wait( 2000 )) {
-        kWarning(610) << "XineStream hangs and is terminated." << endl;
-        m_stream.wait();
-        //m_stream.terminate();
-    }
+	m_seekThread->exit();
+	if( m_event_queue )
+		xine_event_dispose_queue( m_event_queue );
+	if( m_stream )
+		xine_dispose( m_stream );
 }
 
-bool AbstractMediaProducer::addVideoPath(QObject *videoPath)
+void AbstractMediaProducer::checkAudioOutput()
 {
-    if (m_videoPath) {
-        return false;
-    }
+	if( !m_stream )
+		return;
 
-    m_videoPath = qobject_cast<VideoPath*>(videoPath);
-    Q_ASSERT(m_videoPath);
-    m_videoPath->setMediaProducer(this);
-    m_stream.setVideoPort(m_videoPath->videoPort());
-
-    return true;
+	recreateStream();
+	if( m_audioPath->hasOutput() )
+		xine_set_param( m_stream, XINE_PARAM_IGNORE_AUDIO, 0 );
+	else
+		xine_set_param( m_stream, XINE_PARAM_IGNORE_AUDIO, 1 );
 }
 
-bool AbstractMediaProducer::addAudioPath(QObject *audioPath)
+void AbstractMediaProducer::checkVideoOutput()
 {
-    if (m_audioPath) {
-        return false;
-    }
+	if( !m_stream )
+		return;
 
-    m_audioPath = qobject_cast<AudioPath*>(audioPath);
-    Q_ASSERT(m_audioPath);
-    m_audioPath->addMediaProducer(this);
-    m_stream.setAudioPort(m_audioPath->audioPort(&m_stream));
-
-    return true;
+	recreateStream();
+	if( m_videoPath->hasOutput() )
+		xine_set_param( m_stream, XINE_PARAM_IGNORE_VIDEO, 0 );
+	else
+		xine_set_param( m_stream, XINE_PARAM_IGNORE_VIDEO, 1 );
 }
 
-void AbstractMediaProducer::removeVideoPath(QObject *videoPath)
+bool AbstractMediaProducer::outputPortsNotChanged() const
 {
-    Q_ASSERT(videoPath);
-    if (m_videoPath == qobject_cast<VideoPath*>(videoPath)) {
-        m_stream.setVideoPort(0);
-        m_videoPath->unsetMediaProducer(this);
-        m_videoPath = 0;
-    }
+	xine_audio_port_t *audioPort = NULL;
+	xine_video_port_t *videoPort = NULL;
+	if( m_audioPath )
+		audioPort = m_audioPath->audioPort();
+	if( m_videoPath )
+		videoPort = m_videoPath->videoPort();
+	return ( m_videoPort == videoPort && m_audioPort == audioPort );
 }
 
-void AbstractMediaProducer::removeAudioPath(QObject *audioPath)
+void AbstractMediaProducer::createStream()
 {
-    Q_ASSERT(audioPath);
-    if (m_audioPath == qobject_cast<AudioPath*>(audioPath)) {
-        m_stream.setAudioPort(AudioPort());
-        m_audioPath->removeMediaProducer(this);
-        m_audioPath = 0;
-    }
+	if( m_state == Phonon::ErrorState )
+		return;
+
+	xine_audio_port_t *audioPort = NULL;
+	xine_video_port_t *videoPort = NULL;
+	if( m_audioPath )
+		audioPort = m_audioPath->audioPort();
+	if( m_videoPath )
+		videoPort = m_videoPath->videoPort();
+	if( m_stream && m_videoPort == videoPort && m_audioPort == audioPort )
+		return;
+
+	kDebug( 610 ) << "XXXXXXXXXXXXXX xine_stream_new( " << ( void* )XineEngine::xine() << ", " << ( void* )audioPort << ", " << ( void* )videoPort << " );" << kBacktrace() << endl;
+
+	m_stream = xine_stream_new( XineEngine::xine(), audioPort, videoPort );
+
+	m_event_queue = xine_event_new_queue( m_stream );
+	xine_event_create_listener_thread( m_event_queue, &XineEngine::self()->xineEventListener, (void*)this );
+
+	if( !audioPort )
+		xine_set_param( m_stream, XINE_PARAM_IGNORE_AUDIO, 1 );
+	else
+		m_audioPath->updateVolume( this );
+	if( !videoPort )
+		xine_set_param( m_stream, XINE_PARAM_IGNORE_VIDEO, 1 );
+}
+
+bool AbstractMediaProducer::recreateStream()
+{
+	// save state
+	int params[ 33 ];
+	for( int i = 1; i < 33; ++i )
+		params[ i ] = xine_get_param( m_stream, i );
+
+	stop();
+
+	// dispose of old xine objects
+	Q_ASSERT( m_event_queue );
+	xine_event_dispose_queue( m_event_queue );
+	xine_dispose( m_stream );
+	
+	// create new xine objects
+	createStream();
+
+	// restore state
+	//for( int i = 1; i < 33; ++i )
+		//xine_set_param( m_stream, i, params[ i ] );
+
+	return true;
+}
+
+bool AbstractMediaProducer::event( QEvent* ev )
+{
+	switch( ev->type() )
+	{
+		case Xine::NewMetaDataEvent:
+			updateMetaData();
+			ev->accept();
+			return true;
+		case Xine::ProgressEvent:
+			{
+				XineProgressEvent* e = static_cast<XineProgressEvent*>( ev );
+				if( e->percent() < 100 )
+				{
+					m_tickTimer->stop();
+					setState( Phonon::BufferingState );
+				}
+				else
+				{
+					if (m_tickInterval > 0) {
+						m_tickTimer->start();
+					}
+					setState( Phonon::PlayingState );
+					QTimer::singleShot( 20, this, SLOT( getStartTime() ) );
+				}
+			}
+			return true;
+		case Xine::NavButtonIn:
+			if ( m_videoPath->videoWidget() )
+				m_videoPath->videoWidget()->setNavCursor( true );
+			ev->accept();
+			return true;
+		case Xine::NavButtonOut:
+			if ( m_videoPath->videoWidget() )
+				m_videoPath->videoWidget()->setNavCursor( false );
+			ev->accept();
+			return true;
+		default:
+			break;
+	}
+	return QObject::event( ev );
+}
+
+void AbstractMediaProducer::getStartTime()
+{
+	if( m_startTime == -1 || m_startTime == 0 )
+	{
+		int total;
+		if( xine_get_pos_length( stream(), 0, &m_startTime, &total ) == 1 )
+		{
+			if( total > 0 && m_startTime < total && m_startTime >= 0 )
+				m_startTime = -1;
+		}
+		else
+			m_startTime = -1;
+	}
+	if( m_startTime == -1 || m_startTime == 0 )
+		QTimer::singleShot( 30, this, SLOT( getStartTime() ) );
+}
+
+void AbstractMediaProducer::updateMetaData()
+{
+	QMultiMap<QString, QString> metaDataMap;
+	metaDataMap.insert( QLatin1String( "TITLE"  ),
+			QString::fromUtf8( xine_get_meta_info( m_stream, XINE_META_INFO_TITLE  ) ) );
+	metaDataMap.insert( QLatin1String( "ARTIST" ),
+			QString::fromUtf8( xine_get_meta_info( m_stream, XINE_META_INFO_ARTIST ) ) );
+	metaDataMap.insert( QLatin1String( "GENRE" ),
+			QString::fromUtf8( xine_get_meta_info( m_stream, XINE_META_INFO_GENRE ) ) );
+	metaDataMap.insert( QLatin1String( "ALBUM" ),
+			QString::fromUtf8( xine_get_meta_info( m_stream, XINE_META_INFO_ALBUM ) ) );
+	metaDataMap.insert( QLatin1String( "DATE" ),
+			QString::fromUtf8( xine_get_meta_info( m_stream, XINE_META_INFO_YEAR ) ) );
+	metaDataMap.insert( QLatin1String( "TRACKNUMBER" ),
+			QString::fromUtf8( xine_get_meta_info( m_stream, XINE_META_INFO_TRACK_NUMBER ) ) );
+	metaDataMap.insert( QLatin1String( "DESCRIPTION" ),
+			QString::fromUtf8( xine_get_meta_info( m_stream, XINE_META_INFO_COMMENT ) ) );
+	if( metaDataMap == m_metaDataMap )
+		return;
+	qDebug() << metaDataMap;
+	m_metaDataMap = metaDataMap;
+	emit metaDataChanged( m_metaDataMap );
+}
+
+bool AbstractMediaProducer::addVideoPath( QObject* videoPath )
+{
+	if( m_videoPath )
+		return false;
+
+	m_videoPath = qobject_cast<VideoPath*>( videoPath );
+	Q_ASSERT( m_videoPath );
+	m_videoPath->setMediaProducer( this );
+
+	if( m_stream )
+	{
+		if( !recreateStream() )
+			return false;
+		if( m_videoPath->hasOutput() )
+			xine_set_param( m_stream, XINE_PARAM_IGNORE_VIDEO, 0 );
+		else
+			xine_set_param( m_stream, XINE_PARAM_IGNORE_VIDEO, 1 );
+	}
+	return true;
+}
+
+bool AbstractMediaProducer::addAudioPath( QObject* audioPath )
+{
+	if( m_audioPath )
+		return false;
+	m_audioPath = qobject_cast<AudioPath*>( audioPath );
+	Q_ASSERT( m_audioPath );
+	m_audioPath->addMediaProducer( this );
+	if( m_stream )
+	{
+		if( !recreateStream() )
+			return false;
+		if( m_audioPath->hasOutput() )
+			xine_set_param( m_stream, XINE_PARAM_IGNORE_AUDIO, 0 );
+		else
+			xine_set_param( m_stream, XINE_PARAM_IGNORE_AUDIO, 1 );
+	}
+	return true;
+}
+
+void AbstractMediaProducer::removeVideoPath( QObject* videoPath )
+{
+	Q_ASSERT( videoPath );
+	if( m_videoPath == qobject_cast<VideoPath*>( videoPath ) )
+	{
+		m_videoPath->unsetMediaProducer( this );
+		m_videoPath = 0;
+		if( m_stream )
+		{
+			recreateStream();
+			xine_set_param( m_stream, XINE_PARAM_IGNORE_VIDEO, 1 );
+		}
+	}
+}
+
+void AbstractMediaProducer::removeAudioPath( QObject* audioPath )
+{
+	Q_ASSERT( audioPath );
+	if( m_audioPath == qobject_cast<AudioPath*>( audioPath ) )
+	{
+		m_audioPath->removeMediaProducer( this );
+		m_audioPath = 0;
+		if( m_stream )
+		{
+			recreateStream();
+			xine_set_param( m_stream, XINE_PARAM_IGNORE_AUDIO, 1 );
+		}
+	}
 }
 
 State AbstractMediaProducer::state() const
 {
-    return m_state;
+	//kDebug( 610 ) << k_funcinfo << endl;
+	return m_state;
 }
 
 bool AbstractMediaProducer::hasVideo() const
 {
-    return m_stream.hasVideo();
+	//kDebug( 610 ) << k_funcinfo << endl;
+	delayedInit();
+	return xine_get_stream_info( m_stream, XINE_STREAM_INFO_HAS_VIDEO );
 }
 
 bool AbstractMediaProducer::isSeekable() const
 {
-    return m_stream.isSeekable();
+	//kDebug( 610 ) << k_funcinfo << endl;
+	delayedInit();
+	return xine_get_stream_info( m_stream, XINE_STREAM_INFO_SEEKABLE );
 }
 
 qint64 AbstractMediaProducer::currentTime() const
 {
-    //kDebug(610) << k_funcinfo << kBacktrace() << endl;
-    switch(m_stream.state()) {
-        case Phonon::PausedState:
-        case Phonon::BufferingState:
-        case Phonon::PlayingState:
-            {
-                if (m_seeking) {
-                    return m_currentTimeOverride;
-                }
-                const int current = m_stream.currentTime();
-                if (m_currentTimeOverride >= 0) {
-                    if (current <= 0) {
-                        return m_currentTimeOverride;
-                    } else {
-                        m_currentTimeOverride = -1;
-                    }
-                }
-                return current;
-            }
-            break;
-        case Phonon::StoppedState:
-        case Phonon::LoadingState:
-            return 0;
-        case Phonon::ErrorState:
-            break;
-    }
-    return -1;
-}
-
-qint64 AbstractMediaProducer::totalTime() const
-{
-    const qint64 ret = stream().totalTime();
-    //kDebug(610) << k_funcinfo << "returning " << ret << endl;
-    return ret;
-}
-
-qint64 AbstractMediaProducer::remainingTime() const
-{
-    switch(m_stream.state()) {
-        case Phonon::PausedState:
-        case Phonon::BufferingState:
-        case Phonon::PlayingState:
-            {
-                if (m_seeking) {
-                    const qint64 ret = stream().totalTime() - m_currentTimeOverride;
-                    //kDebug(610) << k_funcinfo << "returning " << ret << endl;
-                    return ret;
-                }
-                const qint64 ret = stream().remainingTime();
-                //kDebug(610) << k_funcinfo << "returning " << ret << endl;
-                return ret;
-            }
-            break;
-        case Phonon::StoppedState:
-        case Phonon::LoadingState:
-            //kDebug(610) << k_funcinfo << "returning 0" << endl;
-            return 0;
-        case Phonon::ErrorState:
-            break;
-    }
-    //kDebug(610) << k_funcinfo << "returning -1" << endl;
-    return -1;
+	switch( state() )
+	{
+		case Phonon::PausedState:
+		case Phonon::BufferingState:
+		case Phonon::PlayingState:
+			{
+				int positiontime;
+				if( xine_get_pos_length( stream(), 0, &positiontime, 0 ) == 1 )
+				{
+					if( m_currentTimeOverride != -1 )
+					{
+						if( positiontime > 0 )
+							m_currentTimeOverride = -1;
+						else
+							positiontime = m_currentTimeOverride;
+					}
+				}
+				else
+				{
+					positiontime = m_currentTimeOverride;
+				}
+				if( m_startTime == -1 )
+					return positiontime;
+				else
+					return positiontime - m_startTime;
+			}
+			break;
+		case Phonon::StoppedState:
+		case Phonon::LoadingState:
+			return 0;
+		case Phonon::ErrorState:
+			break;
+	}
+	return -1;
 }
 
 qint32 AbstractMediaProducer::tickInterval() const
 {
-    return m_tickInterval;
+	//kDebug( 610 ) << k_funcinfo << endl;
+	return m_tickInterval;
 }
 
-void AbstractMediaProducer::setTickInterval(qint32 newTickInterval)
+void AbstractMediaProducer::setTickInterval( qint32 newTickInterval )
 {
-    m_tickInterval = newTickInterval;
-    m_stream.setTickInterval(m_tickInterval);
+	//kDebug( 610 ) << k_funcinfo << endl;
+	m_tickInterval = newTickInterval;
+	if (m_tickInterval == 0) {
+		m_tickTimer->stop();
+	} else {
+		m_tickTimer->setInterval( newTickInterval );
+	}
 }
 
 QStringList AbstractMediaProducer::availableAudioStreams() const
 {
 	// TODO
 	QStringList ret;
-	ret << QLatin1String("en") << QLatin1String("de");
+	ret << QLatin1String( "en" ) << QLatin1String( "de" );
 	return ret;
 }
 
@@ -231,7 +401,7 @@ QStringList AbstractMediaProducer::availableVideoStreams() const
 {
 	// TODO
 	QStringList ret;
-	ret << QLatin1String("en") << QLatin1String("de");
+	ret << QLatin1String( "en" ) << QLatin1String( "de" );
 	return ret;
 }
 
@@ -239,129 +409,163 @@ QStringList AbstractMediaProducer::availableSubtitleStreams() const
 {
 	// TODO
 	QStringList ret;
-	ret << QLatin1String("en") << QLatin1String("de");
+	ret << QLatin1String( "en" ) << QLatin1String( "de" );
 	return ret;
 }
 
-QString AbstractMediaProducer::selectedAudioStream(const QObject* audioPath) const
+QString AbstractMediaProducer::selectedAudioStream( const QObject* audioPath ) const
 {
 	// TODO
 	return m_selectedAudioStream[ audioPath ];
 }
 
-QString AbstractMediaProducer::selectedVideoStream(const QObject* videoPath) const
+QString AbstractMediaProducer::selectedVideoStream( const QObject* videoPath ) const
 {
 	// TODO
 	return m_selectedVideoStream[ videoPath ];
 }
 
-QString AbstractMediaProducer::selectedSubtitleStream(const QObject* videoPath) const
+QString AbstractMediaProducer::selectedSubtitleStream( const QObject* videoPath ) const
 {
 	// TODO
 	return m_selectedSubtitleStream[ videoPath ];
 }
 
-void AbstractMediaProducer::selectAudioStream(const QString& streamName, const QObject* audioPath)
+void AbstractMediaProducer::selectAudioStream( const QString& streamName, const QObject* audioPath )
 {
 	// TODO
-	if(availableAudioStreams().contains(streamName))
+	if( availableAudioStreams().contains( streamName ) )
 		m_selectedAudioStream[ audioPath ] = streamName;
 }
 
-void AbstractMediaProducer::selectVideoStream(const QString& streamName, const QObject* videoPath)
+void AbstractMediaProducer::selectVideoStream( const QString& streamName, const QObject* videoPath )
 {
 	// TODO
-	if(availableVideoStreams().contains(streamName))
+	if( availableVideoStreams().contains( streamName ) )
 		m_selectedVideoStream[ videoPath ] = streamName;
 }
 
-void AbstractMediaProducer::selectSubtitleStream(const QString& streamName, const QObject* videoPath)
+void AbstractMediaProducer::selectSubtitleStream( const QString& streamName, const QObject* videoPath )
 {
 	// TODO
-	if(availableSubtitleStreams().contains(streamName))
+	if( availableSubtitleStreams().contains( streamName ) )
 		m_selectedSubtitleStream[ videoPath ] = streamName;
 }
 
 void AbstractMediaProducer::play()
 {
-    if (m_state == Phonon::PlayingState || m_state == Phonon::ErrorState) {
-        return;
-    }
+	//kDebug( 610 ) << k_funcinfo << endl;
+	delayedInit();
 
-    m_currentTimeOverride = -1;
-    changeState(Phonon::BufferingState);
-    m_stream.play();
+	if( state() != PausedState )
+	{
+		int total;
+		if( xine_get_pos_length( stream(), 0, &m_startTime, &total ) == 1 )
+		{
+			if( total > 0 && m_startTime < total && m_startTime >= 0 )
+				m_startTime = -1;
+		}
+		else
+			m_startTime = -1;
+		m_currentTimeOverride = -1;
+	}
+	setState( Phonon::PlayingState );
+	if (m_tickInterval > 0) {
+		m_tickTimer->start();
+	}
 }
 
 void AbstractMediaProducer::pause()
 {
-    if (m_state == Phonon::PlayingState || m_state == Phonon::BufferingState) {
-        m_stream.pause();
-    }
+	//kDebug( 610 ) << k_funcinfo << endl;
+	m_tickTimer->stop();
+	setState( Phonon::PausedState );
 }
 
 void AbstractMediaProducer::stop()
 {
-    if (m_state == Phonon::PlayingState || m_state == Phonon::PausedState || m_state == Phonon::BufferingState) {
-        m_stream.stop();
-    }
+	//kDebug( 610 ) << k_funcinfo << endl;
+	m_tickTimer->stop();
+	setState( Phonon::StoppedState );
+	m_startTime = -1;
 }
 
-void AbstractMediaProducer::seek(qint64 time)
+void AbstractMediaProducer::seek( qint64 time )
 {
-    //kDebug(610) << k_funcinfo << time << endl;
-    if (!isSeekable()) {
-        return;
-    }
+	//kDebug( 610 ) << k_funcinfo << endl;
+	if( !isSeekable() )
+		return;
 
-    m_stream.seek(time);
-    ++m_seeking;
-    m_currentTimeOverride = time;
+	switch( state() )
+	{
+		case Phonon::PausedState:
+		case Phonon::BufferingState:
+		case Phonon::PlayingState:
+			kDebug( 610 ) << k_funcinfo << "seeking xine stream to " << time << "ms" << endl;
+			// xine_trick_mode aborts :(
+			//if( 0 == xine_trick_mode( m_stream, XINE_TRICK_MODE_SEEK_TO_TIME, time ) )
+			{
+				emit asyncSeek( m_stream, time, Phonon::PausedState == state() );
+				/*
+				xine_play( m_stream, 0, time );
+				if( Phonon::PausedState == state() )
+					// go back to paused speed after seek
+					xine_set_param( m_stream, XINE_PARAM_SPEED, XINE_SPEED_PAUSE );
+				*/
+				m_currentTimeOverride = time;
+			}
+			break;
+		case Phonon::StoppedState:
+		case Phonon::ErrorState:
+		case Phonon::LoadingState:
+			return; // cannot seek
+	}
 }
 
-void AbstractMediaProducer::changeState(Phonon::State newstate)
+void AbstractMediaProducer::setState( State newstate )
 {
-    // this method is for "fake" state changes the following state changes are not "fakable":
-    Q_ASSERT(newstate != Phonon::PlayingState);
-    Q_ASSERT(m_state != Phonon::PlayingState);
-
-    if (m_state == newstate) {
-        return;
-    }
-
-    Phonon::State oldstate = m_state;
-    m_state = newstate;
-
-    /*
-    if (newstate == Phonon::PlayingState) {
-        reachedPlayingState();
-    } else if (oldstate == Phonon::PlayingState) {
-        leftPlayingState();
-    }
-    */
-
-    kDebug(610) << "fake state change: reached " << newstate << " after " << oldstate << endl;
-    emit stateChanged(newstate, oldstate);
+	if( newstate == m_state ) // no change
+		return;
+	State oldstate = m_state;
+	m_state = newstate;
+	kDebug( 610 ) << "reached " << newstate << " after " << oldstate << endl;
+	switch( newstate )
+	{
+		case Phonon::PlayingState:
+			reachedPlayingState();
+			break;
+		case Phonon::ErrorState:
+			if( m_event_queue )
+			{
+				xine_event_dispose_queue( m_event_queue );
+				m_event_queue = 0;
+			}
+			if( m_stream )
+			{
+				xine_dispose( m_stream );
+				m_stream = 0;
+			}
+			// fall through
+		case Phonon::BufferingState:
+			kDebug( 610 ) << k_funcinfo << kBacktrace() << endl;
+			// fall through
+		case Phonon::PausedState:
+		case Phonon::StoppedState:
+		case Phonon::LoadingState:
+			if( oldstate == Phonon::PlayingState )
+				leftPlayingState();
+			break;
+	}
+	//kDebug( 610 ) << "emit stateChanged( " << newstate << ", " << oldstate << " )" << endl;
+	emit stateChanged( newstate, oldstate );
 }
 
-void AbstractMediaProducer::handleStateChange(Phonon::State newstate, Phonon::State oldstate)
+void AbstractMediaProducer::emitTick()
 {
-    if (m_state == newstate) {
-        return;
-    } else if (m_state != oldstate) {
-        oldstate = m_state;
-    }
-    m_state = newstate;
-
-    kDebug(610) << "reached " << newstate << " after " << oldstate << endl;
-    if (newstate == Phonon::PlayingState) {
-        reachedPlayingState();
-    } else if (oldstate == Phonon::PlayingState) {
-        leftPlayingState();
-    }
-    emit stateChanged(newstate, oldstate);
+	//kDebug( 610 ) << "emit tick( " << currentTime() << " )" << endl;
+	emit tick( currentTime() );
 }
 
 }}
 #include "abstractmediaproducer.moc"
-// vim: sw=4 ts=4
+// vim: sw=4 ts=4 noet
