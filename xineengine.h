@@ -40,6 +40,7 @@
 
 namespace Phonon
 {
+    class AudioDevice;
 namespace Xine
 {
 	enum EventType
@@ -74,6 +75,7 @@ namespace Xine
             static QString audioOutputName(int audioDevice);
             static QString audioOutputDescription(int audioDevice);
             static QString audioOutputIcon(int audioDevice);
+            static bool audioOutputAvailable(int audioDevice);
             static QString audioDriverFor(int audioDevice);
             static QStringList alsaDevicesFor(int audioDevice);
 
@@ -82,7 +84,9 @@ namespace Xine
 
 		private:
             void checkAudioOutputs();
-            void addAudioOutput(int idx, const QString &n, const QString &desc, const QString &ic, const QString &dr, const QStringList &dev);
+            void addAudioOutput(AudioDevice dev, QString driver);
+            void addAudioOutput(int idx, const QString &n, const QString &desc, const QString &ic,
+                    const QString &dr, const QStringList &dev);
 			static XineEngine* s_instance;
 			xine_t* m_xine;
 

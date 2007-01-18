@@ -22,7 +22,7 @@ set(xineengine_LIB_SRCS
    )
 kde4_automoc(${xineengine_LIB_SRCS})
 kde4_add_library(phononxineengine SHARED ${xineengine_LIB_SRCS})
-target_link_libraries(phononxineengine ${QT_QTCORE_LIBRARY} ${XINE_LIBRARY} ${KDE4_KALSADEVICELIST_LIBS} ${KDE4_SOLID_LIBS})
+target_link_libraries(phononxineengine ${QT_QTCORE_LIBRARY} ${XINE_LIBRARY} ${KDE4_KAUDIODEVICELIST_LIBS} ${KDE4_SOLID_LIBS})
 set_target_properties(phononxineengine PROPERTIES VERSION ${GENERIC_LIB_VERSION} SOVERSION ${GENERIC_LIB_SOVERSION})
 install(TARGETS phononxineengine DESTINATION ${LIB_INSTALL_DIR})
 

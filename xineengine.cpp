@@ -22,8 +22,8 @@
 //#include <kdebug.h>
 #include "abstractmediaproducer.h"
 #include <QCoreApplication>
-#include <phonon/alsadeviceenumerator.h>
-#include <phonon/alsadevice.h>
+#include <phonon/audiodeviceenumerator.h>
+#include <phonon/audiodevice.h>
 #include <solid/devicemanager.h>
 #include <solid/device.h>
 #include <solid/audiohw.h>
@@ -108,9 +108,9 @@ namespace Xine
         that->checkAudioOutputs();
         QSet<int> set;
         for (int i = 0; i < that->m_audioOutputInfos.size(); ++i) {
-            if (that->m_audioOutputInfos[i].available) {
+            //if (that->m_audioOutputInfos[i].available) {
                 set << that->m_audioOutputInfos[i].index;
-            }
+            //}
         }
         return set;
     }
@@ -150,6 +150,17 @@ namespace Xine
         }
         return QString();
     }
+    bool XineEngine::audioOutputAvailable(int audioDevice)
+    {
+        XineEngine *that = self();
+        that->checkAudioOutputs();
+        for (int i = 0; i < that->m_audioOutputInfos.size(); ++i) {
+            if (that->m_audioOutputInfos[i].index == audioDevice) {
+                return that->m_audioOutputInfos[i].available;
+            }
+        }
+        return false;
+    }
 
     QString XineEngine::audioDriverFor(int audioDevice)
     {
@@ -177,6 +188,20 @@ namespace Xine
         return QStringList();
     }
 
+    void XineEngine::addAudioOutput(AudioDevice dev, QString driver)
+    {
+        QString postfix;
+        if (dev.driver() == Solid::AudioHw::Alsa) {
+            postfix = QLatin1String(" (ALSA)");
+        } else if (dev.driver() == Solid::AudioHw::OpenSoundSystem) {
+            postfix = QLatin1String(" (OSS)");
+        }
+        AudioOutputInfo info(dev.index(), dev.cardName() + postfix,
+                QString(), dev.iconName(), driver, dev.deviceIds());
+        info.available = dev.isAvailable();
+        m_audioOutputInfos << info;
+    }
+
     void XineEngine::addAudioOutput(int index, const QString &name, const QString &description,
             const QString &icon, const QString &driver, const QStringList &deviceIds)
     {
@@ -196,17 +221,6 @@ namespace Xine
         }
     }
 
-    /*
-    void XineEngine::deviceAdded(const QString &udi)
-    {
-        Solid::Device *dev = Solid::DeviceManager::self()->findDevice(udi);
-        Solid::AudioHw *audioHw = dev.as<Solid::AudioHw>;
-        if (audioHw) {
-            m_audioOutputInfos.clear();
-            checkAudioOutputs();
-        }
-    }
-    */
     void XineEngine::checkAudioOutputs()
     {
         kDebug(610) << k_funcinfo << endl;
@@ -214,14 +228,9 @@ namespace Xine
             kDebug(610) << "isEmpty" << endl;
             if (m_config.isNull()) {
                 m_config = KSharedConfig::openConfig("phononxinerc", false, false);
-                /*Solid::DeviceManager &deviceManager = Solid::DeviceManager::self();
-                connect(&deviceManager, SIGNAL(deviceAdded(const QString&)),
-                        SLOT(deviceAdded(const QString&)));
-                connect(&deviceManager, SIGNAL(deviceRemoved(const QString&)),
-                        SLOT(deviceRemoved(const QString&)));*/
             }
             QStringList groups = m_config->groupList();
-            int nextIndex = 0;
+            int nextIndex = 10000;
             foreach (QString group, groups) {
                 if (group.startsWith("AudioOutputDevice")) {
                     const int index = group.right(group.size() - 18).toInt();
@@ -244,26 +253,19 @@ namespace Xine
             for (int i = 0; outputPlugins[i]; ++i) {
                 kDebug(610) << "outputPlugin: " << outputPlugins[i] << endl;
                 if (0 == strcmp(outputPlugins[i], "alsa")) {
-                    // for ALSA we list the actual devices
-                    QList<AlsaDevice> alsaDevices = AlsaDeviceEnumerator::availableDevices();
-                    foreach (AlsaDevice dev, alsaDevices) {
-                        addAudioOutput(nextIndex++, dev.cardName() + QLatin1String(" (ALSA)"),
-                                QString(), dev.iconName(), QLatin1String("alsa"), dev.deviceIds());
+                    QList<AudioDevice> alsaDevices = AudioDeviceEnumerator::availablePlaybackDevices();
+                    foreach (AudioDevice dev, alsaDevices) {
+                        if (dev.driver() == Solid::AudioHw::Alsa) {
+                            addAudioOutput(dev, QLatin1String("alsa"));
+                        }
                     }
                 } else if (0 == strcmp(outputPlugins[i], "none") || 0 == strcmp(outputPlugins[i], "file")) {
                     // ignore these devices
                 } else if (0 == strcmp(outputPlugins[i], "oss")) {
-                    Solid::DeviceManager &manager = Solid::DeviceManager::self();
-                    Solid::DeviceList deviceList = manager.findDevicesFromQuery(QString(),
-                            Solid::Capability::AudioHw,
-                            Solid::Predicate(Solid::Capability::AudioHw, QLatin1String("driver"), Solid::AudioHw::OpenSoundSystem));
-                    foreach (Solid::Device device, deviceList) {
-                        Solid::AudioHw *dev = device.as<Solid::AudioHw>();
-                        Q_ASSERT(dev);
-                        if (dev->deviceType() & Solid::AudioHw::AudioOutput) {
-                            addAudioOutput(nextIndex++, dev->name() + QLatin1String(" (OSS)"),
-                                    QString(), QString(), QLatin1String("oss"),
-                                    dev->driverHandles());
+                    QList<AudioDevice> audioDevices = AudioDeviceEnumerator::availablePlaybackDevices();
+                    foreach (AudioDevice dev, audioDevices) {
+                        if (dev.driver() == Solid::AudioHw::OpenSoundSystem) {
+                            addAudioOutput(dev, QLatin1String("oss"));
                         }
                     }
                 } else {
