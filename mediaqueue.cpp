@@ -74,11 +74,10 @@ void MediaQueue::streamNeedsUrl()
     if (m_nextUrl.isEmpty()) {
         emit needNextUrl();
     }
-    if (!m_nextUrl.isEmpty()) {
-        stream().gaplessSwitchTo(m_nextUrl);
-        m_url = m_nextUrl;
-        m_nextUrl.clear();
-    }
+    // if there's no "answer": clean up with an empty URL (m_nextUrl is cleared)
+    stream().gaplessSwitchTo(m_nextUrl);
+    m_url = m_nextUrl;
+    m_nextUrl.clear();
 }
 
 void MediaQueue::setNextUrl( const KUrl& url )
