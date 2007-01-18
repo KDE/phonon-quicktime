@@ -39,6 +39,9 @@
 #include "brightnesscontrol.h"
 #include <QVariant>
 
+#include <phonon/audiodevice.h>
+#include <phonon/audiodeviceenumerator.h>
+
 typedef KGenericFactory<Phonon::Xine::Backend> XineBackendFactory;
 K_EXPORT_COMPONENT_FACTORY( phonon_xine_threaded, XineBackendFactory( "xinebackend" ) )
 
@@ -161,7 +164,12 @@ QSet<int> Backend::objectDescriptionIndexes( ObjectDescriptionType type ) const
 		case Phonon::AudioOutputDeviceType:
             return XineEngine::audioOutputIndexes();
 		case Phonon::AudioCaptureDeviceType:
-			set << 20000 << 20001;
+            {
+                QList<AudioDevice> devlist = AudioDeviceEnumerator::availableCaptureDevices();
+                foreach (AudioDevice dev, devlist) {
+                    set << dev.index();
+                }
+            }
 			break;
 		case Phonon::VideoOutputDeviceType:
 			{
@@ -212,9 +220,31 @@ QHash<QByteArray, QVariant> Backend::objectDescriptionProperties(ObjectDescripti
                 if (!icon.isEmpty()) {
                     ret.insert("icon", icon);
                 }
+                ret.insert("available", XineEngine::audioOutputAvailable(index));
             }
             break;
         case Phonon::AudioCaptureDeviceType:
+            {
+                QList<AudioDevice> devlist = AudioDeviceEnumerator::availableCaptureDevices();
+                foreach (AudioDevice dev, devlist) {
+                    if (dev.index() == index) {
+                        ret.insert("name", dev.cardName());
+                        switch (dev.driver()) {
+                            case Solid::AudioHw::Alsa:
+                                ret.insert("description", i18n("ALSA Capture Device"));
+                                break;
+                            case Solid::AudioHw::OpenSoundSystem:
+                                ret.insert("description", i18n("OSS Capture Device"));
+                                break;
+                            case Solid::AudioHw::UnknownAudioDriver:
+                                break;
+                        }
+                        ret.insert("icon", dev.iconName());
+                        ret.insert("available", dev.isAvailable());
+                        break;
+                    }
+                }
+            }
             switch (index) {
                 case 20000:
                     ret.insert("name", QLatin1String("Soundcard"));
