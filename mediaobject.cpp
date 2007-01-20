@@ -68,21 +68,15 @@ qint32 MediaObjectBase::aboutToFinishTime() const
 	return m_aboutToFinishTime;
 }
 
-//#define DISABLE_MEDIAOBJECT
 
 void MediaObject::setUrl( const KUrl& url )
 {
 	//kDebug( 610 ) << k_funcinfo << endl;
-#ifdef DISABLE_MEDIAOBJECT
-	Q_UNUSED( url );
-	setState( Phonon::ErrorState );
-#else
     if (state() != Phonon::LoadingState) {
         stop();
     }
     stream().setUrl(url);
     m_url = url;
-#endif
 }
 
 void MediaObjectBase::setAboutToFinishTime( qint32 newAboutToFinishTime )
