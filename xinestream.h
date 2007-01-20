@@ -106,7 +106,7 @@ class XineStream : public QThread
         void getStreamInfo();
         void xineOpen();
         void updateMetaData();
-        void recreateStream();
+        void rewireOutputPorts();
         bool createStream();
         void changeState(Phonon::State newstate);
         void emitAboutToFinishIn(int timeToAboutToFinishSignal);
@@ -119,10 +119,12 @@ class XineStream : public QThread
         AudioPort m_audioPort;
         AudioPort m_newAudioPort;
         xine_video_port_t *m_videoPort;
+        xine_video_port_t *m_newVideoPort;
 
         Phonon::State m_state;
 
         QMutex m_portMutex;
+        QMutex m_playMutex;
         mutable QMutex m_mutex;
         mutable QMutex m_streamInfoMutex;
         mutable QMutex m_updateTimeMutex;
@@ -143,12 +145,13 @@ class XineStream : public QThread
         bool m_streamInfoReady : 1;
         bool m_hasVideo : 1;
         bool m_isSeekable : 1;
-        bool m_recreateEventSent : 1;
+        bool m_rewireEventSent : 1;
         bool m_useGaplessPlayback : 1;
         bool m_aboutToFinishNotEmitted : 1;
         bool m_ticking : 1;
         bool m_closing : 1;
         bool m_eventLoopReady : 1;
+        bool m_playCalled : 1;
 };
 
 } // namespace Xine
