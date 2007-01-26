@@ -28,6 +28,7 @@
 #include <solid/device.h>
 #include <solid/audiohw.h>
 #include <QList>
+#include <kconfiggroup.h>
 
 namespace Phonon
 {
@@ -210,7 +211,7 @@ namespace Xine
         if (listIndex == -1) {
             info.available = true;
             m_audioOutputInfos << info;
-            KConfigGroup config(m_config.data(), QLatin1String("AudioOutputDevice_") + QString::number(index));
+            KConfigGroup config(m_config, QLatin1String("AudioOutputDevice_") + QString::number(index));
             config.writeEntry("name", name);
             config.writeEntry("description", description);
             config.writeEntry("driver", driver);
@@ -226,9 +227,6 @@ namespace Xine
         kDebug(610) << k_funcinfo << endl;
         if (m_audioOutputInfos.isEmpty()) {
             kDebug(610) << "isEmpty" << endl;
-            if (m_config.isNull()) {
-                m_config = KSharedConfig::openConfig("phononxinerc", false, false);
-            }
             QStringList groups = m_config->groupList();
             int nextIndex = 10000;
             foreach (QString group, groups) {
@@ -237,7 +235,7 @@ namespace Xine
                     if (index >= nextIndex) {
                         nextIndex = index + 1;
                     }
-                    KConfigGroup config(m_config.data(), group);
+                    KConfigGroup config(m_config, group);
                     m_audioOutputInfos << AudioOutputInfo(index,
                             config.readEntry("name", QString()),
                             config.readEntry("description", QString()),

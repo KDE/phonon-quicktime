@@ -29,21 +29,21 @@
 #include "visualization.h"
 #include "videopath.h"
 #include "videoeffect.h"
-
-#include <kgenericfactory.h>
 #include "volumefadereffect.h"
-#include <QSet>
+#include "brightnesscontrol.h"
 #include "videodataoutput.h"
 
 #include <kdebug.h>
-#include "brightnesscontrol.h"
+#include <kgenericfactory.h>
+
+#include <QSet>
 #include <QVariant>
 
 #include <phonon/audiodevice.h>
 #include <phonon/audiodeviceenumerator.h>
 
 typedef KGenericFactory<Phonon::Xine::Backend> XineBackendFactory;
-K_EXPORT_COMPONENT_FACTORY( phonon_xine_threaded, XineBackendFactory( "xinebackend" ) )
+K_EXPORT_COMPONENT_FACTORY(phonon_xine_threaded, XineBackendFactory("xinebackend"))
 
 namespace Phonon
 {
@@ -53,6 +53,7 @@ namespace Xine
 Backend::Backend( QObject* parent, const QStringList& )
 	: QObject( parent )
 {
+    XineEngine::setConfig(XineBackendFactory::componentData().config());
 	char configfile[2048];
 
     xine_engine_set_param(XineEngine::xine(), XINE_ENGINE_PARAM_VERBOSITY, 99);
