@@ -70,6 +70,7 @@ namespace Xine
 			static XineEngine* self();
 			static xine_t* xine();
 			static void xineEventListener( void*, const xine_event_t* );
+            static void setConfig(const KSharedConfigPtr &cfg) { self()->m_config = cfg; }
 
             static QSet<int> audioOutputIndexes();
             static QString audioOutputName(int audioDevice);
@@ -105,7 +106,7 @@ namespace Xine
                 bool operator==(const AudioOutputInfo& rhs) { return name == rhs.name && driver == rhs.driver; }
             };
             QList<AudioOutputInfo> m_audioOutputInfos;
-            KSharedConfig::Ptr m_config;
+            KSharedConfigPtr m_config;
 	};
 }
 }
