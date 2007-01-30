@@ -126,7 +126,12 @@ static uint32_t kbytestream_plugin_get_blocksize (input_plugin_t * /*this_gen*/)
     return 0;
 }
 
-static char* kbytestream_plugin_get_mrl (input_plugin_t *this_gen) {
+#if (XINE_SUB_VERSION > 3 && XINE_MINOR_VERSION == 1) || (XINE_MINOR_VERSION > 1 && XINE_MAJOR_VERSION == 1) || XINE_MAJOR_VERSION > 1
+static const char *
+#else
+static char *
+#endif
+        kbytestream_plugin_get_mrl (input_plugin_t *this_gen) {
     kbytestream_input_plugin_t *that = (kbytestream_input_plugin_t *) this_gen;
 
     return that->mrl;
@@ -215,11 +220,22 @@ static input_plugin_t *kbytestream_class_get_instance (input_class_t *cls_gen, x
  * plugin class functions
  */
 
-static char *kbytestream_class_get_description (input_class_t * /*this_gen*/) {
+
+#if (XINE_SUB_VERSION > 3 && XINE_MINOR_VERSION == 1) || (XINE_MINOR_VERSION > 1 && XINE_MAJOR_VERSION == 1) || XINE_MAJOR_VERSION > 1
+static const char *
+#else
+static char *
+#endif
+        kbytestream_class_get_description (input_class_t * /*this_gen*/) {
     return ( char* ) _("kbytestream input plugin");
 }
 
-static const char *kbytestream_class_get_identifier (input_class_t * /*this_gen*/) {
+#if (XINE_SUB_VERSION > 3 && XINE_MINOR_VERSION == 1) || (XINE_MINOR_VERSION > 1 && XINE_MAJOR_VERSION == 1) || XINE_MAJOR_VERSION > 1
+static const char *
+#else
+static char *
+#endif
+        kbytestream_class_get_identifier (input_class_t * /*this_gen*/) {
     return "kbytestream";
 }
 
