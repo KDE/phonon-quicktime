@@ -230,12 +230,7 @@ static char *
     return ( char* ) _("kbytestream input plugin");
 }
 
-#if (XINE_SUB_VERSION > 3 && XINE_MINOR_VERSION == 1) || (XINE_MINOR_VERSION > 1 && XINE_MAJOR_VERSION == 1) || XINE_MAJOR_VERSION > 1
-static const char *
-#else
-static char *
-#endif
-        kbytestream_class_get_identifier (input_class_t * /*this_gen*/) {
+static const char *kbytestream_class_get_identifier (input_class_t * /*this_gen*/) {
     return "kbytestream";
 }
 
