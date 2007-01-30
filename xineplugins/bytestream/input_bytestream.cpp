@@ -29,6 +29,7 @@
 #include <inttypes.h>
 
 #include <xine.h>
+#include "../../bytestream.h"
 extern "C" {
     // stupid xine headers use the reserved keyword this:
 #define this this_xine
@@ -37,8 +38,6 @@ extern "C" {
 #include <xine/xine_internal.h>
 #include <xine/xineutils.h>
 #undef this
-}
-#include "../../bytestream.h"
 
 typedef struct {
     input_class_t     input_class;
@@ -249,6 +248,7 @@ extern "C" {
         return that;
     }
 }
+} // extern "C"
 
 /* vim: sw=4 et
  */
