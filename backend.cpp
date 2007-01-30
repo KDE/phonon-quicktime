@@ -262,7 +262,10 @@ QHash<QByteArray, QVariant> Backend::objectDescriptionProperties(ObjectDescripti
                 for (int i = 0; outputPlugins[i]; ++i) {
                     if (40000 + i == index) {
                         ret.insert("name", QLatin1String(outputPlugins[i]));
-                        ret.insert("description", QLatin1String(xine_get_video_driver_plugin_description(XineEngine::xine(), outputPlugins[i])));
+                        ret.insert("description", "");
+                        // description should be the result of the following call, but it crashes.
+                        // It looks like libxine initializes the plugin even when we just want the description...
+                        //QLatin1String(xine_get_video_driver_plugin_description(XineEngine::xine(), outputPlugins[i])));
                         break;
                     }
                 }
