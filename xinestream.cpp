@@ -118,12 +118,12 @@ XineStream::XineStream(QObject *parent)
 }
 
 // xine thread
-void XineStream::xineOpen()
+bool XineStream::xineOpen()
 {
     Q_ASSERT(QThread::currentThread() == this);
     Q_ASSERT(m_stream);
     if (m_mrl.isEmpty() || m_closing) {
-        return;
+        return false;
     }
     // only call xine_open if it's not already open
     Q_ASSERT(xine_get_status(m_stream) == XINE_STATUS_IDLE);
@@ -132,30 +132,30 @@ void XineStream::xineOpen()
     if (m_mrl.startsWith("file:/")) {
         kDebug(610) << "faked xine_open failed for m_mrl = " << m_mrl.constData() << endl;
         changeState(Phonon::ErrorState);
-        return;
+        return false;
     }
 #endif
 
     // xine_open can call functions from ByteStream which will block waiting for data.
     //kDebug(610) << "xine_open(" << m_mrl.constData() << ")" << endl;
-    const int ret = xine_open(m_stream, m_mrl.constData());
-    //m_waitingForXineOpen.wakeAll();
-    if (ret == 0) {
+    if (xine_open(m_stream, m_mrl.constData()) == 0) {
         kDebug(610) << "xine_open failed for m_mrl = " << m_mrl.constData() << endl;
         changeState(Phonon::ErrorState);
-    } else {
-        m_lastTimeUpdate.tv_sec = 0;
-        xine_get_pos_length(m_stream, 0, &m_currentTime, &m_totalTime);
-        getStreamInfo();
-        emit length(m_totalTime);
-        updateMetaData();
-        // if there's a PlayCommand in the event queue the state should not go to StoppedState
-        if (m_playCalled > 0) {
-            changeState(Phonon::BufferingState);
-        } else {
-            changeState(Phonon::StoppedState);
-        }
+        return false;
     }
+
+    m_lastTimeUpdate.tv_sec = 0;
+    xine_get_pos_length(m_stream, 0, &m_currentTime, &m_totalTime);
+    getStreamInfo();
+    emit length(m_totalTime);
+    updateMetaData();
+    // if there's a PlayCommand in the event queue the state should not go to StoppedState
+    if (m_playCalled > 0) {
+        changeState(Phonon::BufferingState);
+    } else {
+        changeState(Phonon::StoppedState);
+    }
+    return true;
 }
 
 // called from main thread
@@ -241,8 +241,7 @@ void XineStream::getStreamInfo()
     if (m_stream && !m_streamInfoReady && !m_mrl.isEmpty()) {
         if (xine_get_status(m_stream) == XINE_STATUS_IDLE) {
             kDebug(610) << "calling xineOpen from " << k_funcinfo << endl;
-            xineOpen();
-            if (xine_get_status(m_stream) == XINE_STATUS_IDLE) {
+            if (!xineOpen()) {
                 return;
             }
         }
@@ -456,7 +455,16 @@ void XineStream::playbackFinished()
 // xine thread
 bool XineStream::event(QEvent *ev)
 {
-    //Q_ASSERT(QThread::currentThread() == this);
+    if (ev->type() != QEvent::ThreadChange) {
+        Q_ASSERT(QThread::currentThread() == this);
+    }
+    if (m_closing) {
+        // when closing all events except MrlChanged are ignored. MrlChanged is used to detach from
+        // a kbytestream:/ MRL
+        if (ev->type() != MrlChanged) {
+            return QThread::event(ev);
+        }
+    }
     switch (ev->type()) {
         case Xine::MediaFinishedEvent:
             kDebug(610) << "MediaFinishedEvent m_useGaplessPlayback = " << m_useGaplessPlayback << endl;
@@ -708,7 +716,9 @@ bool XineStream::event(QEvent *ev)
                 //X                 }
                 if (xine_get_status(m_stream) == XINE_STATUS_IDLE) {
                     kDebug(610) << "calling xineOpen from PlayCommand" << endl;
-                    xineOpen();
+                    if (!xineOpen()) {
+                        return true;
+                    }
                 }
                 xine_play(m_stream, 0, 0);
                 changeState(Phonon::PlayingState);
@@ -873,7 +883,7 @@ void XineStream::closeBlocking()
 
         // wait until the xine_close is done
         m_waitingForClose.wait(&m_mutex);
-        m_closing = false;
+        //m_closing = false;
     }
     m_mutex.unlock();
 }
@@ -925,7 +935,9 @@ bool XineStream::updateTime()
     if (m_stream) {
         if (xine_get_status(m_stream) == XINE_STATUS_IDLE) {
             kDebug(610) << "calling xineOpen from " << k_funcinfo << endl;
-            xineOpen();
+            if (!xineOpen()) {
+                return false;
+            }
         }
         QMutexLocker locker(&m_updateTimeMutex);
         if (xine_get_pos_length(m_stream, 0, &m_currentTime, &m_totalTime) != 1) {
