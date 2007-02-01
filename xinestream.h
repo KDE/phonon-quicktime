@@ -104,7 +104,7 @@ class XineStream : public QThread
 
     private:
         void getStreamInfo();
-        void xineOpen();
+        bool xineOpen();
         void updateMetaData();
         void rewireOutputPorts();
         bool createStream();
