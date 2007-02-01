@@ -62,6 +62,7 @@ namespace Xine
     XineEngine::~XineEngine()
     {
         //kDebug(610) << k_funcinfo << endl;
+        s_instance = 0;
         xine_exit(m_xine);
         m_xine = 0;
     }
