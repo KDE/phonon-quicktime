@@ -461,7 +461,7 @@ bool XineStream::event(QEvent *ev)
     if (m_closing) {
         // when closing all events except MrlChanged are ignored. MrlChanged is used to detach from
         // a kbytestream:/ MRL
-        if (ev->type() != MrlChanged) {
+        if (static_cast<int>(ev->type()) != MrlChanged) {
             return QThread::event(ev);
         }
     }
