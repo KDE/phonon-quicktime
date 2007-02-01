@@ -443,6 +443,9 @@ void XineStream::playbackFinished()
 {
     {
         QMutexLocker locker(&m_mutex);
+        if (m_aboutToFinishNotEmitted && m_aboutToFinishTime > 0) {
+            emit aboutToFinish(0);
+        }
         changeState(Phonon::StoppedState);
         emit finished();
         xine_close(m_stream); // TODO: is it necessary? should xine_close be called as late as possible?
@@ -452,18 +455,65 @@ void XineStream::playbackFinished()
     m_waitingForClose.wakeAll();
 }
 
+const char* nameForEvent(int e)
+{
+    switch (e) {
+        case Xine::MediaFinishedEvent:
+            return "Xine::MediaFinishedEvent";
+        case UpdateTime:
+            return "UpdateTime";
+        case GaplessSwitch:
+            return "GaplessSwitch";
+        case Xine::NewMetaDataEvent:
+            return "Xine::NewMetaDataEvent";
+        case Xine::ProgressEvent:
+            return "Xine::ProgressEvent";
+        case GetStreamInfo:
+            return "GetStreamInfo";
+        case UpdateVolume:
+            return "UpdateVolume";
+        case MrlChanged:
+            return "MrlChanged";
+        case GaplessPlaybackChanged:
+            return "GaplessPlaybackChanged";
+        case RewireStream:
+            return "RewireStream";
+        case PlayCommand:
+            return "PlayCommand";
+        case PauseCommand:
+            return "PauseCommand";
+        case StopCommand:
+            return "StopCommand";
+        case SetTickInterval:
+            return "SetTickInterval";
+        case SetAboutToFinishTime:
+            return "SetAboutToFinishTime";
+        case SeekCommand:
+            return "SeekCommand";
+        default:
+            return 0;
+    }
+}
+
 // xine thread
 bool XineStream::event(QEvent *ev)
 {
     if (ev->type() != QEvent::ThreadChange) {
         Q_ASSERT(QThread::currentThread() == this);
     }
+    const char *eventName = nameForEvent(ev->type());
     if (m_closing) {
         // when closing all events except MrlChanged are ignored. MrlChanged is used to detach from
         // a kbytestream:/ MRL
         if (static_cast<int>(ev->type()) != MrlChanged) {
+            if (eventName) {
+                kDebug(610) << "####################### ignoring Event: " << eventName << endl;
+            }
             return QThread::event(ev);
         }
+    }
+    if (eventName) {
+        kDebug(610) << "################################ Event: " << eventName << endl;
     }
     switch (ev->type()) {
         case Xine::MediaFinishedEvent:
@@ -503,6 +553,9 @@ bool XineStream::event(QEvent *ev)
                 m_mutex.unlock();
                 xine_play(m_stream, 0, 0);
 
+                if (m_aboutToFinishNotEmitted && m_aboutToFinishTime > 0) {
+                    emit aboutToFinish(0);
+                }
                 m_aboutToFinishNotEmitted = true;
                 getStreamInfo();
                 emit finished();
@@ -721,7 +774,12 @@ bool XineStream::event(QEvent *ev)
                     }
                 }
                 xine_play(m_stream, 0, 0);
-                changeState(Phonon::PlayingState);
+                if (updateTime()) {
+                    changeState(Phonon::PlayingState);
+                } else {
+                    changeState(Phonon::BufferingState);
+                    m_waitForPlayingTimerId = startTimer(50);
+                }
             }
             return true;
         case PauseCommand:
@@ -965,7 +1023,7 @@ bool XineStream::updateTime()
 void XineStream::emitAboutToFinishIn(int timeToAboutToFinishSignal)
 {
     Q_ASSERT(QThread::currentThread() == this);
-    //kDebug(610) << k_funcinfo << timeToAboutToFinishSignal << kBacktrace() << endl;
+    kDebug(610) << k_funcinfo << timeToAboutToFinishSignal << endl;
     Q_ASSERT(m_aboutToFinishTime > 0);
     if (!m_aboutToFinishTimer) {
         m_aboutToFinishTimer = new QTimer(this);
@@ -974,6 +1032,12 @@ void XineStream::emitAboutToFinishIn(int timeToAboutToFinishSignal)
         m_aboutToFinishTimer->setSingleShot(true);
         connect(m_aboutToFinishTimer, SIGNAL(timeout()), SLOT(emitAboutToFinish()), Qt::DirectConnection);
     }
+    timeToAboutToFinishSignal -= 400; // xine is not very accurate wrt time info, so better look too
+                                      // often than too late
+    if (timeToAboutToFinishSignal < 0) {
+        timeToAboutToFinishSignal = 0;
+    }
+    kDebug(610) << timeToAboutToFinishSignal << endl;
     m_aboutToFinishTimer->start(timeToAboutToFinishSignal);
 }
 
@@ -981,11 +1045,12 @@ void XineStream::emitAboutToFinishIn(int timeToAboutToFinishSignal)
 void XineStream::emitAboutToFinish()
 {
     Q_ASSERT(QThread::currentThread() == this);
-    kDebug(610) << k_funcinfo << endl;
+    kDebug(610) << k_funcinfo << m_aboutToFinishNotEmitted << ", " << m_aboutToFinishTime << endl;
     if (m_aboutToFinishNotEmitted && m_aboutToFinishTime > 0) {
         updateTime();
         const int remainingTime = m_totalTime - m_currentTime;
 
+        kDebug(610) << remainingTime << endl;
         if (remainingTime <= m_aboutToFinishTime + 150) {
             m_aboutToFinishNotEmitted = false;
             kDebug(610) << "emitting aboutToFinish(" << remainingTime << ")" << endl;
@@ -993,6 +1058,23 @@ void XineStream::emitAboutToFinish()
         } else {
             emitAboutToFinishIn(remainingTime - m_aboutToFinishTime);
         }
+    }
+}
+
+// xine thread
+void XineStream::timerEvent(QTimerEvent *event)
+{
+    Q_ASSERT(QThread::currentThread() == this);
+    if (m_waitForPlayingTimerId == event->timerId()) {
+        if (updateTime()) {
+            changeState(Phonon::PlayingState);
+            killTimer(m_waitForPlayingTimerId);
+            m_waitForPlayingTimerId = -1;
+        } else {
+            kDebug(610) << k_funcinfo << "waiting" << endl;
+        }
+    } else {
+        QThread::timerEvent(event);
     }
 }
 

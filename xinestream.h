@@ -95,6 +95,7 @@ class XineStream : public QThread
     protected:
         bool event(QEvent *ev);
         void run();
+        void timerEvent(QTimerEvent *event);
 
     private slots:
         void getStartTime();
@@ -142,6 +143,7 @@ class XineStream : public QThread
         int m_startTime;
         int m_totalTime;
         int m_currentTime;
+        int m_waitForPlayingTimerId;
         bool m_streamInfoReady : 1;
         bool m_hasVideo : 1;
         bool m_isSeekable : 1;
