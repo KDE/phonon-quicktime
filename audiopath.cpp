@@ -37,6 +37,12 @@ AudioPath::AudioPath( QObject* parent )
 
 AudioPath::~AudioPath()
 {
+    if (m_output) {
+        m_output->removePath(this);
+    }
+    foreach (AbstractAudioOutput *aao, m_outputs) {
+        aao->removePath(this);
+    }
 }
 
 bool AudioPath::hasOutput() const
