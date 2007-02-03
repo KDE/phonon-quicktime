@@ -366,12 +366,13 @@ void XineStream::gaplessSwitchTo(const QByteArray &mrl)
 // called from main thread
 void XineStream::rewireOutputPorts()
 {
+    kDebug(610) << k_funcinfo << endl;
     // make sure that multiple recreate events are compressed to one
     if (m_rewireEventSent) {
         return;
     }
-    QCoreApplication::postEvent(this, new QEvent(static_cast<QEvent::Type>(RewireStream)));
     m_rewireEventSent = true;
+    QCoreApplication::postEvent(this, new QEvent(static_cast<QEvent::Type>(RewireStream)));
 }
 
 // xine thread
