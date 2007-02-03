@@ -71,6 +71,9 @@ AbstractMediaProducer::~AbstractMediaProducer()
     if (m_audioPath) {
         m_audioPath->removeMediaProducer(this);
     }
+    if (m_videoPath) {
+        m_videoPath->unsetMediaProducer(this);
+    }
 
     // we have to be sure that the event loop of m_stream is already started at this point, else the
     // quit function will be ignored
