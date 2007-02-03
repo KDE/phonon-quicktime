@@ -665,6 +665,9 @@ bool XineStream::event(QEvent *ev)
                         xine_post_out_t *audioSource = xine_get_audio_source(m_stream);
                         xine_post_wire_audio_port(audioSource, m_newAudioPort.xinePort());
                         m_audioPort = m_newAudioPort;
+                        if (m_volume != 100) {
+                            xine_set_param(m_stream, XINE_PARAM_AUDIO_AMP_LEVEL, m_volume);
+                        }
                     }
                     if (m_videoPort != m_newVideoPort) {
                         xine_post_out_t *videoSource = xine_get_video_source(m_stream);
