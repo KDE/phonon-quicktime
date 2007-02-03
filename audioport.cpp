@@ -52,18 +52,25 @@ AudioPort::AudioPort(int deviceIndex)
         foreach (QString device, alsaDevices) {
             xine_cfg_entry_t alsaDeviceConfig;
             QByteArray deviceStr = device.toUtf8();
-            if(!xine_config_lookup_entry(XineEngine::xine(), "audio.device.alsa_default_device", &alsaDeviceConfig)) {
-                // the config key is not registered yet - it is registered in the alsa output plugin
-                d->port = xine_open_audio_driver(XineEngine::xine(), outputPlugin.constData(), 0);
-                if (d->port) {
-                    xine_close_audio_driver(XineEngine::xine(), d->port);
-                    d->port = 0;
-                } else {
-                    kError(610) << k_funcinfo << "creating the correct ALSA output failed!" << endl;
-                    return;
+            if(!xine_config_lookup_entry(XineEngine::xine(), "audio.device.alsa_default_device",
+                        &alsaDeviceConfig)) {
+                // the config key is not registered yet - it is registered when the alsa output
+                // plugin is opened. So we open the plugin and close it again, then we can set the
+                // setting. :(
+                xine_audio_port_t *port = xine_open_audio_driver(XineEngine::xine(), outputPlugin.constData(), 0);
+                if (port) {
+                    xine_close_audio_driver(XineEngine::xine(), port);
+                    // port == 0 does not have to be fatal, since it might be only the default device
+                    // that cannot be opened
+                    //kError(610) << k_funcinfo << "creating the correct ALSA output failed!" << endl;
+                    //return;
                 }
                 // now the config key should be registered
-                Q_ASSERT(xine_config_lookup_entry(XineEngine::xine(), "audio.device.alsa_default_device", &alsaDeviceConfig));
+                if(!xine_config_lookup_entry(XineEngine::xine(), "audio.device.alsa_default_device",
+                            &alsaDeviceConfig)) {
+                    kError(610) << "cannot set the ALSA device on Xine's ALSA output plugin" << endl;
+                    return;
+                }
             }
             Q_ASSERT(alsaDeviceConfig.type == XINE_CONFIG_TYPE_STRING);
             alsaDeviceConfig.str_value = deviceStr.data();
