@@ -43,7 +43,7 @@
 #include <phonon/audiodeviceenumerator.h>
 
 typedef KGenericFactory<Phonon::Xine::Backend> XineBackendFactory;
-K_EXPORT_COMPONENT_FACTORY(phonon_xine_threaded, XineBackendFactory("xinebackend"))
+K_EXPORT_COMPONENT_FACTORY(phonon_xine, XineBackendFactory("xinebackend"))
 
 namespace Phonon
 {

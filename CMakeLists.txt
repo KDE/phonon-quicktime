@@ -1,19 +1,3 @@
-######### begin: remove when moved back to kdemultimedia ############
-project(phonon-xine-threaded)
-set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules )
-find_package(KDE4 REQUIRED)
-include (KDE4Defaults)
-include (MacroLibrary)
-include (MacroLogFeature)
-find_package(Xine)
-
-add_definitions (${QT_DEFINITIONS} ${QT_QTDBUS_DEFINITIONS} ${KDE4_DEFINITIONS})
-link_directories (${KDE4_LIB_DIR})
-include_directories (${QDBUS_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR} ${KDE4_INCLUDES})
-
-#configure_file (config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
-######### end: remove when moved back to kdemultimedia ##############
-
 #add_subdirectory(ui)
 add_subdirectory(kcm)
 #add_subdirectory(xineplugins)
@@ -55,9 +39,9 @@ set(phonon_xine_PART_SRCS
    )
 
 kde4_automoc(${phonon_xine_PART_SRCS})
-kde4_add_plugin(phonon_xine_threaded ${phonon_xine_PART_SRCS})
-target_link_libraries(phonon_xine_threaded ${KDE4_KDECORE_LIBS} ${KDE4_PHONONCORE_LIBS} phononxineengine)
+kde4_add_plugin(phonon_xine ${phonon_xine_PART_SRCS})
+target_link_libraries(phonon_xine ${KDE4_KDECORE_LIBS} ${KDE4_PHONONCORE_LIBS} phononxineengine)
 
 
-install(TARGETS phonon_xine_threaded DESTINATION ${PLUGIN_INSTALL_DIR})
-install(FILES xinet.desktop DESTINATION ${SERVICES_INSTALL_DIR}/phononbackends)
+install(TARGETS phonon_xine DESTINATION ${PLUGIN_INSTALL_DIR})
+install(FILES xine.desktop DESTINATION ${SERVICES_INSTALL_DIR}/phononbackends)
