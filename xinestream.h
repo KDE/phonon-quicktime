@@ -37,6 +37,7 @@ namespace Phonon
 {
 namespace Xine
 {
+class VideoWidgetInterface;
 
 /**
  * \brief xine_stream_t wrapper that runs in its own thread.
@@ -61,7 +62,7 @@ class XineStream : public QThread
         bool isSeekable() const;
         void setVolume(int vol);
         void setAudioPort(AudioPort port);
-        void setVideoPort(xine_video_port_t *port);
+        void setVideoPort(VideoWidgetInterface *vwi);
         void setTickInterval(qint32 interval);
         void setAboutToFinishTime(qint32 time);
 
@@ -71,6 +72,14 @@ class XineStream : public QThread
         void gaplessSwitchTo(const QByteArray &mrl);
         void closeBlocking();
         void waitForEventLoop();
+        VideoWidgetInterface *videoWidget() const
+        {
+            if (m_newVideoPort) {
+                return m_newVideoPort;
+            }
+            return m_videoPort;
+        }
+
 
     public slots:
         void setUrl(const KUrl &url);
@@ -119,8 +128,8 @@ class XineStream : public QThread
 
         AudioPort m_audioPort;
         AudioPort m_newAudioPort;
-        xine_video_port_t *m_videoPort;
-        xine_video_port_t *m_newVideoPort;
+        VideoWidgetInterface *m_videoPort;
+        VideoWidgetInterface *m_newVideoPort;
 
         Phonon::State m_state;
 

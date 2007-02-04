@@ -46,14 +46,16 @@ namespace Xine
 
 			void streamFinished();
 			bool hasOutput() const;
-			xine_video_port_t *videoPort() const;
-			VideoWidgetInterface *videoWidget() {return m_output;}
+            VideoWidgetInterface *videoPort() const;
 
 		public slots:
 			bool addOutput( QObject* videoOutput );
 			bool removeOutput( QObject* videoOutput );
 			bool insertEffect( QObject* newEffect, QObject* insertBefore = 0 );
 			bool removeEffect( QObject* effect );
+
+        private slots:
+            void videoPortChanged();
 
 		private:
 			VideoWidgetInterface *m_output;
@@ -63,5 +65,5 @@ namespace Xine
 	};
 }} //namespace Phonon::Xine
 
-// vim: sw=4 ts=4 tw=80 noet
+// vim: sw=4 ts=4 tw=80
 #endif // Phonon_XINE_VIDEOPATH_H

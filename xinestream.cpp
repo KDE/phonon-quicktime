@@ -25,6 +25,7 @@
 #include <QTimer>
 #include <kurl.h>
 #include "audioport.h"
+#include "videowidgetinterface.h"
 
 //#define DISABLE_FILE_MRLS
 
@@ -238,6 +239,8 @@ bool XineStream::isSeekable() const
 // xine thread
 void XineStream::getStreamInfo()
 {
+    Q_ASSERT(QThread::currentThread() == this);
+
     if (m_stream && !m_streamInfoReady && !m_mrl.isEmpty()) {
         if (xine_get_status(m_stream) == XINE_STATUS_IDLE) {
             kDebug(610) << "calling xineOpen from " << k_funcinfo << endl;
@@ -266,7 +269,8 @@ bool XineStream::createStream()
     m_audioPort = m_newAudioPort;
     m_videoPort = m_newVideoPort;
     kDebug(610) << k_funcinfo << "AudioPort.xinePort() = " << m_audioPort.xinePort() << endl;
-    m_stream = xine_stream_new(XineEngine::xine(), m_audioPort.xinePort(), m_videoPort);
+    xine_video_port_t *videoPort = m_videoPort ? m_videoPort->videoPort() : 0;
+    m_stream = xine_stream_new(XineEngine::xine(), m_audioPort.xinePort(), videoPort);
     if (!m_audioPort.isValid()) {
         xine_set_param(m_stream, XINE_PARAM_IGNORE_AUDIO, 1);
     } else if (m_volume != 100) {
@@ -315,7 +319,7 @@ void XineStream::setAudioPort(AudioPort port)
 }
 
 //called from main thread
-void XineStream::setVideoPort(xine_video_port_t *port)
+void XineStream::setVideoPort(VideoWidgetInterface *port)
 {
     m_portMutex.lock();
     if (m_videoPort == m_newVideoPort && port == m_videoPort) {
@@ -671,7 +675,8 @@ bool XineStream::event(QEvent *ev)
                     }
                     if (m_videoPort != m_newVideoPort) {
                         xine_post_out_t *videoSource = xine_get_video_source(m_stream);
-                        xine_post_wire_video_port(videoSource, m_newVideoPort);
+                        xine_video_port_t *videoPort = m_newVideoPort ? m_newVideoPort->videoPort() : 0;
+                        xine_post_wire_video_port(videoSource, videoPort);
                         m_videoPort = m_newVideoPort;
                     }
                     m_portMutex.unlock();
@@ -1075,7 +1080,13 @@ void XineStream::timerEvent(QTimerEvent *event)
             killTimer(m_waitForPlayingTimerId);
             m_waitForPlayingTimerId = -1;
         } else {
-            kDebug(610) << k_funcinfo << "waiting" << endl;
+            if (xine_get_status(m_stream) == XINE_STATUS_IDLE) {
+                changeState(Phonon::StoppedState);
+                killTimer(m_waitForPlayingTimerId);
+                m_waitForPlayingTimerId = -1;
+            } else {
+                kDebug(610) << k_funcinfo << "waiting" << endl;
+            }
         }
     } else {
         QThread::timerEvent(event);

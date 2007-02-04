@@ -39,7 +39,7 @@ class VideoWidgetInterface
 		virtual void clearWindow() = 0;
 		virtual void setPath( VideoPath* vp ) = 0;
 		virtual void unsetPath( VideoPath* vp ) = 0;
-		virtual void setNavCursor( bool ) = 0;
+        virtual QObject *qobject() = 0;
 };
 
 } // namespace Xine
@@ -48,3 +48,4 @@ class VideoWidgetInterface
 Q_DECLARE_INTERFACE( Phonon::Xine::VideoWidgetInterface, "org.kde.Phonon.Xine.VideoWidgetInterface/0.1" )
 
 #endif // VIDEOWIDGETINTERFACE_H
+// vim: ts=4
