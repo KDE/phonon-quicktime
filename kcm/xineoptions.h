@@ -21,16 +21,14 @@
 #define PHONON_XINEOPTIONS_H
 
 #include "ui_xineoptions.h"
-#define KDE3_SUPPORT
 #include <kcmodule.h>
-#undef KDE3_SUPPORT
 #include <kconfig.h>
 
 class XineOptions : public KCModule, private Ui::XineOptions
 {
     Q_OBJECT
     public:
-        XineOptions(QWidget *parent, const QVariantList &args);
+        XineOptions(QWidget *parent, const QStringList &args);
 
         void load();
         void save();
@@ -38,7 +36,6 @@ class XineOptions : public KCModule, private Ui::XineOptions
 
     private:
         KSharedConfigPtr m_config;
-        bool m_noDeinterlace;
 };
 
 #endif // PHONON_XINEOPTIONS_H
