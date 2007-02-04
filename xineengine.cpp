@@ -29,6 +29,7 @@
 #include <solid/audiohw.h>
 #include <QList>
 #include <kconfiggroup.h>
+#include "videowidgetinterface.h"
 
 namespace Phonon
 {
@@ -88,22 +89,34 @@ namespace Xine
 			return;
 		//kDebug( 610 ) << "Xine event: " << xineEvent->type << QByteArray( ( char* )xineEvent->data, xineEvent->data_length ) << endl;
 
-		AbstractMediaProducer* mp = static_cast<AbstractMediaProducer*>( p );
+        XineStream *xs = static_cast<XineStream *>(p);
 
 		switch( xineEvent->type ) 
 		{
 			case XINE_EVENT_UI_SET_TITLE:
-				QCoreApplication::postEvent( mp, new QEvent( static_cast<QEvent::Type>( Xine::NewMetaDataEvent ) ) );
+                QCoreApplication::postEvent(xs, new QEvent(static_cast<QEvent::Type>(Xine::NewMetaDataEvent)));
 				break;
 			case XINE_EVENT_UI_PLAYBACK_FINISHED:
-				QCoreApplication::postEvent( mp, new QEvent( static_cast<QEvent::Type>( Xine::MediaFinishedEvent ) ) );
+                QCoreApplication::postEvent(xs, new QEvent(static_cast<QEvent::Type>(Xine::MediaFinishedEvent)));
 				break;
 			case XINE_EVENT_PROGRESS:
 				{
 					xine_progress_data_t* progress = static_cast<xine_progress_data_t*>( xineEvent->data );
-					QCoreApplication::postEvent( mp, new XineProgressEvent( QString::fromUtf8( progress->description ), progress->percent ) );
+                    QCoreApplication::postEvent(xs, new XineProgressEvent(QString::fromUtf8(progress->description), progress->percent));
 				}
 				break;
+            case XINE_EVENT_SPU_BUTTON:
+                {
+                    VideoWidgetInterface *vw = xs->videoWidget();
+                    if (vw) {
+                        xine_spu_button_t *button = static_cast<xine_spu_button_t *>(xineEvent->data);
+                        if (button->direction == 1) { // enter a button
+                            QCoreApplication::postEvent(vw->qobject(), new QEvent(static_cast<QEvent::Type>(Xine::NavButtonInEvent)));
+                        } else {
+                            QCoreApplication::postEvent(vw->qobject(), new QEvent(static_cast<QEvent::Type>(Xine::NavButtonOutEvent)));
+                        }
+                    }
+                }
 		}
 	}
 

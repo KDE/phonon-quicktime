@@ -27,9 +27,10 @@
 #include "../xine_engine.h"
 #include "../abstractmediaproducer.h"
 #include <QApplication>
-#include <QMouseEvent>
 
 #include <X11/Xlib.h>
+#include <QDesktopWidget>
+#include <QMouseEvent>
 
 namespace Phonon
 {
@@ -83,6 +84,7 @@ VideoWidget::VideoWidget( QWidget* parent )
 	, m_videoPort( 0 )
 	, m_path( 0 )
 	, m_clearWindow( false )
+	, m_fullScreen( false )
 {
 	// for some reason it can hang if the widget is 0x0
 	setMinimumSize( 1, 1 );
@@ -97,8 +99,8 @@ VideoWidget::VideoWidget( QWidget* parent )
 	// disable Qt composition management as Xine draws onto the widget directly using X calls
 	setAttribute( Qt::WA_PaintOnScreen, true );
 
-	// required for dvdnav
-	setMouseTracking(true);
+    // required for dvdnav
+    setMouseTracking(true);
 
 	// make a new X connection for xine
 	// ~QApplication hangs (or crashes) in XCloseDisplay called from Qt when XInitThreads is
@@ -118,12 +120,12 @@ VideoWidget::VideoWidget( QWidget* parent )
 		QApplication::syncX();
 
 		Q_ASSERT( testAttribute( Qt::WA_WState_Created ) );
-		m_videoPort = xine_open_video_driver( XineEngine::xine(), "xvnt", XINE_VISUAL_TYPE_X11, static_cast<void*>( &m_visual ) );
-		if( !m_videoPort )
-		{
-			kWarning( 610 ) << "No xine video output plugin without XThreads found. Expect to see X errors." << endl;
+		//m_videoPort = xine_open_video_driver( XineEngine::xine(), "xvnt", XINE_VISUAL_TYPE_X11, static_cast<void*>( &m_visual ) );
+		//if( !m_videoPort )
+		//{
+			//kWarning( 610 ) << "No xine video output plugin without XThreads found. Expect to see X errors." << endl;
 			m_videoPort = xine_open_video_driver( XineEngine::xine(), 0, XINE_VISUAL_TYPE_X11, static_cast<void*>( &m_visual ) );
-		}
+		//}
 	}
 }
 
@@ -153,72 +155,6 @@ void VideoWidget::unsetPath( VideoPath* vp )
 {
 	Q_ASSERT( m_path == vp );
 	m_path = 0;
-}
-
-void VideoWidget::setNavCursor( bool b )
-{
-	if ( b )
-		setCursor( QCursor(Qt::PointingHandCursor) );
-	else
-		setCursor( QCursor(Qt::ArrowCursor) );
-}
-
-void VideoWidget::mouseMoveEvent( QMouseEvent* mev )
-{
-	if( m_path && m_path->producer() && m_path->producer()->stream() ) {
-		xine_stream_t* stream = m_path->producer()->stream();
-		if ( cursor().shape() == Qt::BlankCursor )
-			setCursor( QCursor(Qt::ArrowCursor) );
-
-		x11_rectangle_t   rect;
-		xine_event_t      event;
-		xine_input_data_t input;
-
-		rect.x = mev->x();
-		rect.y = mev->y();
-		rect.w = 0;
-		rect.h = 0;
-
-		xine_port_send_gui_data( m_videoPort, XINE_GUI_SEND_TRANSLATE_GUI_TO_VIDEO, (void*)&rect );
-
-		event.type        = XINE_EVENT_INPUT_MOUSE_MOVE;
-		event.data        = &input;
-		event.data_length = sizeof(input);
-		input.button      = 0;
-		input.x           = rect.x;
-		input.y           = rect.y;
-		xine_event_send( stream, &event );
-		mev->ignore(); // forward to parent
-	}
-}
-
-
-void VideoWidget::mousePressEvent( QMouseEvent* mev )
-{
-	if ( mev->button() == Qt::LeftButton ) {
-		if( m_path && m_path->producer() && m_path->producer()->stream() ) {
-			xine_stream_t* stream = m_path->producer()->stream();
-			x11_rectangle_t   rect;
-			xine_event_t      event;
-			xine_input_data_t input;
-
-			rect.x = mev->x();
-			rect.y = mev->y();
-			rect.w = 0;
-			rect.h = 0;
-
-			xine_port_send_gui_data( m_videoPort, XINE_GUI_SEND_TRANSLATE_GUI_TO_VIDEO, (void*)&rect );
-
-			event.type        = XINE_EVENT_INPUT_MOUSE_BUTTON;
-			event.data        = &input;
-			event.data_length = sizeof(input);
-			input.button      = 1;
-			input.x           = rect.x;
-			input.y           = rect.y;
-			xine_event_send( stream, &event );
-			mev->accept(); /* don't send event to parent */
-		}
-	}
 }
 
 Phonon::VideoWidget::AspectRatio VideoWidget::aspectRatio() const
@@ -254,6 +190,105 @@ void VideoWidget::setAspectRatio( Phonon::VideoWidget::AspectRatio aspectRatio )
 				break;
 		}
 	}
+}
+
+bool VideoWidget::isVideoFullScreen() const
+{
+	return m_fullScreen;
+}
+
+void VideoWidget::setVideoFullScreen( bool newFullScreen )
+{
+	if( m_fullScreen != newFullScreen )
+	{
+		m_fullScreen = newFullScreen;
+		if( m_fullScreen )
+		{
+			QDesktopWidget* dw = QApplication::desktop();
+			QRect screenRect = dw->screenGeometry( parentWidget() );
+			m_fullScreenWindow = XCreateSimpleWindow( m_display, XDefaultRootWindow( m_display ),
+					screenRect.x(), screenRect.y(), screenRect.width(), screenRect.height(), 0, 0, 0 );
+
+			m_visual.d = m_fullScreenWindow;
+			xine_port_send_gui_data( m_videoPort, XINE_GUI_SEND_DRAWABLE_CHANGED, reinterpret_cast<void*>( m_visual.d ) );
+		}
+		else
+		{
+			m_visual.d = winId();
+			xine_port_send_gui_data( m_videoPort, XINE_GUI_SEND_DRAWABLE_CHANGED, reinterpret_cast<void*>( m_visual.d ) );
+			XDestroyWindow( m_display, m_fullScreenWindow );
+		}
+	}
+}
+
+bool VideoWidget::event(QEvent *ev)
+{
+    switch (ev->type()) {
+        case Xine::NavButtonIn:
+            setCursor(QCursor(Qt::PointingHandCursor));
+            ev->accept();
+            return true;
+        case Xine::NavButtonOut:
+            setCursor(QCursor(Qt::ArrowCursor));
+            ev->accept();
+            return true;
+    }
+}
+
+void VideoWidget::mouseMoveEvent(QMouseEvent *mev)
+{
+    if (m_path && m_path->producer() && m_path->producer()->stream()) {
+        xine_stream_t *stream = m_path->producer()->stream();
+        if (cursor().shape() == Qt::BlankCursor) {
+            setCursor(QCursor(Qt::ArrowCursor));
+        }
+
+        x11_rectangle_t   rect;
+        xine_event_t      event;
+        xine_input_data_t input;
+
+        rect.x = mev->x();
+        rect.y = mev->y();
+        rect.w = 0;
+        rect.h = 0;
+
+        xine_port_send_gui_data(m_videoPort, XINE_GUI_SEND_TRANSLATE_GUI_TO_VIDEO, (void*)&rect);
+
+        event.type        = XINE_EVENT_INPUT_MOUSE_MOVE;
+        event.data        = &input;
+        event.data_length = sizeof(input);
+        input.button      = 0;
+        input.x           = rect.x;
+        input.y           = rect.y;
+        xine_event_send(stream, &event);
+        mev->ignore(); // forward to parent
+    }
+}
+
+void VideoWidget::mousePressEvent(QMouseEvent *mev)
+{
+    if (mev->button() == Qt::LeftButton && m_path && m_path->producer() && m_path->producer()->stream()) {
+        xine_stream_t* stream = m_path->producer()->stream();
+        x11_rectangle_t   rect;
+        xine_event_t      event;
+        xine_input_data_t input;
+
+        rect.x = mev->x();
+        rect.y = mev->y();
+        rect.w = 0;
+        rect.h = 0;
+
+        xine_port_send_gui_data(m_videoPort, XINE_GUI_SEND_TRANSLATE_GUI_TO_VIDEO, (void*)&rect);
+
+        event.type        = XINE_EVENT_INPUT_MOUSE_BUTTON;
+        event.data        = &input;
+        event.data_length = sizeof(input);
+        input.button      = 1;
+        input.x           = rect.x;
+        input.y           = rect.y;
+        xine_event_send(stream, &event);
+        mev->accept(); /* don't send event to parent */
+    }
 }
 
 bool VideoWidget::x11Event( XEvent* event )
@@ -303,16 +338,36 @@ void VideoWidget::changeEvent( QEvent* event )
 {
 	if( event->type() == QEvent::ParentAboutToChange )
 	{
+		kDebug( 610 ) << k_funcinfo << "ParentAboutToChange" << endl;
 	}
 	else if( event->type() == QEvent::ParentChange )
 	{
-		m_visual.d = winId();
-		if( m_videoPort )
-			xine_port_send_gui_data( m_videoPort, XINE_GUI_SEND_DRAWABLE_CHANGED, reinterpret_cast<void*>( m_visual.d ) );
+		kDebug( 610 ) << k_funcinfo << "ParentChange" << endl;
+		/*
+		if( m_visual.d != winId() )
+		{
+			m_visual.d = winId();
+			if( m_videoPort )
+			{
+				// make sure all Qt<->X communication is done, else winId() might not be known at the
+				// X-server yet
+				QApplication::syncX();
+				xine_port_send_gui_data( m_videoPort, XINE_GUI_SEND_DRAWABLE_CHANGED, reinterpret_cast<void*>( m_visual.d ) );
+				kDebug( 610 ) << "XINE_GUI_SEND_DRAWABLE_CHANGED done." << endl;
+			}
+		}
+		*/
 	}
+}
+
+xine_stream_t* VideoWidget::stream() const
+{
+	if( m_path && m_path->producer() )
+		return m_path->producer()->stream();
+	return 0;
 }
 
 }} //namespace Phonon::Xine
 
 #include "videowidget.moc"
-// vim: sw=4 ts=4 noet
+// vim: sw=4 ts=4

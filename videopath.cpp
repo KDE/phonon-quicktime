@@ -56,10 +56,10 @@ bool VideoPath::hasOutput() const
 	return ( m_output && m_output->videoPort() != 0 );
 }
 
-xine_video_port_t *VideoPath::videoPort() const
+VideoWidgetInterface *VideoPath::videoPort() const
 {
     if (m_output) {
-        return m_output->videoPort();
+        return m_output;
     }
     return 0;
 }
@@ -67,7 +67,7 @@ xine_video_port_t *VideoPath::videoPort() const
 void VideoPath::videoPortChanged()
 {
     if (m_producer) {
-        m_producer->setVideoPort(m_output->videoPort());
+        m_producer->setVideoPort(m_output);
     }
 }
 
@@ -81,7 +81,7 @@ bool VideoPath::addOutput( QObject* videoOutput )
 		m_output = vwi;
 		m_output->setPath( this );
 		if( m_producer && m_output->videoPort() != 0 )
-            m_producer->setVideoPort(m_output->videoPort());
+            m_producer->setVideoPort(m_output);
         connect(videoOutput, SIGNAL(videoPortChanged()), SLOT(videoPortChanged()));
 		return true;
 	}
