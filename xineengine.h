@@ -43,6 +43,8 @@ namespace Phonon
     class AudioDevice;
 namespace Xine
 {
+    class Backend;
+
 	enum EventType
 	{
 		NewMetaDataEvent = 5400,
@@ -64,13 +66,11 @@ namespace Xine
 
 	class PHONON_XINE_ENGINE_EXPORT XineEngine
 	{
+        friend class Phonon::Xine::Backend;
 		public:
-			~XineEngine();
-
 			static XineEngine* self();
 			static xine_t* xine();
 			static void xineEventListener( void*, const xine_event_t* );
-            static void setConfig(const KSharedConfigPtr &cfg) { self()->m_config = cfg; }
 
             static QSet<int> audioOutputIndexes();
             static QString audioOutputName(int audioDevice);
@@ -80,15 +80,15 @@ namespace Xine
             static QString audioDriverFor(int audioDevice);
             static QStringList alsaDevicesFor(int audioDevice);
 
-		protected:
-			XineEngine();
+        protected:
+            XineEngine(const KSharedConfigPtr &cfg);
+            ~XineEngine();
 
 		private:
             void checkAudioOutputs();
             void addAudioOutput(AudioDevice dev, QString driver);
             void addAudioOutput(int idx, const QString &n, const QString &desc, const QString &ic,
                     const QString &dr, const QStringList &dev);
-			static XineEngine* s_instance;
 			xine_t* m_xine;
 
             struct AudioOutputInfo
@@ -107,6 +107,7 @@ namespace Xine
             };
             QList<AudioOutputInfo> m_audioOutputInfos;
             KSharedConfigPtr m_config;
+            bool m_useOss;
 	};
 }
 }

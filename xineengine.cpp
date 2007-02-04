@@ -52,12 +52,16 @@ namespace Xine
 		return m_percent;
 	}
 
-	XineEngine* XineEngine::s_instance = 0;
+    static XineEngine *s_instance = 0;
 
-	XineEngine::XineEngine()
-		: m_xine( xine_new() )
-	{
-	}
+    XineEngine::XineEngine(const KSharedConfigPtr& _config)
+        : m_xine(xine_new()),
+        m_config(_config)
+    {
+        s_instance = this;
+        KConfigGroup cg(m_config, "Settings");
+        m_useOss = cg.readEntry("showOssDevices", false);
+    }
 
     XineEngine::~XineEngine()
     {
@@ -67,12 +71,11 @@ namespace Xine
         m_xine = 0;
     }
 
-	XineEngine* XineEngine::self()
-	{
-		if( !s_instance )
-			s_instance = new XineEngine();
-		return s_instance;
-	}
+    XineEngine *XineEngine::self()
+    {
+        Q_ASSERT(s_instance);
+        return s_instance;
+    }
 
 	xine_t* XineEngine::xine()
 	{
@@ -193,10 +196,12 @@ namespace Xine
     void XineEngine::addAudioOutput(AudioDevice dev, QString driver)
     {
         QString postfix;
-        if (dev.driver() == Solid::AudioHw::Alsa) {
-            postfix = QLatin1String(" (ALSA)");
-        } else if (dev.driver() == Solid::AudioHw::OpenSoundSystem) {
-            postfix = QLatin1String(" (OSS)");
+        if (m_useOss) {
+            if (dev.driver() == Solid::AudioHw::Alsa) {
+                postfix = QLatin1String(" (ALSA)");
+            } else if (dev.driver() == Solid::AudioHw::OpenSoundSystem) {
+                postfix = QLatin1String(" (OSS)");
+            }
         }
         AudioOutputInfo info(dev.index(), dev.cardName() + postfix,
                 QString(), dev.iconName(), driver, dev.deviceIds());
@@ -261,10 +266,12 @@ namespace Xine
                 } else if (0 == strcmp(outputPlugins[i], "none") || 0 == strcmp(outputPlugins[i], "file")) {
                     // ignore these devices
                 } else if (0 == strcmp(outputPlugins[i], "oss")) {
-                    QList<AudioDevice> audioDevices = AudioDeviceEnumerator::availablePlaybackDevices();
-                    foreach (AudioDevice dev, audioDevices) {
-                        if (dev.driver() == Solid::AudioHw::OpenSoundSystem) {
-                            addAudioOutput(dev, QLatin1String("oss"));
+                    if (m_useOss) {
+                        QList<AudioDevice> audioDevices = AudioDeviceEnumerator::availablePlaybackDevices();
+                        foreach (AudioDevice dev, audioDevices) {
+                            if (dev.driver() == Solid::AudioHw::OpenSoundSystem) {
+                                addAudioOutput(dev, QLatin1String("oss"));
+                            }
                         }
                     }
                 } else {

@@ -53,7 +53,7 @@ namespace Xine
 Backend::Backend( QObject* parent, const QStringList& )
 	: QObject( parent )
 {
-    XineEngine::setConfig(XineBackendFactory::componentData().config());
+    new XineEngine(XineBackendFactory::componentData().config());
 	char configfile[2048];
 
     xine_engine_set_param(XineEngine::xine(), XINE_ENGINE_PARAM_VERBOSITY, 99);
