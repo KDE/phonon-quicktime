@@ -21,26 +21,26 @@
 #include <QVector>
 #include <kdebug.h>
 
-#include <config.h>
 #include <sys/ioctl.h>
 #include <iostream>
 #include <QSet>
 #include "audiopath.h"
 #include "abstractmediaproducer.h"
+#include "backend.h"
 
 namespace Phonon
 {
 namespace Xine
 {
-AudioOutput::AudioOutput( QObject* parent )
-	: AbstractAudioOutput( parent )
-	, m_device( 1 )
-	, m_audioPort( 0 )
+AudioOutput::AudioOutput(QObject *parent)
+    : AbstractAudioOutput(parent),
+    m_device(1)
 {
 }
 
 AudioOutput::~AudioOutput()
 {
+    //kDebug(610) << k_funcinfo << endl;
 }
 
 float AudioOutput::volume() const
@@ -55,71 +55,70 @@ int AudioOutput::outputDevice() const
 
 void AudioOutput::updateVolume( AbstractMediaProducer* mp ) const
 {
-	int xinevolume = int(m_volume * 100);
-	if( xinevolume > 200) xinevolume = 200;
-	if( xinevolume < 0) xinevolume = 0;
+    int xinevolume = static_cast<int>(m_volume * 100);
+    if (xinevolume > 200) {
+        xinevolume = 200;
+    } else if (xinevolume < 0) {
+        xinevolume = 0;
+    }
 
-	xine_stream_t* stream = mp->stream();
-	if( stream )
-		xine_set_param( stream, XINE_PARAM_AUDIO_AMP_LEVEL, xinevolume );
+    mp->stream().setVolume(xinevolume);
 }
 
 void AudioOutput::setVolume( float newVolume )
 {
 	m_volume = newVolume;
 
-	int xinevolume = int(m_volume * 100);
-	if( xinevolume > 200) xinevolume = 200;
-	if( xinevolume < 0) xinevolume = 0;
+    int xinevolume = static_cast<int>(m_volume * 100);
+    if (xinevolume > 200) {
+        xinevolume = 200;
+    } else if (xinevolume < 0) {
+        xinevolume = 0;
+    }
 
-	QSet<xine_stream_t*> streams;
+    QSet<XineStream*> streams;
 	foreach( AudioPath* ap, m_paths )
 	{
 		foreach( AbstractMediaProducer* mp, ap->producers() )
 		{
-			streams << mp->stream();
+            streams << &mp->stream();
 		}
 	}
-	foreach( xine_stream_t* stream, streams )
-	{
-		if( stream ) // avoid xine crash when passing a null-pointer
-			xine_set_param( stream, XINE_PARAM_AUDIO_AMP_LEVEL, xinevolume );
+    foreach (XineStream *stream, streams) {
+        stream->setVolume(xinevolume);
 	}
 
 	emit volumeChanged( m_volume );
 }
 
-void AudioOutput::setOutputDevice( int newDevice )
+AudioPort AudioOutput::audioPort(XineStream* forStream)
 {
-	m_device = newDevice;
-	xine_audio_port_t* oldAudioPort = m_audioPort;
+    if (!m_audioPorts.contains(forStream)) {
+        m_audioPorts[forStream] = AudioPort(m_device);
+    }
+    return m_audioPorts[forStream];
+}
 
-	const char* const* outputPlugins = xine_list_audio_output_plugins( XineEngine::xine() );
-	kDebug( 610 ) << k_funcinfo << "use output plugin: " << outputPlugins[ newDevice - 10000 ] << endl;
-	m_audioPort = xine_open_audio_driver( XineEngine::xine(), outputPlugins[ newDevice - 10000 ], NULL );
-	if( !m_audioPort )
-	{
-		m_audioPort = oldAudioPort;
-		return; //false;
-	}
+void AudioOutput::setOutputDevice(int newDevice)
+{
+    m_device = newDevice;
 
-	// notify the connected MediaProducers of the new device
-	QSet<AbstractMediaProducer *> mps;
-	foreach( AudioPath* ap, m_paths )
-	{
-		foreach( AbstractMediaProducer *mp, ap->producers() )
-		{
-			mps << mp;
-		}
-	}
-	foreach( AbstractMediaProducer *mp, mps )
-		mp->checkAudioOutput();
+    PortMap::Iterator it = m_audioPorts.begin();
+    const PortMap::Iterator end = m_audioPorts.end();
+    for (; it != end; ++it) {
+        AudioPort newAudioPort(m_device);
+        if (!newAudioPort.isValid()) {
+            kDebug(610) << "new audio port is invalid" << endl;
+            return;
+        }
 
-	if( oldAudioPort )
-		xine_close_audio_driver( XineEngine::xine(), oldAudioPort );
+        // notify the connected XineStream of the new device
+        it.key()->setAudioPort(newAudioPort);
+        it.value() = newAudioPort;
+    }
 }
 
 }} //namespace Phonon::Xine
 
 #include "audiooutput.moc"
-// vim: sw=4 ts=4 noet
+// vim: sw=4 ts=4
