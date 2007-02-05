@@ -20,23 +20,13 @@
 #ifndef XINEENGINE_H
 #define XINEENGINE_H
 
-#include <kdemacros.h>
 #include <xine.h>
 #include <QEvent>
 #include <QString>
 #include <QSet>
 #include <QStringList>
 #include <kconfig.h>
-
-#ifdef Q_OS_WIN
-# ifdef MAKE_PHONONXINEENGINE_LIB
-#  define PHONON_XINE_ENGINE_EXPORT KDE_EXPORT
-# else
-#  define PHONON_XINE_ENGINE_EXPORT KDE_IMPORT
-# endif
-#else
-# define PHONON_XINE_ENGINE_EXPORT KDE_EXPORT
-#endif
+#include "phononxineexport.h"
 
 namespace Phonon
 {

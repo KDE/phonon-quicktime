@@ -1,9 +1,11 @@
-#add_subdirectory(ui)
+add_subdirectory(ui)
 add_subdirectory(kcm)
 #add_subdirectory(xineplugins)
 
 set(xineengine_LIB_SRCS
     xineengine.cpp
+    xinestream.cpp
+    audioport.cpp
    )
 kde4_automoc(${xineengine_LIB_SRCS})
 kde4_add_library(phononxineengine SHARED ${xineengine_LIB_SRCS})
@@ -15,8 +17,6 @@ install(TARGETS phononxineengine DESTINATION ${LIB_INSTALL_DIR})
 ADD_DEFINITIONS(-D_FILE_OFFSET_BITS=64)
 
 set(phonon_xine_PART_SRCS
-    audioport.cpp
-    xinestream.cpp
     abstractmediaproducer.cpp
     abstractaudiooutput.cpp
     audiodataoutput.cpp

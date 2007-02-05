@@ -24,7 +24,7 @@
 #include <kdebug.h>
 
 #include <QX11Info>
-#include "../xine_engine.h"
+#include "../xineengine.h"
 #include "../abstractmediaproducer.h"
 #include <QApplication>
 
@@ -164,88 +164,59 @@ Phonon::VideoWidget::AspectRatio VideoWidget::aspectRatio() const
 
 void VideoWidget::setAspectRatio( Phonon::VideoWidget::AspectRatio aspectRatio )
 {
-	m_aspectRatio = aspectRatio;
-	if( m_path && m_path->producer() && m_path->producer()->stream() )
-	{
-		xine_stream_t* stream = m_path->producer()->stream();
-		switch( m_aspectRatio )
-		{
-			case Phonon::VideoWidget::AspectRatioWidget:
-				xine_set_param( stream, XINE_PARAM_VO_ASPECT_RATIO, XINE_VO_ASPECT_NUM_RATIOS );
-				break;
-			case Phonon::VideoWidget::AspectRatioAuto:
-				xine_set_param( stream, XINE_PARAM_VO_ASPECT_RATIO, XINE_VO_ASPECT_AUTO );
-				break;
-			case Phonon::VideoWidget::AspectRatioSquare:
-				xine_set_param( stream, XINE_PARAM_VO_ASPECT_RATIO, XINE_VO_ASPECT_SQUARE );
-				break;
-			case Phonon::VideoWidget::AspectRatio4_3:
-				xine_set_param( stream, XINE_PARAM_VO_ASPECT_RATIO, XINE_VO_ASPECT_4_3 );
-				break;
-			case Phonon::VideoWidget::AspectRatioAnamorphic:
-				xine_set_param( stream, XINE_PARAM_VO_ASPECT_RATIO, XINE_VO_ASPECT_ANAMORPHIC );
-				break;
-			case Phonon::VideoWidget::AspectRatioDvb:
-				xine_set_param( stream, XINE_PARAM_VO_ASPECT_RATIO, XINE_VO_ASPECT_DVB );
-				break;
-		}
-	}
-}
-
-bool VideoWidget::isVideoFullScreen() const
-{
-	return m_fullScreen;
-}
-
-void VideoWidget::setVideoFullScreen( bool newFullScreen )
-{
-	if( m_fullScreen != newFullScreen )
-	{
-		m_fullScreen = newFullScreen;
-		if( m_fullScreen )
-		{
-			QDesktopWidget* dw = QApplication::desktop();
-			QRect screenRect = dw->screenGeometry( parentWidget() );
-			m_fullScreenWindow = XCreateSimpleWindow( m_display, XDefaultRootWindow( m_display ),
-					screenRect.x(), screenRect.y(), screenRect.width(), screenRect.height(), 0, 0, 0 );
-
-			m_visual.d = m_fullScreenWindow;
-			xine_port_send_gui_data( m_videoPort, XINE_GUI_SEND_DRAWABLE_CHANGED, reinterpret_cast<void*>( m_visual.d ) );
-		}
-		else
-		{
-			m_visual.d = winId();
-			xine_port_send_gui_data( m_videoPort, XINE_GUI_SEND_DRAWABLE_CHANGED, reinterpret_cast<void*>( m_visual.d ) );
-			XDestroyWindow( m_display, m_fullScreenWindow );
-		}
-	}
+    m_aspectRatio = aspectRatio;
+    if (m_path && m_path->producer()) {
+        XineStream &xs = m_path->producer()->stream();
+        switch (m_aspectRatio) {
+            case Phonon::VideoWidget::AspectRatioWidget:
+                xs.setParam(XINE_PARAM_VO_ASPECT_RATIO, XINE_VO_ASPECT_NUM_RATIOS);
+                break;
+            case Phonon::VideoWidget::AspectRatioAuto:
+                xs.setParam(XINE_PARAM_VO_ASPECT_RATIO, XINE_VO_ASPECT_AUTO);
+                break;
+            case Phonon::VideoWidget::AspectRatioSquare:
+                xs.setParam(XINE_PARAM_VO_ASPECT_RATIO, XINE_VO_ASPECT_SQUARE);
+                break;
+            case Phonon::VideoWidget::AspectRatio4_3:
+                xs.setParam(XINE_PARAM_VO_ASPECT_RATIO, XINE_VO_ASPECT_4_3);
+                break;
+            case Phonon::VideoWidget::AspectRatioAnamorphic:
+                xs.setParam(XINE_PARAM_VO_ASPECT_RATIO, XINE_VO_ASPECT_ANAMORPHIC);
+                break;
+            case Phonon::VideoWidget::AspectRatioDvb:
+                xs.setParam(XINE_PARAM_VO_ASPECT_RATIO, XINE_VO_ASPECT_DVB);
+                break;
+        }
+    }
 }
 
 bool VideoWidget::event(QEvent *ev)
 {
     switch (ev->type()) {
-        case Xine::NavButtonIn:
+        case Xine::NavButtonInEvent:
             setCursor(QCursor(Qt::PointingHandCursor));
             ev->accept();
             return true;
-        case Xine::NavButtonOut:
+        case Xine::NavButtonOutEvent:
             setCursor(QCursor(Qt::ArrowCursor));
             ev->accept();
             return true;
+        default:
+            return QWidget::event(ev);
     }
 }
 
 void VideoWidget::mouseMoveEvent(QMouseEvent *mev)
 {
-    if (m_path && m_path->producer() && m_path->producer()->stream()) {
-        xine_stream_t *stream = m_path->producer()->stream();
+    if (m_path && m_path->producer()) {
+        XineStream &xs = m_path->producer()->stream();
         if (cursor().shape() == Qt::BlankCursor) {
             setCursor(QCursor(Qt::ArrowCursor));
         }
 
         x11_rectangle_t   rect;
-        xine_event_t      event;
-        xine_input_data_t input;
+        xine_event_t      *event = new xine_event_t;
+        xine_input_data_t *input = new xine_input_data_t;
 
         rect.x = mev->x();
         rect.y = mev->y();
@@ -254,24 +225,24 @@ void VideoWidget::mouseMoveEvent(QMouseEvent *mev)
 
         xine_port_send_gui_data(m_videoPort, XINE_GUI_SEND_TRANSLATE_GUI_TO_VIDEO, (void*)&rect);
 
-        event.type        = XINE_EVENT_INPUT_MOUSE_MOVE;
-        event.data        = &input;
-        event.data_length = sizeof(input);
-        input.button      = 0;
-        input.x           = rect.x;
-        input.y           = rect.y;
-        xine_event_send(stream, &event);
+        event->type        = XINE_EVENT_INPUT_MOUSE_MOVE;
+        event->data        = input;
+        event->data_length = sizeof(*input);
+        input->button      = 0;
+        input->x           = rect.x;
+        input->y           = rect.y;
+        xs.eventSend(event);
         mev->ignore(); // forward to parent
     }
 }
 
 void VideoWidget::mousePressEvent(QMouseEvent *mev)
 {
-    if (mev->button() == Qt::LeftButton && m_path && m_path->producer() && m_path->producer()->stream()) {
-        xine_stream_t* stream = m_path->producer()->stream();
+    if (mev->button() == Qt::LeftButton && m_path && m_path->producer()) {
+        XineStream &xs = m_path->producer()->stream();
         x11_rectangle_t   rect;
-        xine_event_t      event;
-        xine_input_data_t input;
+        xine_event_t      *event = new xine_event_t;
+        xine_input_data_t *input = new xine_input_data_t;
 
         rect.x = mev->x();
         rect.y = mev->y();
@@ -280,13 +251,13 @@ void VideoWidget::mousePressEvent(QMouseEvent *mev)
 
         xine_port_send_gui_data(m_videoPort, XINE_GUI_SEND_TRANSLATE_GUI_TO_VIDEO, (void*)&rect);
 
-        event.type        = XINE_EVENT_INPUT_MOUSE_BUTTON;
-        event.data        = &input;
-        event.data_length = sizeof(input);
-        input.button      = 1;
-        input.x           = rect.x;
-        input.y           = rect.y;
-        xine_event_send(stream, &event);
+        event->type        = XINE_EVENT_INPUT_MOUSE_BUTTON;
+        event->data        = &input;
+        event->data_length = sizeof(input);
+        input->button      = 1;
+        input->x           = rect.x;
+        input->y           = rect.y;
+        xs.eventSend(event);
         mev->accept(); /* don't send event to parent */
     }
 }
@@ -358,13 +329,6 @@ void VideoWidget::changeEvent( QEvent* event )
 		}
 		*/
 	}
-}
-
-xine_stream_t* VideoWidget::stream() const
-{
-	if( m_path && m_path->producer() )
-		return m_path->producer()->stream();
-	return 0;
 }
 
 }} //namespace Phonon::Xine

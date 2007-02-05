@@ -30,6 +30,7 @@
 #include <sys/time.h>
 #include <time.h>
 #include "audioport.h"
+#include "phononxineexport.h"
 
 class QTimer;
 
@@ -47,7 +48,7 @@ class VideoWidgetInterface;
  *
  * \author Matthias Kretz <kretz@kde.org>
  */
-class XineStream : public QThread
+class PHONON_XINE_ENGINE_EXPORT XineStream : public QThread
 {
     Q_OBJECT
     public:
@@ -66,7 +67,8 @@ class XineStream : public QThread
         void setTickInterval(qint32 interval);
         void setAboutToFinishTime(qint32 time);
 
-        void setParam(int param, int value) { xine_set_param(m_stream, param, value); }
+        void setParam(int param, int value);
+        void eventSend(xine_event_t *);
         void useGaplessPlayback(bool);
         void gaplessSwitchTo(const KUrl &url);
         void gaplessSwitchTo(const QByteArray &mrl);
