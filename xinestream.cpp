@@ -241,16 +241,16 @@ bool XineStream::hasVideo() const
 bool XineStream::isSeekable() const
 {
     if (!m_streamInfoReady) {
-        QMutexLocker locker(&m_streamInfoMutex);
+        //QMutexLocker locker(&m_streamInfoMutex);
         QCoreApplication::postEvent(const_cast<XineStream*>(this), new QEvent(static_cast<QEvent::Type>(GetStreamInfo)));
         // wait a few ms, perhaps the other thread finishes the event in time and this method
         // can return a useful value
         // FIXME: this is non-deterministic: a program might fail sometimes and sometimes work
         // because of this
-        if (!m_waitingForStreamInfo.wait(&m_streamInfoMutex, 80)) {
+        /*if (!m_waitingForStreamInfo.wait(&m_streamInfoMutex, 80)) {
             kDebug(610) << k_funcinfo << "waitcondition timed out" << endl;
             return false;
-        }
+        }*/
     }
     return m_isSeekable;
 }
@@ -260,7 +260,7 @@ void XineStream::getStreamInfo()
 {
     Q_ASSERT(QThread::currentThread() == this);
 
-    if (m_stream && !m_streamInfoReady && !m_mrl.isEmpty()) {
+    if (m_stream && !m_mrl.isEmpty()) {
         if (xine_get_status(m_stream) == XINE_STATUS_IDLE) {
             kDebug(610) << "calling xineOpen from " << k_funcinfo << endl;
             if (!xineOpen()) {
@@ -269,7 +269,11 @@ void XineStream::getStreamInfo()
         }
         QMutexLocker locker(&m_streamInfoMutex);
         m_hasVideo   = xine_get_stream_info(m_stream, XINE_STREAM_INFO_HAS_VIDEO);
-        m_isSeekable = xine_get_stream_info(m_stream, XINE_STREAM_INFO_SEEKABLE);
+        bool isSeekable = xine_get_stream_info(m_stream, XINE_STREAM_INFO_SEEKABLE);
+        if (m_isSeekable != isSeekable) {
+            m_isSeekable = isSeekable;
+            emit seekableChanged(m_isSeekable);
+        }
         m_streamInfoReady = true;
     }
     m_waitingForStreamInfo.wakeAll();
@@ -632,6 +636,7 @@ bool XineStream::event(QEvent *ev)
             }
             return true;
         case Xine::NewMetaDataEvent:
+            getStreamInfo();
             updateMetaData();
             ev->accept();
             return true;
@@ -1079,11 +1084,16 @@ bool XineStream::updateTime()
             }
         }
         QMutexLocker locker(&m_updateTimeMutex);
-        if (xine_get_pos_length(m_stream, 0, &m_currentTime, &m_totalTime) != 1) {
+        int newTotalTime;
+        if (xine_get_pos_length(m_stream, 0, &m_currentTime, &newTotalTime) != 1) {
             m_currentTime = -1;
             m_totalTime = -1;
             m_lastTimeUpdate.tv_sec = 0;
             return false;
+        }
+        if (newTotalTime != m_totalTime) {
+            m_totalTime = newTotalTime;
+            emit length(m_totalTime);
         }
         if (m_currentTime == 0) {
             // are we seeking? when xine seeks xine_get_pos_length returns 0 for m_currentTime

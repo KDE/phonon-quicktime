@@ -91,6 +91,7 @@ namespace Xine
 			void stateChanged( Phonon::State newstate, Phonon::State oldstate );
 			void tick( qint64 time );
 			void metaDataChanged( const QMultiMap<QString, QString>& );
+            void seekableChanged(bool);
 			void asyncSeek( xine_stream_t*, qint64, bool );
 
 		protected:
@@ -108,9 +109,7 @@ namespace Xine
             void handleStateChange(Phonon::State newstate, Phonon::State oldstate);
             void seekDone();
 
-		private:
-			void createStream();
-
+        private:
             Phonon::State m_state;
             XineStream m_stream;
             qint32 m_tickInterval;

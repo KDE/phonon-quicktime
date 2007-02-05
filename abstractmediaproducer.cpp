@@ -56,6 +56,7 @@ AbstractMediaProducer::AbstractMediaProducer(QObject *parent)
             SLOT(handleStateChange(Phonon::State, Phonon::State)));
     connect(&m_stream, SIGNAL(metaDataChanged(const QMultiMap<QString, QString>&)),
             SIGNAL(metaDataChanged(const QMultiMap<QString, QString>&)));
+    connect(&m_stream, SIGNAL(seekableChanged(bool)), SIGNAL(seekableChanged(bool)));
     connect(&m_stream, SIGNAL(seekDone()), SLOT(seekDone()));
     connect(&m_stream, SIGNAL(tick(qint64)), SIGNAL(tick(qint64)));
 }
