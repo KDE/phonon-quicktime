@@ -80,6 +80,8 @@ class XineStream : public QThread
             return m_videoPort;
         }
 
+        QString errorString() const { return m_errorString; }
+        Phonon::ErrorType errorType() const { return m_errorType; }
 
     public slots:
         void setUrl(const KUrl &url);
@@ -122,6 +124,7 @@ class XineStream : public QThread
         void emitAboutToFinishIn(int timeToAboutToFinishSignal);
         bool updateTime();
         void playbackFinished();
+        void error(Phonon::ErrorType, const QString &);
 
         xine_stream_t *m_stream;
         xine_event_queue_t *m_event_queue;
@@ -146,6 +149,9 @@ class XineStream : public QThread
         QTimer *m_tickTimer;
         QTimer *m_aboutToFinishTimer;
         struct timeval m_lastTimeUpdate;
+
+        QString m_errorString;
+        Phonon::ErrorType m_errorType;
 
         qint32 m_aboutToFinishTime;
         int m_volume;

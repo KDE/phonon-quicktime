@@ -26,6 +26,7 @@
 #include <kurl.h>
 #include "audioport.h"
 #include "videowidgetinterface.h"
+#include <klocale.h>
 
 //#define DISABLE_FILE_MRLS
 
@@ -101,6 +102,7 @@ XineStream::XineStream(QObject *parent)
     m_state(Phonon::LoadingState),
     m_tickTimer(0),
     m_aboutToFinishTimer(0),
+    m_errorType(Phonon::NoError),
     m_volume(100),
 //    m_startTime(-1),
     m_totalTime(-1),
@@ -132,7 +134,7 @@ bool XineStream::xineOpen()
 #ifdef DISABLE_FILE_MRLS
     if (m_mrl.startsWith("file:/")) {
         kDebug(610) << "faked xine_open failed for m_mrl = " << m_mrl.constData() << endl;
-        changeState(Phonon::ErrorState);
+        error(Phonon::NormalError, i18n("Cannot open media data at '<i>%1</i>'").arg(m_mrl.constData()));
         return false;
     }
 #endif
@@ -141,7 +143,7 @@ bool XineStream::xineOpen()
     //kDebug(610) << "xine_open(" << m_mrl.constData() << ")" << endl;
     if (xine_open(m_stream, m_mrl.constData()) == 0) {
         kDebug(610) << "xine_open failed for m_mrl = " << m_mrl.constData() << endl;
-        changeState(Phonon::ErrorState);
+        error(Phonon::NormalError, i18n("Cannot open media data at '<i>%1</i>'").arg(m_mrl.constData()));
         return false;
     }
 
@@ -460,6 +462,14 @@ void XineStream::playbackFinished()
     m_waitingForClose.wakeAll();
 }
 
+// xine thread
+inline void XineStream::error(Phonon::ErrorType type, const QString &string)
+{
+    m_errorType = type;
+    m_errorString = string;
+    changeState(Phonon::ErrorState);
+}
+
 const char* nameForEvent(int e)
 {
     switch (e) {
@@ -607,6 +617,8 @@ bool XineStream::event(QEvent *ev)
                     return true;
                 }
                 m_mrl = e->mrl;
+                m_errorType = Phonon::NoError;
+                m_errorString = QString();
                 if (!m_stream) {
                     changeState(Phonon::LoadingState);
                     m_mutex.lock();
@@ -614,7 +626,7 @@ bool XineStream::event(QEvent *ev)
                     m_mutex.unlock();
                     if (!m_stream) {
                         kError(610) << "MrlChangedEvent: createStream didn't create a stream. This should not happen." << endl;
-                        changeState(Phonon::ErrorState);
+                        error(Phonon::FatalError, i18n("Xine failed to create a stream."));
                         return true;
                     }
                 } else if (xine_get_status(m_stream) != XINE_STATUS_IDLE) {
@@ -745,23 +757,29 @@ bool XineStream::event(QEvent *ev)
             return true;
         case PlayCommand:
             ev->accept();
+            if (!m_audioPort.isValid() && !m_videoPort) {
+                kWarning(610) << "request to play a stream, but no valid audio/video outputs are given/available" << endl;
+                error(Phonon::FatalError, i18n("Playback failed because no valid audio or video outputs are available"));
+                return true;
+            }
             if (m_state == Phonon::ErrorState) {
                 return true;
             }
             m_playMutex.lock();
             m_playCalled = false;
             m_playMutex.unlock();
-            if (m_mrl.isEmpty()) {
+            Q_ASSERT(!m_mrl.isEmpty());
+            /*if (m_mrl.isEmpty()) {
                 kError(610) << "PlayCommand: m_mrl is empty. This should not happen." << endl;
-                changeState(Phonon::ErrorState);
+                error(Phonon::NormalError, i18n("Request to play without media data"));
                 return true;
-            }
+            }*/
             if (!m_stream) {
                 QMutexLocker locker(&m_mutex);
                 createStream();
                 if (!m_stream) {
                     kError(610) << "PlayCommand: createStream didn't create a stream. This should not happen." << endl;
-                    changeState(Phonon::ErrorState);
+                    error(Phonon::FatalError, i18n("Xine failed to create a stream."));
                     return true;
                 }
             }
@@ -796,17 +814,18 @@ bool XineStream::event(QEvent *ev)
             if (m_state == Phonon::ErrorState) {
                 return true;
             }
-            if (m_mrl.isEmpty()) {
+            Q_ASSERT(!m_mrl.isEmpty());
+            /*if (m_mrl.isEmpty()) {
                 kError(610) << "PauseCommand: m_mrl is empty. This should not happen." << endl;
-                changeState(Phonon::ErrorState);
+                error(Phonon::NormalError, i18n("Request to pause without media data"));
                 return true;
-            }
+            }*/
             if (!m_stream) {
                 QMutexLocker locker(&m_mutex);
                 createStream();
                 if (!m_stream) {
                     kError(610) << "PauseCommand: createStream didn't create a stream. This should not happen." << endl;
-                    changeState(Phonon::ErrorState);
+                    error(Phonon::FatalError, i18n("Xine failed to create a stream."));
                     return true;
                 }
             }
@@ -820,17 +839,18 @@ bool XineStream::event(QEvent *ev)
             if (m_state == Phonon::ErrorState) {
                 return true;
             }
-            if (m_mrl.isEmpty()) {
+            Q_ASSERT(!m_mrl.isEmpty());
+            /*if (m_mrl.isEmpty()) {
                 kError(610) << "StopCommand: m_mrl is empty. This should not happen." << endl;
-                changeState(Phonon::ErrorState);
+                error(Phonon::NormalError, i18n("Request to stop without media data"));
                 return true;
-            }
+            }*/
             if (!m_stream) {
                 QMutexLocker locker(&m_mutex);
                 createStream();
                 if (!m_stream) {
                     kError(610) << "StopCommand: createStream didn't create a stream. This should not happen." << endl;
-                    changeState(Phonon::ErrorState);
+                    error(Phonon::FatalError, i18n("Xine failed to create a stream."));
                     return true;
                 }
             }

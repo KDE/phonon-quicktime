@@ -77,6 +77,9 @@ namespace Xine
 			virtual void stop();
 			virtual void seek( qint64 time );
 
+            QString errorString() const;
+            Phonon::ErrorType errorType() const;
+
 			XineStream& stream() { return m_stream; }
 			const XineStream& stream() const { return m_stream; }
             void setAudioPort(AudioPort port) { m_stream.setAudioPort(port); }
