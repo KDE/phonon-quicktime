@@ -1,5 +1,6 @@
 /*  This file is part of the KDE project
     Copyright (C) 2006 Tim Beaulen <tbscope@gmail.com>
+    Copyright (C) 2006-2007 Matthias Kretz <kretz@kde.org>
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -26,15 +27,17 @@
 #include <xine.h>
 #include "xinestream.h"
 #include "audioport.h"
+#include <phonon/audiooutputinterface.h>
 
 namespace Phonon
 {
 namespace Xine
 {
 	class AbstractMediaProducer;
-	class AudioOutput : public AbstractAudioOutput
+    class AudioOutput : public AbstractAudioOutput, public AudioOutputInterface
 	{
 		Q_OBJECT
+        Q_INTERFACES(Phonon::AudioOutputInterface)
 		public:
             AudioOutput(QObject *parent);
 			~AudioOutput();
@@ -49,7 +52,7 @@ namespace Xine
 
 			// Attributes Setters:
 			void setVolume( float newVolume );
-			void setOutputDevice( int newDevice );
+            bool setOutputDevice(int newDevice);
 
 		Q_SIGNALS:
 			void volumeChanged( float newVolume );

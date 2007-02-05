@@ -1,5 +1,6 @@
 /*  This file is part of the KDE project
     Copyright (C) 2006 Tim Beaulen <tbscope@gmail.com>
+    Copyright (C) 2006-2007 Matthias Kretz <kretz@kde.org>
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -99,23 +100,34 @@ AudioPort AudioOutput::audioPort(XineStream* forStream)
     return m_audioPorts[forStream];
 }
 
-void AudioOutput::setOutputDevice(int newDevice)
+bool AudioOutput::setOutputDevice(int newDevice)
 {
     m_device = newDevice;
 
-    PortMap::Iterator it = m_audioPorts.begin();
-    const PortMap::Iterator end = m_audioPorts.end();
-    for (; it != end; ++it) {
-        AudioPort newAudioPort(m_device);
-        if (!newAudioPort.isValid()) {
+    if (m_audioPorts.isEmpty()) {
+        // no AudioPort object will be created so we won't know whether the device is usable
+        // creating one now to check
+        AudioPort test(m_device);
+        if (!test.isValid()) {
             kDebug(610) << "new audio port is invalid" << endl;
-            return;
+            return false;
         }
+    } else {
+        PortMap::Iterator it = m_audioPorts.begin();
+        const PortMap::Iterator end = m_audioPorts.end();
+        for (; it != end; ++it) {
+            AudioPort newAudioPort(m_device);
+            if (!newAudioPort.isValid()) {
+                kDebug(610) << "new audio port is invalid" << endl;
+                return false;
+            }
 
-        // notify the connected XineStream of the new device
-        it.key()->setAudioPort(newAudioPort);
-        it.value() = newAudioPort;
+            // notify the connected XineStream of the new device
+            it.key()->setAudioPort(newAudioPort);
+            it.value() = newAudioPort;
+        }
     }
+    return true;
 }
 
 }} //namespace Phonon::Xine
