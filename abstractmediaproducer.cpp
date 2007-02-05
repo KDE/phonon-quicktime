@@ -326,6 +326,16 @@ void AbstractMediaProducer::seek(qint64 time)
     m_currentTimeOverride = time;
 }
 
+QString AbstractMediaProducer::errorString() const
+{
+    return m_stream.errorString();
+}
+
+Phonon::ErrorType AbstractMediaProducer::errorType() const
+{
+    return m_stream.errorType();
+}
+
 void AbstractMediaProducer::changeState(Phonon::State newstate)
 {
     // this method is for "fake" state changes the following state changes are not "fakable":
