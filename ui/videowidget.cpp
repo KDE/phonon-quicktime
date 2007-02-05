@@ -120,12 +120,12 @@ VideoWidget::VideoWidget( QWidget* parent )
 		QApplication::syncX();
 
 		Q_ASSERT( testAttribute( Qt::WA_WState_Created ) );
-		//m_videoPort = xine_open_video_driver( XineEngine::xine(), "xvnt", XINE_VISUAL_TYPE_X11, static_cast<void*>( &m_visual ) );
-		//if( !m_videoPort )
-		//{
-			//kWarning( 610 ) << "No xine video output plugin without XThreads found. Expect to see X errors." << endl;
+		m_videoPort = xine_open_video_driver( XineEngine::xine(), "xvnt", XINE_VISUAL_TYPE_X11, static_cast<void*>( &m_visual ) );
+		if( !m_videoPort )
+		{
+			kWarning( 610 ) << "No xine video output plugin without XThreads found. Expect to see X errors." << endl;
 			m_videoPort = xine_open_video_driver( XineEngine::xine(), 0, XINE_VISUAL_TYPE_X11, static_cast<void*>( &m_visual ) );
-		//}
+		}
 	}
 }
 
