@@ -252,8 +252,8 @@ void VideoWidget::mousePressEvent(QMouseEvent *mev)
         xine_port_send_gui_data(m_videoPort, XINE_GUI_SEND_TRANSLATE_GUI_TO_VIDEO, (void*)&rect);
 
         event->type        = XINE_EVENT_INPUT_MOUSE_BUTTON;
-        event->data        = &input;
-        event->data_length = sizeof(input);
+        event->data        = input;
+        event->data_length = sizeof(*input);
         input->button      = 1;
         input->x           = rect.x;
         input->y           = rect.y;
