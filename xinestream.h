@@ -104,6 +104,7 @@ class PHONON_XINE_ENGINE_EXPORT XineStream : public QThread
         void needNextUrl();
         void tick(qint64);
         void aboutToFinish(qint32);
+        void seekableChanged(bool);
 
     protected:
         bool event(QEvent *ev);
