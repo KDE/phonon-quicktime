@@ -41,6 +41,21 @@ AudioPortData::~AudioPortData()
     }
 }
 
+AudioPort::AudioPort(const AudioPort &rhs)
+    : d(rhs.d)
+{
+}
+
+AudioPort &AudioPort::operator=(const AudioPort &rhs)
+{
+    d = rhs.d;
+    return *this;
+}
+
+AudioPort::~AudioPort()
+{
+}
+
 AudioPort::AudioPort(int deviceIndex)
     : d(new AudioPortData)
 {

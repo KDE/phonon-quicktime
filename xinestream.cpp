@@ -48,7 +48,24 @@ enum {
     GaplessSwitch = 2010,
     UpdateTime = 2011,
     SetTickInterval = 2012,
-    SetAboutToFinishTime = 2013
+    SetAboutToFinishTime = 2013,
+    SetParam = 2014,
+    EventSend = 2015
+};
+
+class EventSendEvent : public QEvent
+{
+    public:
+        EventSendEvent(xine_event_t *e) : QEvent(static_cast<QEvent::Type>(EventSend)), event(e) {}
+        xine_event_t *event;
+};
+
+class SetParamEvent : public QEvent
+{
+    public:
+        SetParamEvent(int p, int v) : QEvent(static_cast<QEvent::Type>(SetParam)), param(p), value(v) {}
+        int param;
+        int value;
 };
 
 class MrlChangedEvent : public QEvent
@@ -348,6 +365,18 @@ void XineStream::setAboutToFinishTime(qint32 time)
 }
 
 // called from main thread
+void XineStream::setParam(int param, int value)
+{
+    QCoreApplication::postEvent(this, new SetParamEvent(param, value));
+}
+
+// called from main thread
+void XineStream::eventSend(xine_event_t *event)
+{
+    QCoreApplication::postEvent(this, new EventSendEvent(event));
+}
+
+// called from main thread
 void XineStream::useGaplessPlayback(bool b)
 {
     if (m_useGaplessPlayback == b) {
@@ -531,6 +560,29 @@ bool XineStream::event(QEvent *ev)
         kDebug(610) << "################################ Event: " << eventName << endl;
     }
     switch (ev->type()) {
+        case EventSend:
+            ev->accept();
+            {
+                EventSendEvent *e = static_cast<EventSendEvent *>(ev);
+                if (m_stream) {
+                    xine_event_send(m_stream, e->event);
+                }
+                switch (e->event->type) {
+                    case XINE_EVENT_INPUT_MOUSE_MOVE:
+                    case XINE_EVENT_INPUT_MOUSE_BUTTON:
+                        delete static_cast<xine_input_data_t *>(e->event->data);
+                        break;
+                }
+                delete e->event;
+            }
+            return true;
+        case SetParam:
+            ev->accept();
+            if (m_stream) {
+                SetParamEvent *e = static_cast<SetParamEvent *>(ev);
+                xine_set_param(m_stream, e->param, e->value);
+            }
+            return true;
         case Xine::MediaFinishedEvent:
             kDebug(610) << "MediaFinishedEvent m_useGaplessPlayback = " << m_useGaplessPlayback << endl;
             if (m_useGaplessPlayback) {

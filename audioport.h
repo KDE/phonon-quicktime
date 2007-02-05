@@ -23,6 +23,7 @@
 #include <QSharedDataPointer>
 #include <xine.h>
 #include <QSharedData>
+#include "phononxineexport.h"
 
 class QByteArray;
 class QStringList;
@@ -42,15 +43,20 @@ class AudioPortData : public QSharedData
         xine_audio_port_t *port;
 };
 
-class AudioPort
+class PHONON_XINE_ENGINE_EXPORT AudioPort
 {
     public:
         AudioPort() : d(new AudioPortData) {}
         AudioPort(int deviceIndex);
+
         bool isValid() const;
         bool operator==(const AudioPort& rhs) const;
         bool operator!=(const AudioPort& rhs) const;
         xine_audio_port_t *xinePort() const;
+
+        AudioPort(const AudioPort &);
+        AudioPort &operator=(const AudioPort &);
+        ~AudioPort();
 
     private:
         QSharedDataPointer<AudioPortData> d;
