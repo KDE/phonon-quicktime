@@ -85,8 +85,9 @@ class GaplessSwitchEvent : public QEvent
 class SeekCommandEvent : public QEvent
 {
     public:
-        SeekCommandEvent(qint64 time) : QEvent(static_cast<QEvent::Type>(SeekCommand)), m_time(time) {}
+        SeekCommandEvent(qint64 time) : QEvent(static_cast<QEvent::Type>(SeekCommand)), valid(true), m_time(time) {}
         qint64 time() const { return m_time; }
+        bool valid;
     private:
         qint64 m_time;
 };
@@ -120,6 +121,7 @@ XineStream::XineStream(QObject *parent)
     m_tickTimer(0),
     m_aboutToFinishTimer(0),
     m_errorType(Phonon::NoError),
+    m_lastSeekCommand(0),
     m_volume(100),
 //    m_startTime(-1),
     m_totalTime(-1),
@@ -956,6 +958,10 @@ bool XineStream::event(QEvent *ev)
             }
             {
                 SeekCommandEvent *e = static_cast<SeekCommandEvent*>(ev);
+                if (!e->valid) { // a newer SeekCommand is in the pipe, ignore this one
+                    return true;
+                }
+                m_lastSeekCommand = 0;
                 switch(m_state) {
                     case Phonon::PausedState:
                     case Phonon::BufferingState:
@@ -1069,7 +1075,13 @@ void XineStream::stop()
 // called from main thread
 void XineStream::seek(qint64 time)
 {
-    QCoreApplication::postEvent(this, new SeekCommandEvent(time));
+    if (m_lastSeekCommand) {
+        // FIXME: There's a race here in that the SeekCommand handler might be done and the event
+        // deleted in between the check and the assignment.
+        m_lastSeekCommand->valid = false;
+    }
+    m_lastSeekCommand = new SeekCommandEvent(time);
+    QCoreApplication::postEvent(this, m_lastSeekCommand);
 }
 
 // xine thread
