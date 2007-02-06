@@ -39,6 +39,7 @@ namespace Phonon
 namespace Xine
 {
 class VideoWidgetInterface;
+class SeekCommandEvent;
 
 /**
  * \brief xine_stream_t wrapper that runs in its own thread.
@@ -156,6 +157,7 @@ class PHONON_XINE_ENGINE_EXPORT XineStream : public QThread
         QString m_errorString;
         Phonon::ErrorType m_errorType;
 
+        SeekCommandEvent *m_lastSeekCommand;
         qint32 m_aboutToFinishTime;
         int m_volume;
         int m_startTime;
