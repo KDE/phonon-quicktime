@@ -1,6 +1,6 @@
 macro_optional_find_package(XCB)
 
-if(LIBXCB_FOUND)
+if(LIBXCB_FOUND AND XINE_XCB_FOUND)
   include_directories(${LIBXCB_INCLUDE_DIR})
   add_definitions(${LIBXCB_DEFINITIONS})
 
@@ -14,4 +14,4 @@ if(LIBXCB_FOUND)
   target_link_libraries(phonon_xineui ${KDE4_PHONONUI_LIBS} phononxineengine ${LIBXCB_LIBRARIES})
 
   install(TARGETS phonon_xineui DESTINATION ${PLUGIN_INSTALL_DIR})
-endif(LIBXCB_FOUND)
+endif(LIBXCB_FOUND AND XINE_XCB_FOUND)
