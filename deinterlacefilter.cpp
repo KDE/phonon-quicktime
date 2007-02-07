@@ -1,10 +1,9 @@
 /*  This file is part of the KDE project
     Copyright (C) 2006-2007 Matthias Kretz <kretz@kde.org>
 
-    This program is free software; you can redistribute it and/or
+    This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
-    License as published by the Free Software Foundation; either
-    version 2 of the License, or (at your option) any later version.
+    License version 2 as published by the Free Software Foundation.
 
     This library is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -19,7 +18,8 @@
 */
 
 #include "deinterlacefilter.h"
-#include "mediaobject.h"
+#include "videopath.h"
+#include "abstractmediaproducer.h"
 #include <kdebug.h>
 
 namespace Phonon
@@ -35,7 +35,7 @@ DeinterlaceFilter::DeinterlaceFilter(QObject *parent)
 DeinterlaceFilter::~DeinterlaceFilter()
 {
     if (path()) {
-        MediaObject *p = path()->mediaObject();
+        AbstractMediaProducer *p = path()->producer();
         if (p) {
             XineStream &xs = p->stream();
             xs.setParam(XINE_PARAM_VO_DEINTERLACE, false);
@@ -46,7 +46,7 @@ DeinterlaceFilter::~DeinterlaceFilter()
 void DeinterlaceFilter::setPath(VideoPath *_path)
 {
     if (path()) { // remove from old stream
-        MediaObject *p = path()->mediaObject();
+        AbstractMediaProducer *p = path()->producer();
         if (p) {
             XineStream &xs = p->stream();
             xs.setParam(XINE_PARAM_VO_DEINTERLACE, false);
@@ -54,7 +54,7 @@ void DeinterlaceFilter::setPath(VideoPath *_path)
     }
     VideoEffect::setPath(_path);
     if (path()) {
-        MediaObject *p = path()->mediaObject();
+        AbstractMediaProducer *p = path()->producer();
         if (p) {
             XineStream &xs = p->stream();
             xs.setParam(XINE_PARAM_VO_DEINTERLACE, true);

@@ -1,5 +1,6 @@
 /* This file is part of the KDE project
  Copyright (C) 2006 Tim Beaulen <tbscope@gmail.com>
+ Copyright (C) 2006-2007 Matthias Kretz <kretz@kde.org>
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
@@ -31,6 +32,7 @@
 #include "videoeffect.h"
 #include "volumefadereffect.h"
 #include "brightnesscontrol.h"
+#include "deinterlacefilter.h"
 #include "videodataoutput.h"
 
 #include <kdebug.h>
@@ -99,6 +101,8 @@ QObject* Backend::createObject0(BackendInterface::Class0 c, QObject *parent)
             return new BrightnessControl(parent);
         case VideoDataOutputClass:
             return new VideoDataOutput(parent);
+        case DeinterlaceFilterClass:
+            return new DeinterlaceFilter(parent);
     }
     return 0;
 }
