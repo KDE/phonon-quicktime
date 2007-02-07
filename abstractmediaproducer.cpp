@@ -30,7 +30,6 @@
 #include <QMultiMap>
 #include <QEvent>
 #include <QtDebug>
-#include <seekthread.h>
 #include <QMetaType>
 #include "audioport.h"
 
