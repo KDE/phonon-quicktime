@@ -30,6 +30,7 @@
 #include <QList>
 #include <kconfiggroup.h>
 #include "videowidgetinterface.h"
+#include <klocale.h>
 
 namespace Phonon
 {
@@ -93,19 +94,19 @@ namespace Xine
 
 		switch( xineEvent->type ) 
 		{
-			case XINE_EVENT_UI_SET_TITLE:
+            case XINE_EVENT_UI_SET_TITLE: /* request title display change in ui */
                 QCoreApplication::postEvent(xs, new QEvent(static_cast<QEvent::Type>(Xine::NewMetaDataEvent)));
 				break;
-			case XINE_EVENT_UI_PLAYBACK_FINISHED:
+            case XINE_EVENT_UI_PLAYBACK_FINISHED: /* frontend can e.g. move on to next playlist entry */
                 QCoreApplication::postEvent(xs, new QEvent(static_cast<QEvent::Type>(Xine::MediaFinishedEvent)));
 				break;
-			case XINE_EVENT_PROGRESS:
+            case XINE_EVENT_PROGRESS: /* index creation/network connections */
 				{
 					xine_progress_data_t* progress = static_cast<xine_progress_data_t*>( xineEvent->data );
                     QCoreApplication::postEvent(xs, new XineProgressEvent(QString::fromUtf8(progress->description), progress->percent));
 				}
 				break;
-            case XINE_EVENT_SPU_BUTTON:
+            case XINE_EVENT_SPU_BUTTON: // the mouse pointer enter/leave a button, used to change the cursor
                 {
                     VideoWidgetInterface *vw = xs->videoWidget();
                     if (vw) {
@@ -117,6 +118,30 @@ namespace Xine
                         }
                     }
                 }
+            case XINE_EVENT_UI_CHANNELS_CHANGED:    /* inform ui that new channel info is available */
+                kDebug(610) << "XINE_EVENT_UI_CHANNELS_CHANGED" << endl;
+                break;
+            case XINE_EVENT_UI_MESSAGE:             /* message (dialog) for the ui to display */
+                kDebug(610) << "XINE_EVENT_UI_MESSAGE" << endl;
+                break;
+            case XINE_EVENT_FRAME_FORMAT_CHANGE:    /* e.g. aspect ratio change during dvd playback */
+                kDebug(610) << "XINE_EVENT_FRAME_FORMAT_CHANGE" << endl;
+                break;
+            case XINE_EVENT_AUDIO_LEVEL:            /* report current audio level (l/r/mute) */
+                kDebug(610) << "XINE_EVENT_AUDIO_LEVEL" << endl;
+                break;
+            case XINE_EVENT_QUIT:                   /* last event sent when stream is disposed */
+                kDebug(610) << "XINE_EVENT_QUIT" << endl;
+                break;
+            case XINE_EVENT_UI_NUM_BUTTONS:         /* number of buttons for interactive menus */
+                kDebug(610) << "XINE_EVENT_UI_NUM_BUTTONS" << endl;
+                break;
+            case XINE_EVENT_DROPPED_FRAMES:         /* number of dropped frames is too high */
+                kDebug(610) << "XINE_EVENT_DROPPED_FRAMES" << endl;
+                break;
+            case XINE_EVENT_MRL_REFERENCE_EXT:      /* demuxer->frontend: MRL reference(s) for the real stream */
+                kDebug(610) << "XINE_EVENT_MRL_REFERENCE_EXT" << endl;
+                break;
 		}
 	}
 
@@ -287,10 +312,24 @@ namespace Xine
                             }
                         }
                     }
+                } else if (0 == strcmp(outputPlugins[i], "jack")) {
+                    addAudioOutput(nextIndex++, i18n("Jack Audio Connection Kit"),
+                            i18n("<p>JACK is a low-latency audio server. It can connect a number "
+                                "of different applications to an audio device, as well as allowing "
+                                "them to share audio between themselves.</p>"
+                                "<p>JACK was designed from the ground up for professional audio "
+                                "work, and its design focuses on two key areas: synchronous "
+                                "execution of all clients, and low latency operation.</p>"),
+                            outputPlugins[i], outputPlugins[i], QStringList());
+                } else if (0 == strcmp(outputPlugins[i], "arts")) {
+                    addAudioOutput(nextIndex++, i18n("aRts"),
+                            i18n("<p>aRts is the old soundserver and media framework that was used "
+                                "in KDE2 and KDE3. Its use is discuraged.</p>"),
+                            outputPlugins[i], outputPlugins[i], QStringList());
                 } else {
                     addAudioOutput(nextIndex++, outputPlugins[i],
                             xine_get_audio_driver_plugin_description(xine(), outputPlugins[i]),
-                            QString(), outputPlugins[i], QStringList());
+                            outputPlugins[i], outputPlugins[i], QStringList());
                 }
             }
 
