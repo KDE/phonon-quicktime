@@ -84,28 +84,28 @@ namespace Xine
 		return self()->m_xine;
 	}
 
-	void XineEngine::xineEventListener( void *p, const xine_event_t* xineEvent )
-	{
-		if( !p || !xineEvent )
-			return;
-		//kDebug( 610 ) << "Xine event: " << xineEvent->type << QByteArray( ( char* )xineEvent->data, xineEvent->data_length ) << endl;
+    void XineEngine::xineEventListener(void *p, const xine_event_t *xineEvent)
+    {
+        if (!p || !xineEvent) {
+            return;
+        }
+        //kDebug( 610 ) << "Xine event: " << xineEvent->type << QByteArray((char *)xineEvent->data, xineEvent->data_length) << endl;
 
         XineStream *xs = static_cast<XineStream *>(p);
 
-		switch( xineEvent->type ) 
-		{
+        switch (xineEvent->type) {
             case XINE_EVENT_UI_SET_TITLE: /* request title display change in ui */
                 QCoreApplication::postEvent(xs, new QEvent(static_cast<QEvent::Type>(Xine::NewMetaDataEvent)));
-				break;
+                break;
             case XINE_EVENT_UI_PLAYBACK_FINISHED: /* frontend can e.g. move on to next playlist entry */
                 QCoreApplication::postEvent(xs, new QEvent(static_cast<QEvent::Type>(Xine::MediaFinishedEvent)));
-				break;
+                break;
             case XINE_EVENT_PROGRESS: /* index creation/network connections */
-				{
-					xine_progress_data_t* progress = static_cast<xine_progress_data_t*>( xineEvent->data );
+                {
+                    xine_progress_data_t *progress = static_cast<xine_progress_data_t*>(xineEvent->data);
                     QCoreApplication::postEvent(xs, new XineProgressEvent(QString::fromUtf8(progress->description), progress->percent));
-				}
-				break;
+                }
+                break;
             case XINE_EVENT_SPU_BUTTON: // the mouse pointer enter/leave a button, used to change the cursor
                 {
                     VideoWidgetInterface *vw = xs->videoWidget();
@@ -142,8 +142,8 @@ namespace Xine
             case XINE_EVENT_MRL_REFERENCE_EXT:      /* demuxer->frontend: MRL reference(s) for the real stream */
                 kDebug(610) << "XINE_EVENT_MRL_REFERENCE_EXT" << endl;
                 break;
-		}
-	}
+        }
+    }
 
     QSet<int> XineEngine::audioOutputIndexes()
     {
