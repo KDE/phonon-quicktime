@@ -75,6 +75,7 @@ class PHONON_XINE_ENGINE_EXPORT XineStream : public QThread
         void gaplessSwitchTo(const QByteArray &mrl);
         void closeBlocking();
         void waitForEventLoop();
+        void aboutToDeleteVideoWidget();
         VideoWidgetInterface *videoWidget() const
         {
             if (m_newVideoPort) {
@@ -148,6 +149,7 @@ class PHONON_XINE_ENGINE_EXPORT XineStream : public QThread
         mutable QWaitCondition m_waitingForStreamInfo;
         QWaitCondition m_waitingForEventLoop;
         QWaitCondition m_waitingForClose;
+        QWaitCondition m_waitingForRewire;
         QMultiMap<QString, QString> m_metaDataMap;
         QByteArray m_mrl;
         QTimer *m_tickTimer;

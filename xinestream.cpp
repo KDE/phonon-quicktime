@@ -305,6 +305,7 @@ bool XineStream::createStream()
         xine_set_param(m_stream, XINE_PARAM_IGNORE_VIDEO, 1);
     }
     m_portMutex.unlock();
+    m_waitingForRewire.wakeAll();
 
     Q_ASSERT(!m_event_queue);
     m_event_queue = xine_event_new_queue(m_stream);
@@ -356,6 +357,22 @@ void XineStream::setVideoPort(VideoWidgetInterface *port)
 
     // schedule m_stream rewiring
     rewireOutputPorts();
+}
+
+//called from main thread
+void XineStream::aboutToDeleteVideoWidget()
+{
+    m_portMutex.lock();
+    if (m_videoPort == m_newVideoPort && 0 == m_videoPort) {
+        m_portMutex.unlock();
+        return;
+    }
+    m_newVideoPort = 0;
+
+    // schedule m_stream rewiring
+    rewireOutputPorts();
+    m_waitingForRewire.wait(&m_portMutex);
+    m_portMutex.unlock();
 }
 
 // called from main thread
@@ -751,6 +768,7 @@ bool XineStream::event(QEvent *ev)
                         m_videoPort = m_newVideoPort;
                     }
                     m_portMutex.unlock();
+                    m_waitingForRewire.wakeAll();
                     return true;
                 }
                 m_portMutex.unlock();
@@ -1010,6 +1028,7 @@ void XineStream::eventLoopReady()
 }
 
 // called from main thread
+// should never be called from ByteStream
 void XineStream::waitForEventLoop()
 {
     m_mutex.lock();
