@@ -105,10 +105,16 @@ VideoWidget::VideoWidget( QWidget* parent )
 	// ~QApplication hangs (or crashes) in XCloseDisplay called from Qt when XInitThreads is
 	// called. Without it everything is fine, except of course xine rendering onto the window from
 	// multiple threads. So Phonon-Xine will use its own xine vo plugins not using X(Un)LockDisplay.
-    m_xcbConnection = xcb_connect(NULL, NULL);//DisplayString(x11Info().display()), NULL);
+    int preferredScreen = 0;
+    m_xcbConnection = xcb_connect(NULL, &preferredScreen);//DisplayString(x11Info().display()), NULL);
     if (m_xcbConnection) {
         m_visual.connection = m_xcbConnection;
-        m_visual.screen = xcb_setup_roots_iterator(xcb_get_setup(m_xcbConnection)).data;
+        xcb_screen_iterator_t screenIt = xcb_setup_roots_iterator(xcb_get_setup(m_xcbConnection));
+        while ((screenIt.rem > 1) && (preferredScreen > 0)) {
+            xcb_screen_next(&screenIt);
+            --preferredScreen;
+        }
+        m_visual.screen = screenIt.data;
         m_visual.window = winId();
         m_visual.user_data = static_cast<void*>(this);
         m_visual.dest_size_cb = Phonon::Xine::dest_size_cb;
