@@ -136,7 +136,7 @@ VideoWidget::~VideoWidget()
 		//emit videoPortChanged();
     if (m_path && m_path->producer()) {
         XineStream &xs = m_path->producer()->stream();
-        xs.aboutToDeleteVideoWidget();
+        //xs.aboutToDeleteVideoWidget();
     }
 
 	xine_close_video_driver( XineEngine::xine(), vp );
