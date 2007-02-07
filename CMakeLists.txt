@@ -29,6 +29,7 @@ set(phonon_xine_PART_SRCS
     avcapture.cpp
     videoeffect.cpp
     brightnesscontrol.cpp
+    deinterlacefilter.cpp
     videopath.cpp
     videodataoutput.cpp
     visualization.cpp
