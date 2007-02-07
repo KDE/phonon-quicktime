@@ -26,8 +26,7 @@
 #include <QPixmap>
 #include <xine.h>
 
-#include <X11/X.h>
-#include <fixx11h.h>
+#include <xcb/xcb.h>
 
 class QString;
 class QMouseEvent;
@@ -66,7 +65,6 @@ namespace Xine
             virtual bool event(QEvent *);
             virtual void mouseMoveEvent(QMouseEvent *);
             virtual void mousePressEvent(QMouseEvent *);
-			virtual bool x11Event( XEvent* );
 			virtual void showEvent( QShowEvent* );
 			virtual void hideEvent( QHideEvent* );
 			virtual void paintEvent( QPaintEvent* );
@@ -74,12 +72,11 @@ namespace Xine
 
 		private:
 			xine_video_port_t* m_videoPort;
-			x11_visual_t m_visual;
+            xcb_visual_t m_visual;
 			Phonon::VideoWidget::AspectRatio m_aspectRatio;
 			VideoPath* m_path;
 
-			Display* m_display;
-			Window m_fullScreenWindow;
+            xcb_connection_t *m_xcbConnection;
 			int m_videoWidth;
 			int m_videoHeight;
 			bool m_clearWindow;

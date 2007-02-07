@@ -28,7 +28,6 @@
 #include "../abstractmediaproducer.h"
 #include <QApplication>
 
-#include <X11/Xlib.h>
 #include <QDesktopWidget>
 #include <QMouseEvent>
 
@@ -106,43 +105,44 @@ VideoWidget::VideoWidget( QWidget* parent )
 	// ~QApplication hangs (or crashes) in XCloseDisplay called from Qt when XInitThreads is
 	// called. Without it everything is fine, except of course xine rendering onto the window from
 	// multiple threads. So Phonon-Xine will use its own xine vo plugins not using X(Un)LockDisplay.
-	m_display = XOpenDisplay( DisplayString( x11Info().display() ) );
-	if( m_display )
-	{
-		m_visual.display = m_display;
-		m_visual.screen = DefaultScreen( m_display );
-		m_visual.user_data = static_cast<void*>( this );
-		m_visual.dest_size_cb = Phonon::Xine::dest_size_cb;
-		m_visual.frame_output_cb = Phonon::Xine::frame_output_cb;
-		m_visual.d = winId();
+    m_xcbConnection = xcb_connect(NULL, NULL);//DisplayString(x11Info().display()), NULL);
+    if (m_xcbConnection) {
+        m_visual.connection = m_xcbConnection;
+        m_visual.screen = xcb_setup_roots_iterator(xcb_get_setup(m_xcbConnection)).data;
+        m_visual.window = winId();
+        m_visual.user_data = static_cast<void*>(this);
+        m_visual.dest_size_cb = Phonon::Xine::dest_size_cb;
+        m_visual.frame_output_cb = Phonon::Xine::frame_output_cb;
 
-		// make sure all Qt<->X communication is done, else xine_open_video_driver will hang
-		QApplication::syncX();
+        // make sure all Qt<->X communication is done, else xine_open_video_driver will crash
+        QApplication::syncX();
 
-		Q_ASSERT( testAttribute( Qt::WA_WState_Created ) );
-		m_videoPort = xine_open_video_driver( XineEngine::xine(), "xvnt", XINE_VISUAL_TYPE_X11, static_cast<void*>( &m_visual ) );
-		if( !m_videoPort )
-		{
-			kWarning( 610 ) << "No xine video output plugin without XThreads found. Expect to see X errors." << endl;
-			m_videoPort = xine_open_video_driver( XineEngine::xine(), 0, XINE_VISUAL_TYPE_X11, static_cast<void*>( &m_visual ) );
-		}
-	}
+        Q_ASSERT(testAttribute(Qt::WA_WState_Created));
+        m_videoPort = xine_open_video_driver(XineEngine::xine(), "auto", XINE_VISUAL_TYPE_XCB, static_cast<void*>(&m_visual));
+        if (!m_videoPort) {
+            kError(610) << "No xine video output plugin using libxcb for threadsafe access to the X server found. No video for you." << endl;
+        }
+    }
 }
 
 VideoWidget::~VideoWidget()
 {
-	//xine_port_send_gui_data( m_videoPort, XINE_GUI_SEND_WILL_DESTROY_DRAWABLE, 0 );
+    xine_port_send_gui_data(m_videoPort, XINE_GUI_SEND_WILL_DESTROY_DRAWABLE, 0);
 
 	xine_video_port_t* vp = m_videoPort;
 	m_videoPort = 0;
 	// tell the xine stream to stop using this videoPort
-	if( m_path && m_path->producer() )
-		emit videoPortChanged();
+	//if( m_path && m_path->producer() )
+		//emit videoPortChanged();
+    if (m_path && m_path->producer()) {
+        XineStream &xs = m_path->producer()->stream();
+        xs.aboutToDeleteVideoWidget();
+    }
 
 	xine_close_video_driver( XineEngine::xine(), vp );
 
-	XCloseDisplay( m_display );
-	m_display = 0;
+    xcb_disconnect(m_xcbConnection);
+    m_xcbConnection = 0;
 }
 
 void VideoWidget::setPath( VideoPath* vp )
@@ -262,20 +262,22 @@ void VideoWidget::mousePressEvent(QMouseEvent *mev)
     }
 }
 
-bool VideoWidget::x11Event( XEvent* event )
+void VideoWidget::paintEvent(QPaintEvent *event)
 {
-	switch( event->type )
-	{
-		case Expose:
-			if( event->xexpose.count == 0 && event->xexpose.window == winId() )
-			{
-				//kDebug( 610 ) << "XINE_GUI_SEND_EXPOSE_EVENT" << endl;
-				xine_port_send_gui_data( m_videoPort,
-						XINE_GUI_SEND_EXPOSE_EVENT, event );
-			}
-			return true;
-	}
-	return false;
+    //kDebug(610) << k_funcinfo << endl;
+    if (m_clearWindow) {
+        m_clearWindow = false;
+        QPainter p(this);
+        p.fillRect(rect(), Qt::black);
+    } else if (m_videoPort) {
+        xcb_expose_event_t xcb_event;
+        memset(&xcb_event, 0, sizeof(xcb_event));
+
+        xcb_event.count = 0;
+
+        xine_port_send_gui_data(m_videoPort, XINE_GUI_SEND_EXPOSE_EVENT, &xcb_event);
+    }
+    QWidget::paintEvent(event);
 }
 
 void VideoWidget::clearWindow()
@@ -292,17 +294,6 @@ void VideoWidget::showEvent( QShowEvent* )
 void VideoWidget::hideEvent( QHideEvent* )
 {
 	//xine_port_send_gui_data( m_videoPort, XINE_GUI_SEND_VIDEOWIN_VISIBLE, static_cast<void*>( 0 ) );
-}
-
-void VideoWidget::paintEvent( QPaintEvent* )
-{
-	//kDebug( 610 ) << k_funcinfo << endl;
-	if( m_clearWindow )
-	{
-		m_clearWindow = false;
-		QPainter p( this );
-		p.fillRect( rect(), Qt::black );
-	}
 }
 
 void VideoWidget::changeEvent( QEvent* event )
