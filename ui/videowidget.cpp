@@ -258,8 +258,9 @@ void VideoWidget::mousePressEvent(QMouseEvent *mev)
         input->x           = rect.x;
         input->y           = rect.y;
         xs.eventSend(event);
-        mev->accept(); /* don't send event to parent */
+        //mev->accept(); /* don't send event to parent */
     }
+    QWidget::mousePressEvent(mev);
 }
 
 void VideoWidget::paintEvent(QPaintEvent *event)
@@ -304,22 +305,18 @@ void VideoWidget::changeEvent( QEvent* event )
 	}
 	else if( event->type() == QEvent::ParentChange )
 	{
-		kDebug( 610 ) << k_funcinfo << "ParentChange" << endl;
-		/*
-		if( m_visual.d != winId() )
-		{
-			m_visual.d = winId();
-			if( m_videoPort )
-			{
-				// make sure all Qt<->X communication is done, else winId() might not be known at the
-				// X-server yet
-				QApplication::syncX();
-				xine_port_send_gui_data( m_videoPort, XINE_GUI_SEND_DRAWABLE_CHANGED, reinterpret_cast<void*>( m_visual.d ) );
-				kDebug( 610 ) << "XINE_GUI_SEND_DRAWABLE_CHANGED done." << endl;
-			}
-		}
-		*/
-	}
+        kDebug(610) << k_funcinfo << "ParentChange" << winId() << endl;
+        if (m_visual.window != winId()) {
+            m_visual.window = winId();
+            if (m_videoPort) {
+                // make sure all Qt<->X communication is done, else winId() might not be known at the
+                // X-server yet
+                QApplication::syncX();
+                xine_port_send_gui_data(m_videoPort, XINE_GUI_SEND_DRAWABLE_CHANGED, reinterpret_cast<void*>(m_visual.window));
+                kDebug(610) << "XINE_GUI_SEND_DRAWABLE_CHANGED done." << endl;
+            }
+        }
+    }
 }
 
 }} //namespace Phonon::Xine
