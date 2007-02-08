@@ -142,6 +142,17 @@ namespace Xine
             case XINE_EVENT_MRL_REFERENCE_EXT:      /* demuxer->frontend: MRL reference(s) for the real stream */
                 kDebug(610) << "XINE_EVENT_MRL_REFERENCE_EXT" << endl;
                 break;
+#ifdef XINE_EVENT_AUDIO_DEVICE_FAILED
+            case XINE_EVENT_AUDIO_DEVICE_FAILED:    /* audio device is gone */
+                kDebug(610) << "XINE_EVENT_AUDIO_DEVICE_FAILED" << endl;
+                {
+                    AudioPort ap = xs->audioPort();
+                    if (ap.audioOutput()) {
+                        QCoreApplication::postEvent(ap.audioOutput(), new QEvent(static_cast<QEvent::Type>(Xine::AudioDeviceFailedEvent)));
+                    }
+                }
+                break;
+#endif
         }
     }
 

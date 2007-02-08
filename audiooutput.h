@@ -45,7 +45,6 @@ namespace Xine
             AudioPort audioPort(XineStream* forStream);
 			void updateVolume( AbstractMediaProducer* mp ) const;
 
-		public slots:
 			// Attributes Getters:
 			float volume() const;
 			int outputDevice() const;
@@ -54,8 +53,12 @@ namespace Xine
 			void setVolume( float newVolume );
             bool setOutputDevice(int newDevice);
 
+        protected:
+            bool event(QEvent *);
+
 		Q_SIGNALS:
 			void volumeChanged( float newVolume );
+            void audioDeviceFailed();
 
 		private:
 			float m_volume;
