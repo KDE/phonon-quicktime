@@ -31,6 +31,16 @@ namespace Phonon
 namespace Xine
 {
 
+class AudioPortData : public QSharedData
+{
+    public:
+        AudioPortData() : port(0), audioOutput(0) {}
+        ~AudioPortData();
+
+        xine_audio_port_t *port;
+        QObject *audioOutput;
+};
+
 AudioPortData::~AudioPortData()
 {
     //kDebug(610) << k_funcinfo << this << " port = " << port << endl;
@@ -39,6 +49,11 @@ AudioPortData::~AudioPortData()
         port = 0;
         kDebug(610) << "----------------------------------------------- audio_port destroyed" << endl;
     }
+}
+
+AudioPort::AudioPort()
+    : d(new AudioPortData)
+{
 }
 
 AudioPort::AudioPort(const AudioPort &rhs)
@@ -127,6 +142,16 @@ bool AudioPort::operator!=(const AudioPort& rhs) const
 xine_audio_port_t *AudioPort::xinePort() const
 {
     return d->port;
+}
+
+void AudioPort::setAudioOutput(QObject *audioOutput)
+{
+    d->audioOutput = audioOutput;
+}
+
+QObject *AudioPort::audioOutput() const
+{
+    return d->audioOutput;
 }
 
 } // namespace Xine
