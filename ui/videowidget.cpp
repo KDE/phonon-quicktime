@@ -204,7 +204,7 @@ bool VideoWidget::event(QEvent *ev)
             ev->accept();
             return true;
         case Xine::NavButtonOutEvent:
-            setCursor(QCursor(Qt::ArrowCursor));
+            unsetCursor();
             ev->accept();
             return true;
         default:
@@ -238,8 +238,8 @@ void VideoWidget::mouseMoveEvent(QMouseEvent *mev)
         input->x           = rect.x;
         input->y           = rect.y;
         xs.eventSend(event);
-        mev->ignore(); // forward to parent
     }
+    QWidget::mouseMoveEvent(mev);
 }
 
 void VideoWidget::mousePressEvent(QMouseEvent *mev)
@@ -264,7 +264,6 @@ void VideoWidget::mousePressEvent(QMouseEvent *mev)
         input->x           = rect.x;
         input->y           = rect.y;
         xs.eventSend(event);
-        //mev->accept(); /* don't send event to parent */
     }
     QWidget::mousePressEvent(mev);
 }
