@@ -970,6 +970,7 @@ bool XineStream::event(QEvent *ev)
             }
             return true;
         case SeekCommand:
+            m_lastSeekCommand = 0;
             ev->accept();
             if (m_state == Phonon::ErrorState) {
                 return true;
@@ -979,7 +980,6 @@ bool XineStream::event(QEvent *ev)
                 if (!e->valid) { // a newer SeekCommand is in the pipe, ignore this one
                     return true;
                 }
-                m_lastSeekCommand = 0;
                 switch(m_state) {
                     case Phonon::PausedState:
                     case Phonon::BufferingState:
@@ -988,9 +988,11 @@ bool XineStream::event(QEvent *ev)
                         // xine_trick_mode aborts :(
                         //if (0 == xine_trick_mode(m_stream, XINE_TRICK_MODE_SEEK_TO_TIME, time)) {
                         xine_play(m_stream, 0, e->time());
-                        if (Phonon::PausedState == state()) {
+                        if (Phonon::PausedState == m_state) {
                             // go back to paused speed after seek
                             xine_set_param(m_stream, XINE_PARAM_SPEED, XINE_SPEED_PAUSE);
+                        } else if (Phonon::PlayingState == m_state) {
+                            gettimeofday(&m_lastTimeUpdate, 0);
                         }
                         //}
                         emit seekDone();
@@ -998,8 +1000,9 @@ bool XineStream::event(QEvent *ev)
                     case Phonon::StoppedState:
                     case Phonon::ErrorState:
                     case Phonon::LoadingState:
-                        break; // cannot seek
+                        return true; // cannot seek
                 }
+                m_currentTime = e->time();
                 const int timeToSignal = m_totalTime - m_aboutToFinishTime - e->time();
                 if (m_aboutToFinishTime > 0) {
                     if (timeToSignal > 0 ) { // not about to finish
