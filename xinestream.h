@@ -83,6 +83,7 @@ class PHONON_XINE_ENGINE_EXPORT XineStream : public QThread
             }
             return m_videoPort;
         }
+        AudioPort audioPort() const { return m_audioPort; }
 
         QString errorString() const { return m_errorString; }
         Phonon::ErrorType errorType() const { return m_errorType; }
