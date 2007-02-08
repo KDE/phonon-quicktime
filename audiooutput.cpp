@@ -96,6 +96,7 @@ AudioPort AudioOutput::audioPort(XineStream* forStream)
 {
     if (!m_audioPorts.contains(forStream)) {
         m_audioPorts[forStream] = AudioPort(m_device);
+        m_audioPorts[forStream].setAudioOutput(this);
     }
     return m_audioPorts[forStream];
 }
@@ -121,6 +122,7 @@ bool AudioOutput::setOutputDevice(int newDevice)
                 kDebug(610) << "new audio port is invalid" << endl;
                 return false;
             }
+            newAudioPort.setAudioOutput(this);
 
             // notify the connected XineStream of the new device
             it.key()->setAudioPort(newAudioPort);
@@ -128,6 +130,18 @@ bool AudioOutput::setOutputDevice(int newDevice)
         }
     }
     return true;
+}
+
+bool AudioOutput::event(QEvent *ev)
+{
+    switch (ev->type()) {
+        case Xine::AudioDeviceFailedEvent:
+            ev->accept();
+            emit audioDeviceFailed();
+            return true;
+        default:
+            return AbstractAudioOutput::event(ev);
+    }
 }
 
 }} //namespace Phonon::Xine
