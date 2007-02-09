@@ -1,5 +1,6 @@
 /*  This file is part of the KDE project
     Copyright (C) 2006 Tim Beaulen <tbscope@gmail.com>
+    Copyright (C) 2006-2007 Matthias Kretz <kretz@kde.org>
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -31,11 +32,24 @@
 #include <kconfiggroup.h>
 #include "videowidgetinterface.h"
 #include <klocale.h>
+#include "xineengine_p.h"
+#include "backend.h"
 
 namespace Phonon
 {
 namespace Xine
 {
+    XineEnginePrivate::XineEnginePrivate()
+    {
+        signalTimer.setSingleShot(true);
+        connect(&signalTimer, SIGNAL(timeout()), SLOT(emitAudioDeviceChange()));
+    }
+
+    void XineEnginePrivate::emitAudioDeviceChange()
+    {
+        kDebug(610) << k_funcinfo << endl;
+        emit objectDescriptionChanged(AudioOutputDeviceType);
+    }
 
 	XineProgressEvent::XineProgressEvent( const QString& description, int percent )
 		: QEvent( static_cast<QEvent::Type>( Xine::ProgressEvent ) )
@@ -58,8 +72,10 @@ namespace Xine
 
     XineEngine::XineEngine(const KSharedConfigPtr& _config)
         : m_xine(xine_new()),
-        m_config(_config)
+        m_config(_config),
+        d(new XineEnginePrivate)
     {
+        Q_ASSERT(s_instance == 0);
         s_instance = this;
         KConfigGroup cg(m_config, "Settings");
         m_useOss = cg.readEntry("showOssDevices", false);
@@ -77,6 +93,11 @@ namespace Xine
     {
         Q_ASSERT(s_instance);
         return s_instance;
+    }
+
+    QObject *XineEngine::sender()
+    {
+        return self()->d;
     }
 
 	xine_t* XineEngine::xine()
@@ -255,6 +276,9 @@ namespace Xine
         AudioOutputInfo info(dev.index(), dev.cardName() + postfix,
                 QString(), dev.iconName(), driver, dev.deviceIds());
         info.available = dev.isAvailable();
+        if (m_audioOutputInfos.contains(info)) {
+            m_audioOutputInfos.removeAll(info); // the latest is more up to date wrt availability
+        }
         m_audioOutputInfos << info;
     }
 
@@ -282,6 +306,10 @@ namespace Xine
         kDebug(610) << k_funcinfo << endl;
         if (m_audioOutputInfos.isEmpty()) {
             kDebug(610) << "isEmpty" << endl;
+            QObject::connect(AudioDeviceEnumerator::self(), SIGNAL(devicePlugged(const AudioDevice &)),
+                    d, SLOT(devicePlugged(const AudioDevice &)));
+            QObject::connect(AudioDeviceEnumerator::self(), SIGNAL(deviceUnplugged(const AudioDevice &)),
+                    d, SLOT(deviceUnplugged(const AudioDevice &)));
             QStringList groups = m_config->groupList();
             int nextIndex = 10000;
             foreach (QString group, groups) {
@@ -350,7 +378,72 @@ namespace Xine
             }
         }
     }
-}
-}
 
-// vim: sw=4 ts=4 tw=80 et
+    void XineEnginePrivate::devicePlugged(const AudioDevice &dev)
+    {
+        kDebug(610) << k_funcinfo << dev.cardName() << endl;
+        if (!dev.isPlaybackDevice()) {
+            return;
+        }
+        const char *const *outputPlugins = xine_list_audio_output_plugins(XineEngine::xine());
+        switch (dev.driver()) {
+            case Solid::AudioHw::Alsa:
+                for (int i = 0; outputPlugins[i]; ++i) {
+                    if (0 == strcmp(outputPlugins[i], "alsa")) {
+                        s_instance->addAudioOutput(dev, QLatin1String("alsa"));
+                        signalTimer.start();
+                    }
+                }
+                break;
+            case Solid::AudioHw::OpenSoundSystem:
+                if (s_instance->m_useOss) {
+                    for (int i = 0; outputPlugins[i]; ++i) {
+                        if (0 == strcmp(outputPlugins[i], "oss")) {
+                            s_instance->addAudioOutput(dev, QLatin1String("oss"));
+                            signalTimer.start();
+                        }
+                    }
+                }
+                break;
+            case Solid::AudioHw::UnknownAudioDriver:
+                break;
+        }
+    }
+
+    void XineEnginePrivate::deviceUnplugged(const AudioDevice &dev)
+    {
+        kDebug(610) << k_funcinfo << dev.cardName() << endl;
+        if (!dev.isPlaybackDevice()) {
+            return;
+        }
+        QString driver;
+        QString postfix;
+        switch (dev.driver()) {
+            case Solid::AudioHw::Alsa:
+                driver = "alsa";
+                if (s_instance->m_useOss) {
+                    postfix = QLatin1String(" (ALSA)");
+                }
+                break;
+            case Solid::AudioHw::OpenSoundSystem:
+                driver = "oss";
+                postfix = QLatin1String(" (OSS)");
+                break;
+            case Solid::AudioHw::UnknownAudioDriver:
+                break;
+        }
+        XineEngine::AudioOutputInfo info(dev.index(), dev.cardName() + postfix, QString(), dev.iconName(),
+                driver, dev.deviceIds());
+        if (s_instance->m_audioOutputInfos.removeAll(info)) {
+            signalTimer.start();
+        } else {
+            kDebug(610) << k_funcinfo << "told to remove " << dev.cardName() + postfix <<
+                " with driver " << driver << " but the device was not present in m_audioOutputInfos"
+                << endl;
+        }
+    }
+} // namespace Xine
+} // namespace Phonon
+
+#include "xineengine_p.moc"
+// vim: sw=4 ts=4 tw=100 et

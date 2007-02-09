@@ -1,5 +1,6 @@
 /*  This file is part of the KDE project
     Copyright (C) 2006 Tim Beaulen <tbscope@gmail.com>
+    Copyright (C) 2006-2007 Matthias Kretz <kretz@kde.org>
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -57,9 +58,12 @@ namespace Xine
 			int m_percent;
 	};
 
+    class XineEnginePrivate;
+
 	class PHONON_XINE_ENGINE_EXPORT XineEngine
 	{
         friend class Phonon::Xine::Backend;
+        friend class XineEnginePrivate;
 		public:
 			static XineEngine* self();
 			static xine_t* xine();
@@ -72,6 +76,8 @@ namespace Xine
             static bool audioOutputAvailable(int audioDevice);
             static QString audioDriverFor(int audioDevice);
             static QStringList alsaDevicesFor(int audioDevice);
+
+            static QObject *sender();
 
         protected:
             XineEngine(const KSharedConfigPtr &cfg);
@@ -101,6 +107,7 @@ namespace Xine
             QList<AudioOutputInfo> m_audioOutputInfos;
             KSharedConfigPtr m_config;
             bool m_useOss;
+            XineEnginePrivate *d;
 	};
 }
 }
