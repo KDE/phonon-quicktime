@@ -66,6 +66,9 @@ namespace Xine
 			const char* uiLibrary() const;
 			//const char* uiSymbol() const;
 
+        signals:
+            void objectDescriptionChanged(ObjectDescriptionType);
+
 		private:
             mutable QStringList m_supportedMimeTypes;
 	};
