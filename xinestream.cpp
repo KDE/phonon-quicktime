@@ -153,7 +153,7 @@ bool XineStream::xineOpen()
 #ifdef DISABLE_FILE_MRLS
     if (m_mrl.startsWith("file:/")) {
         kDebug(610) << "faked xine_open failed for m_mrl = " << m_mrl.constData() << endl;
-        error(Phonon::NormalError, i18n("Cannot open media data at '<i>%1</i>'").arg(m_mrl.constData()));
+        error(Phonon::NormalError, i18n("Cannot open media data at '<i>%1</i>'", m_mrl.constData()));
         return false;
     }
 #endif
@@ -162,7 +162,7 @@ bool XineStream::xineOpen()
     //kDebug(610) << "xine_open(" << m_mrl.constData() << ")" << endl;
     if (xine_open(m_stream, m_mrl.constData()) == 0) {
         kDebug(610) << "xine_open failed for m_mrl = " << m_mrl.constData() << endl;
-        error(Phonon::NormalError, i18n("Cannot open media data at '<i>%1</i>'").arg(m_mrl.constData()));
+        error(Phonon::NormalError, i18n("Cannot open media data at '<i>%1</i>'", m_mrl.constData()));
         return false;
     }
 
