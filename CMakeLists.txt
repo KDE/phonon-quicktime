@@ -45,3 +45,4 @@ target_link_libraries(phonon_xine ${KDE4_KDECORE_LIBS} ${KDE4_PHONONCORE_LIBS} p
 
 install(TARGETS phonon_xine DESTINATION ${PLUGIN_INSTALL_DIR})
 install(FILES xine.desktop DESTINATION ${SERVICES_INSTALL_DIR}/phononbackends)
+kde4_install_icons( ${ICON_INSTALL_DIR} crystalsvg )
