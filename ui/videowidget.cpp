@@ -82,7 +82,6 @@ VideoWidget::VideoWidget( QWidget* parent )
 	: QWidget( parent )
 	, m_videoPort( 0 )
 	, m_path( 0 )
-	, m_clearWindow( false )
 	, m_fullScreen( false )
 {
 	// for some reason it can hang if the widget is 0x0
@@ -153,8 +152,8 @@ VideoWidget::~VideoWidget()
 
 void VideoWidget::setPath( VideoPath* vp )
 {
-	Q_ASSERT( m_path == 0 );
-	m_path = vp;
+    Q_ASSERT(m_path == 0);
+    m_path = vp;
 }
 
 void VideoWidget::unsetPath( VideoPath* vp )
@@ -206,6 +205,15 @@ bool VideoWidget::event(QEvent *ev)
         case Xine::NavButtonOutEvent:
             unsetCursor();
             ev->accept();
+            return true;
+        case Xine::FrameFormatChangeEvent:
+            ev->accept();
+            {
+                XineFrameFormatChangeEvent *e = static_cast<XineFrameFormatChangeEvent *>(ev);
+                kDebug(610) << k_funcinfo << "XineFrameFormatChangeEvent " << e->size() << endl;
+                m_sizeHint = e->size();
+                //updateGeometry();
+            }
             return true;
         default:
             return QWidget::event(ev);
@@ -271,25 +279,28 @@ void VideoWidget::mousePressEvent(QMouseEvent *mev)
 void VideoWidget::paintEvent(QPaintEvent *event)
 {
     //kDebug(610) << k_funcinfo << endl;
-    if (m_clearWindow) {
-        m_clearWindow = false;
+    if (!m_path || !m_path->producer() || m_path->producer()->state() == Phonon::LoadingState) {
         QPainter p(this);
         p.fillRect(rect(), Qt::black);
     } else if (m_videoPort) {
+        const QRect &rect = event->rect();
+
         xcb_expose_event_t xcb_event;
         memset(&xcb_event, 0, sizeof(xcb_event));
 
+        xcb_event.window = winId();
+        xcb_event.x = rect.x();
+        xcb_event.y = rect.y();
+        xcb_event.width = rect.width();
+        xcb_event.height = rect.height();
         xcb_event.count = 0;
 
         xine_port_send_gui_data(m_videoPort, XINE_GUI_SEND_EXPOSE_EVENT, &xcb_event);
+    } else {
+        QPainter p(this);
+        p.fillRect(rect(), Qt::black);
     }
     QWidget::paintEvent(event);
-}
-
-void VideoWidget::clearWindow()
-{
-	m_clearWindow = true;
-	repaint();
 }
 
 void VideoWidget::showEvent( QShowEvent* )

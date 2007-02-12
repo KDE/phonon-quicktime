@@ -6,8 +6,10 @@ MimeType=application/x-annodex;video/quicktime;video/x-quicktime;audio/x-m4a;app
 X-KDE-Library=phonon_xine
 X-KDE-PhononBackendInfo-InterfaceVersion=1
 X-KDE-PhononBackendInfo-Version=0.1
-X-KDE-PhononBackendInfo-Website=http://multimedia.kde.org/
+X-KDE-PhononBackendInfo-Website=http://www.xinehq.de/
 icon=xinelogo
 InitialPreference=15
+
 Name=Xine
+
 Comment=Phonon Xine backend

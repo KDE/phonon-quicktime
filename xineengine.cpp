@@ -68,6 +68,14 @@ namespace Xine
 		return m_percent;
 	}
 
+    XineFrameFormatChangeEvent::XineFrameFormatChangeEvent(int w, int h, int aspect, bool panScan)
+        : QEvent(static_cast<QEvent::Type>(FrameFormatChangeEvent)),
+        m_size(w, h),
+        m_aspect(aspect),
+        m_panScan(panScan)
+    {
+    }
+
     static XineEngine *s_instance = 0;
 
     XineEngine::XineEngine(const KSharedConfigPtr& _config)
@@ -84,9 +92,9 @@ namespace Xine
     XineEngine::~XineEngine()
     {
         //kDebug(610) << k_funcinfo << endl;
-        s_instance = 0;
         xine_exit(m_xine);
         m_xine = 0;
+        s_instance = 0;
     }
 
     XineEngine *XineEngine::self()
@@ -139,6 +147,7 @@ namespace Xine
                         }
                     }
                 }
+                break;
             case XINE_EVENT_UI_CHANNELS_CHANGED:    /* inform ui that new channel info is available */
                 kDebug(610) << "XINE_EVENT_UI_CHANNELS_CHANGED" << endl;
                 break;
@@ -147,6 +156,13 @@ namespace Xine
                 break;
             case XINE_EVENT_FRAME_FORMAT_CHANGE:    /* e.g. aspect ratio change during dvd playback */
                 kDebug(610) << "XINE_EVENT_FRAME_FORMAT_CHANGE" << endl;
+                {
+                    VideoWidgetInterface *vw = xs->videoWidget();
+                    if (vw) {
+                        xine_format_change_data_t *data = static_cast<xine_format_change_data_t *>(xineEvent->data);
+                        QCoreApplication::postEvent(vw->qobject(), new XineFrameFormatChangeEvent(data->width, data->height, data->aspect, data->pan_scan));
+                    }
+                }
                 break;
             case XINE_EVENT_AUDIO_LEVEL:            /* report current audio level (l/r/mute) */
                 kDebug(610) << "XINE_EVENT_AUDIO_LEVEL" << endl;

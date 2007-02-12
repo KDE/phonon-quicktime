@@ -36,7 +36,6 @@ class VideoWidgetInterface
 		virtual ~VideoWidgetInterface() {}
 		virtual xine_video_port_t* videoPort() const = 0;
 
-		virtual void clearWindow() = 0;
 		virtual void setPath( VideoPath* vp ) = 0;
 		virtual void unsetPath( VideoPath* vp ) = 0;
         virtual QObject *qobject() = 0;
