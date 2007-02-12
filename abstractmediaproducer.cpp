@@ -291,27 +291,23 @@ void AbstractMediaProducer::selectSubtitleStream(const QString& streamName, cons
 
 void AbstractMediaProducer::play()
 {
-    if (m_state == Phonon::PlayingState || m_state == Phonon::ErrorState) {
-        return;
-    }
-
     m_currentTimeOverride = -1;
-    changeState(Phonon::BufferingState);
+    if (m_state == Phonon::StoppedState || m_state == Phonon::LoadingState || m_state == Phonon::PausedState) {
+        changeState(Phonon::BufferingState);
+    }
     m_stream.play();
 }
 
 void AbstractMediaProducer::pause()
 {
-    if (m_state == Phonon::PlayingState || m_state == Phonon::BufferingState) {
-        m_stream.pause();
-    }
+    m_stream.pause();
 }
 
 void AbstractMediaProducer::stop()
 {
-    if (m_state == Phonon::PlayingState || m_state == Phonon::PausedState || m_state == Phonon::BufferingState) {
+    //if (m_state == Phonon::PlayingState || m_state == Phonon::PausedState || m_state == Phonon::BufferingState) {
         m_stream.stop();
-    }
+    //}
 }
 
 void AbstractMediaProducer::seek(qint64 time)

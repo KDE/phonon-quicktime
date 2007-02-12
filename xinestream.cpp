@@ -702,9 +702,12 @@ bool XineStream::event(QEvent *ev)
             ev->accept();
             {
                 MrlChangedEvent *e = static_cast<MrlChangedEvent*>(ev);
+                /* Always handle a MRL change request. We assume the application knows what it's
+                 * doing. If we return here then the stream is not reinitialized and the state
+                 * changes are different.
                 if (m_mrl == e->mrl) {
                     return true;
-                }
+                }*/
                 m_mrl = e->mrl;
                 m_errorType = Phonon::NoError;
                 m_errorString = QString();
@@ -852,7 +855,7 @@ bool XineStream::event(QEvent *ev)
                 error(Phonon::FatalError, i18n("Playback failed because no valid audio or video outputs are available"));
                 return true;
             }
-            if (m_state == Phonon::ErrorState) {
+            if (m_state == Phonon::ErrorState || m_state == Phonon::PlayingState) {
                 return true;
             }
             m_playMutex.lock();
@@ -919,14 +922,14 @@ bool XineStream::event(QEvent *ev)
                     return true;
                 }
             }
-            if (m_state == Phonon::PlayingState || state() == Phonon::BufferingState) {
+            if (m_state == Phonon::PlayingState || m_state == Phonon::BufferingState) {
                 xine_set_param(m_stream, XINE_PARAM_SPEED, XINE_SPEED_PAUSE);
                 changeState(Phonon::PausedState);
             }
             return true;
         case StopCommand:
             ev->accept();
-            if (m_state == Phonon::ErrorState) {
+            if (m_state == Phonon::ErrorState || m_state == Phonon::LoadingState) {
                 return true;
             }
             Q_ASSERT(!m_mrl.isEmpty());
