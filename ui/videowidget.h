@@ -56,7 +56,6 @@ namespace Xine
 
 			void xineCallback( int &x, int &y, int &width, int &height,
 					double &ratio, int videoWidth, int videoHeight, double videoRatio, bool mayResize );
-			void clearWindow();
 
 		signals:
 			void videoPortChanged();
@@ -69,6 +68,7 @@ namespace Xine
 			virtual void hideEvent( QHideEvent* );
 			virtual void paintEvent( QPaintEvent* );
 			virtual void changeEvent( QEvent* );
+            virtual QSize sizeHint() const { return m_sizeHint; }
 
 		private:
 			xine_video_port_t* m_videoPort;
@@ -77,9 +77,9 @@ namespace Xine
 			VideoPath* m_path;
 
             xcb_connection_t *m_xcbConnection;
+            QSize m_sizeHint;
 			int m_videoWidth;
 			int m_videoHeight;
-			bool m_clearWindow;
 			bool m_fullScreen;
 	};
 }} //namespace Phonon::Xine

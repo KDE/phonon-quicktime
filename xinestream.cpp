@@ -274,9 +274,18 @@ void XineStream::getStreamInfo()
         bool isSeekable = xine_get_stream_info(m_stream, XINE_STREAM_INFO_SEEKABLE);
         if (m_isSeekable != isSeekable) {
             m_isSeekable = isSeekable;
+            m_streamInfoReady = true;
             emit seekableChanged(m_isSeekable);
+        } else {
+            m_streamInfoReady = true;
         }
-        m_streamInfoReady = true;
+        if (m_hasVideo) {
+            uint32_t width = xine_get_stream_info(m_stream, XINE_STREAM_INFO_VIDEO_WIDTH);
+            uint32_t height = xine_get_stream_info(m_stream, XINE_STREAM_INFO_VIDEO_HEIGHT);
+            if (m_videoPort) {
+                QCoreApplication::postEvent(m_videoPort->qobject(), new XineFrameFormatChangeEvent(width, height, 0, 0));
+            }
+        }
     }
     m_waitingForStreamInfo.wakeAll();
 }
@@ -557,6 +566,10 @@ const char* nameForEvent(int e)
             return "SetAboutToFinishTime";
         case SeekCommand:
             return "SeekCommand";
+        //case EventSend:
+            //return "EventSend";
+        case SetParam:
+            return "SetParam";
         default:
             return 0;
     }

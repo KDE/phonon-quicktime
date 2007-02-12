@@ -28,6 +28,7 @@
 #include <QStringList>
 #include <kconfig.h>
 #include "phononxineexport.h"
+#include <QSize>
 
 namespace Phonon
 {
@@ -43,7 +44,8 @@ namespace Xine
         ProgressEvent = 5402,
         NavButtonInEvent = 5403,
         NavButtonOutEvent = 5404,
-        AudioDeviceFailedEvent = 5405
+        AudioDeviceFailedEvent = 5405,
+        FrameFormatChangeEvent = 5406,
 	};
 
 	class PHONON_XINE_ENGINE_EXPORT XineProgressEvent : public QEvent
@@ -57,6 +59,20 @@ namespace Xine
 			QString m_description;
 			int m_percent;
 	};
+
+    class PHONON_XINE_ENGINE_EXPORT XineFrameFormatChangeEvent : public QEvent
+    {
+        public:
+            XineFrameFormatChangeEvent(int w, int h, int aspect, bool panScan);
+            const QSize &size() const { return m_size; }
+            int aspect() const { return m_aspect; }
+            bool panScan() const { return m_panScan; }
+
+        private:
+            QSize m_size;
+            int m_aspect;
+            bool m_panScan;
+    };
 
     class XineEnginePrivate;
 
