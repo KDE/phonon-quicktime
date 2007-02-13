@@ -29,7 +29,7 @@
 #include <inttypes.h>
 
 #include <xine.h>
-#include "../../bytestream.h"
+#include "bytestream.h"
 extern "C" {
     // stupid xine headers use the reserved keyword this:
 #define this this_xine
@@ -240,7 +240,7 @@ static void kbytestream_class_dispose (input_class_t *this_gen) {
 }
 
 extern "C" {
-    void *init_plugin (xine_t *xine, void * /*data*/) {
+    void *init_kbytestream_plugin (xine_t *xine, void * /*data*/) {
         kbytestream_input_class_t  *that;
 
         that = (kbytestream_input_class_t *) xine_xmalloc (sizeof (kbytestream_input_class_t));

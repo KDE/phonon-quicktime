@@ -34,8 +34,8 @@ set(phonon_xine_PART_SRCS
     visualization.cpp
     backend.cpp
     volumefadereffect.cpp
-    xineplugins/bytestream/input_bytestream.cpp
-    xineplugins/bytestream/plugin.c
+    bytestreamplugin.cpp
+    plugins.c
    )
 
 kde4_automoc(${phonon_xine_PART_SRCS})
