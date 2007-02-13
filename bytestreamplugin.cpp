@@ -17,292 +17,247 @@
 
 */
 
-#include <kdemacros.h>
+#define LOG_MODULE "input_bytestream"
+#define LOG_VERBOSE
+/*
+#define LOG
+*/
 
-#include <QExplicitlySharedDataPointer>
+#include <kdelibs_export.h>
 
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 
 #include <xine.h>
 #include "bytestream.h"
-
 extern "C" {
-// xine headers use the reserved keyword this:
+    // stupid xine headers use the reserved keyword this:
 #define this this_xine
 #include <xine/compat.h>
 #include <xine/input_plugin.h>
 #include <xine/xine_internal.h>
 #include <xine/xineutils.h>
-#include "net_buf_ctrl.h"
 #undef this
 
-static void kbytestream_pause_cb(void *that_gen);
-static void kbytestream_normal_cb(void *that_gen);
-class KByteStreamInputPlugin : public input_plugin_t
-{
-public:
-    KByteStreamInputPlugin(xine_stream_t *stream, const char *_mrl);
+typedef struct {
+    input_class_t     input_class;
 
-    ~KByteStreamInputPlugin();
+    xine_t           *xine;
+    config_values_t  *config;
+} kbytestream_input_class_t;
 
-    inline const char *mrl() const { return m_mrl.constData(); }
+typedef struct {
+    input_plugin_t    input_plugin;
 
-    inline xine_stream_t *stream() { return m_stream; }
+    xine_stream_t    *stream;
+    char *mrl;
+    Phonon::Xine::ByteStream *bytestream;
+} kbytestream_input_plugin_t;
 
-    inline Phonon::Xine::ByteStream *bytestream() { return m_bytestream.data(); }
+static uint32_t kbytestream_plugin_get_capabilities (input_plugin_t *this_gen) {
+    kbytestream_input_plugin_t *that = (kbytestream_input_plugin_t *) this_gen;
 
-private:
-    xine_stream_t *m_stream;
-    nbc_t *m_nbc;
-    const QByteArray m_mrl;
-    QExplicitlySharedDataPointer<Phonon::Xine::ByteStream> m_bytestream;
-};
-
-KByteStreamInputPlugin::KByteStreamInputPlugin(xine_stream_t *stream, const char *_mrl)
-    : m_stream(stream),
-    m_nbc(nbc_init(stream)),
-    m_mrl(_mrl),
-    m_bytestream(Phonon::Xine::ByteStream::fromMrl(m_mrl))
-{
-    if (!m_bytestream) {
-        return;
-    }
-    input_plugin_t *that = this;
-    memset(that, 0, sizeof(input_plugin_t));
-
-    m_bytestream->ref.ref();
-
-
-    nbc_set_pause_cb(m_nbc, kbytestream_pause_cb, this);
-    nbc_set_normal_cb(m_nbc, kbytestream_normal_cb, this);
+    return INPUT_CAP_PREVIEW | (that->bytestream->streamSeekable() ? INPUT_CAP_SEEKABLE : 0);
 }
 
-KByteStreamInputPlugin::~KByteStreamInputPlugin()
-{
-    if (m_nbc) {
-        nbc_close(m_nbc);
-    }
-    if (m_bytestream && !m_bytestream->ref.deref()) {
-        m_bytestream->deleteLater();
-    }
-}
-
-static uint32_t kbytestream_plugin_get_capabilities (input_plugin_t *this_gen)
-{
-    KByteStreamInputPlugin *that = static_cast<KByteStreamInputPlugin *>(this_gen);
-    return INPUT_CAP_PREVIEW | (that->bytestream()->streamSeekable() ? INPUT_CAP_SEEKABLE : 0);
-}
-
-/* remove the !__APPLE__ junk once the osx xine stuff is merged back into xine 1.2 proper */
-#if ((XINE_SUB_VERSION >= 90 && XINE_MINOR_VERSION == 1 && !defined __APPLE__) || (XINE_MINOR_VERSION > 1) && XINE_MAJOR_VERSION == 1) || XINE_MAJOR_VERSION > 1
-static off_t kbytestream_plugin_read (input_plugin_t *this_gen, void *buf, off_t len)
-#else
-static off_t kbytestream_plugin_read (input_plugin_t *this_gen, char *buf, off_t len)
-#endif
-{
-    KByteStreamInputPlugin *that = static_cast<KByteStreamInputPlugin *>(this_gen);
-    off_t read = that->bytestream()->readFromBuffer(buf, len);
+static off_t kbytestream_plugin_read (input_plugin_t *this_gen, char *buf, off_t len) {
+    kbytestream_input_plugin_t *that = (kbytestream_input_plugin_t *) this_gen;
+    off_t read = that->bytestream->readFromBuffer( buf, len );
     return read;
 }
 
-static buf_element_t *kbytestream_plugin_read_block (input_plugin_t *this_gen, fifo_buffer_t *fifo, off_t todo)
-{
-    KByteStreamInputPlugin *that = static_cast<KByteStreamInputPlugin *>(this_gen);
-    buf_element_t *buf = fifo->buffer_pool_alloc(fifo);
+static buf_element_t *kbytestream_plugin_read_block (input_plugin_t *this_gen, fifo_buffer_t *fifo, off_t todo) {
+    off_t                 num_bytes, total_bytes;
+    kbytestream_input_plugin_t  *that = (kbytestream_input_plugin_t *) this_gen;
+    buf_element_t        *buf = fifo->buffer_pool_alloc (fifo);
 
     buf->content = buf->mem;
     buf->type = BUF_DEMUX_BLOCK;
-    buf->size = 0;
+    total_bytes = 0;
 
-    while (buf->size < todo) {
-        const off_t num_bytes = that->bytestream()->readFromBuffer(buf->mem + buf->size, todo - buf->size);
+    while (total_bytes < todo) {
+        num_bytes = that->bytestream->readFromBuffer( buf->mem + total_bytes, todo-total_bytes );
         if (num_bytes <= 0) {
-            buf->free_buffer(buf);
-            return NULL;
+            buf->free_buffer (buf);
+            buf = NULL;
+            break;
         }
-        buf->size += num_bytes;
+        total_bytes += num_bytes;
     }
+
+    if( buf != NULL )
+        buf->size = total_bytes;
 
     return buf;
 }
 
-static off_t kbytestream_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin)
-{
-    KByteStreamInputPlugin *that = static_cast<KByteStreamInputPlugin *>(this_gen);
-    switch (origin) {
-    case SEEK_SET:
-        break;
-    case SEEK_CUR:
-        offset += that->bytestream()->currentPosition();
-        break;
-    case SEEK_END:
-        offset += that->bytestream()->streamSize();
-        break;
+static off_t kbytestream_plugin_seek (input_plugin_t *this_gen, off_t offset, int origin) {
+    //printf( "kbytestream_plugin_seek: sizeof(off_t) = %d\n", sizeof( off_t ) );
+    kbytestream_input_plugin_t *that = (kbytestream_input_plugin_t *) this_gen;
+    switch( origin )
+    {
+        case SEEK_SET:
+            break;
+        case SEEK_CUR:
+            offset += that->bytestream->currentPosition();
+            break;
+        case SEEK_END:
+            offset += that->bytestream->streamSize();
+            break;
+        default:
+            exit(1);
     }
+    //printf( "kbytestream_plugin_seek %d\n", ( int )offset );
 
-    return that->bytestream()->seekBuffer(offset);
+    return that->bytestream->seekBuffer( offset );
 }
 
-static off_t kbytestream_plugin_get_current_pos (input_plugin_t *this_gen)
-{
-    KByteStreamInputPlugin *that = static_cast<KByteStreamInputPlugin *>(this_gen);
-    return that->bytestream()->currentPosition();
+static off_t kbytestream_plugin_get_current_pos (input_plugin_t *this_gen){
+    kbytestream_input_plugin_t *that = (kbytestream_input_plugin_t *) this_gen;
+    return that->bytestream->currentPosition();
 }
 
-static off_t kbytestream_plugin_get_length (input_plugin_t *this_gen)
-{
-    KByteStreamInputPlugin *that = static_cast<KByteStreamInputPlugin *>(this_gen);
-    return that->bytestream()->streamSize();
+static off_t kbytestream_plugin_get_length (input_plugin_t *this_gen) {
+    kbytestream_input_plugin_t *that = (kbytestream_input_plugin_t *) this_gen;
+    return that->bytestream->streamSize();
 }
 
-static uint32_t kbytestream_plugin_get_blocksize (input_plugin_t *)
-{
+static uint32_t kbytestream_plugin_get_blocksize (input_plugin_t * /*this_gen*/) {
     return 0;
 }
 
 #if (XINE_SUB_VERSION > 3 && XINE_MINOR_VERSION == 1) || (XINE_MINOR_VERSION > 1 && XINE_MAJOR_VERSION == 1) || XINE_MAJOR_VERSION > 1
-static const char *kbytestream_plugin_get_mrl (input_plugin_t *this_gen)
-{
-    KByteStreamInputPlugin *that = static_cast<KByteStreamInputPlugin *>(this_gen);
-    return that->mrl();
-}
+static const char *
 #else
-static char *kbytestream_plugin_get_mrl (input_plugin_t *this_gen)
-{
-    KByteStreamInputPlugin *that = static_cast<KByteStreamInputPlugin *>(this_gen);
-    return const_cast<char *>(that->mrl());
-}
+static char *
 #endif
+        kbytestream_plugin_get_mrl (input_plugin_t *this_gen) {
+    kbytestream_input_plugin_t *that = (kbytestream_input_plugin_t *) this_gen;
+
+    return that->mrl;
+}
 
 static int kbytestream_plugin_get_optional_data (input_plugin_t *this_gen,
-        void *data, int data_type)
-{
+        void *data, int data_type) {
     if (data_type == INPUT_OPTIONAL_DATA_PREVIEW) {
-        KByteStreamInputPlugin *that = static_cast<KByteStreamInputPlugin *>(this_gen);
-        return that->bytestream()->peekBuffer(data);
+        kbytestream_input_plugin_t *that = (kbytestream_input_plugin_t *) this_gen;
+        return that->bytestream->peekBuffer(data);
     }
     return INPUT_OPTIONAL_UNSUPPORTED;
 }
 
-static void kbytestream_plugin_dispose (input_plugin_t *this_gen)
-{
-    KByteStreamInputPlugin *that = static_cast<KByteStreamInputPlugin *>(this_gen);
-    delete that;
+static void kbytestream_plugin_dispose (input_plugin_t *this_gen ) {
+    kbytestream_input_plugin_t *that = (kbytestream_input_plugin_t *) this_gen;
+
+    free (that->mrl);
+    free (that);
 }
 
-static int kbytestream_plugin_open (input_plugin_t *this_gen)
-{
-    kDebug(610);
-    KByteStreamInputPlugin *that = static_cast<KByteStreamInputPlugin *>(this_gen);
+static int kbytestream_plugin_open (input_plugin_t *this_gen ) {
+    kbytestream_input_plugin_t *that = (kbytestream_input_plugin_t *) this_gen;
+
+    lprintf("kbytestream_plugin_open\n");
 
     if (kbytestream_plugin_get_length (this_gen) == 0) {
-        _x_message(that->stream(), XINE_MSG_FILE_EMPTY, that->mrl(), NULL);
-        xine_log (that->stream()->xine, XINE_LOG_MSG,
-                "input_kbytestream: File empty: >%s<\n", that->mrl());
+        _x_message(that->stream, XINE_MSG_FILE_EMPTY, that->mrl, NULL);
+        xine_log (that->stream->xine, XINE_LOG_MSG,
+                _("input_kbytestream: File empty: >%s<\n"), that->mrl);
         return 0;
     }
-
-    Q_ASSERT(that->bytestream());
-    that->bytestream()->reset();
 
     return 1;
 }
 
-static void kbytestream_pause_cb(void *that_gen)
-{
-    KByteStreamInputPlugin *that = static_cast<KByteStreamInputPlugin *>(that_gen);
-    that->bytestream()->setPauseForBuffering(true);
-}
-
-static void kbytestream_normal_cb(void *that_gen)
-{
-    KByteStreamInputPlugin *that = static_cast<KByteStreamInputPlugin *>(that_gen);
-    that->bytestream()->setPauseForBuffering(false);
-}
-
 static input_plugin_t *kbytestream_class_get_instance (input_class_t *cls_gen, xine_stream_t *stream,
-        const char *mrl)
-{
-    kDebug(610);
-    KByteStreamInputPlugin *that = new KByteStreamInputPlugin(stream, mrl);
+        const char *data) {
+    /* kbytestream_input_class_t  *cls = (kbytestream_input_class_t *) cls_gen; */
+    kbytestream_input_plugin_t *that;
+    const char *mrl = data;
 
-    if (!that->bytestream()) {
-        delete that;
+    lprintf("kbytestream_class_get_instance\n");
+
+    if (0 != strncasecmp (mrl, "kbytestream:/", 13) )
         return NULL;
+
+    that = (kbytestream_input_plugin_t *) xine_xmalloc (sizeof (kbytestream_input_plugin_t));
+    that->stream = stream;
+    that->mrl    = strdup( mrl );
+    const unsigned char *encoded = reinterpret_cast<const unsigned char*>( mrl + 13 );
+    const unsigned char *addr = 0;
+    for( unsigned int i = 0; i < sizeof( void* ); ++i )
+    {
+        if( *encoded == 0x01 )
+        {
+            ++encoded;
+            if( *encoded == 0x02 )
+                addr += 1 << ( 8 * i );
+        }
+        else
+            addr += *encoded << ( 8 * i );
+
+        ++encoded;
     }
+    that->bytestream = ( Phonon::Xine::ByteStream* )addr;
 
-    that->open               = kbytestream_plugin_open;
-    that->get_capabilities   = kbytestream_plugin_get_capabilities;
-    that->read               = kbytestream_plugin_read;
-    that->read_block         = kbytestream_plugin_read_block;
-    that->seek               = kbytestream_plugin_seek;
-    that->get_current_pos    = kbytestream_plugin_get_current_pos;
-    that->get_length         = kbytestream_plugin_get_length;
-    that->get_blocksize      = kbytestream_plugin_get_blocksize;
-    that->get_mrl            = kbytestream_plugin_get_mrl;
-    that->get_optional_data  = kbytestream_plugin_get_optional_data;
-    that->dispose            = kbytestream_plugin_dispose;
-    that->input_class        = cls_gen;
+    that->input_plugin.open               = kbytestream_plugin_open;
+    that->input_plugin.get_capabilities   = kbytestream_plugin_get_capabilities;
+    that->input_plugin.read               = kbytestream_plugin_read;
+    that->input_plugin.read_block         = kbytestream_plugin_read_block;
+    that->input_plugin.seek               = kbytestream_plugin_seek;
+    that->input_plugin.get_current_pos    = kbytestream_plugin_get_current_pos;
+    that->input_plugin.get_length         = kbytestream_plugin_get_length;
+    that->input_plugin.get_blocksize      = kbytestream_plugin_get_blocksize;
+    that->input_plugin.get_mrl            = kbytestream_plugin_get_mrl;
+    that->input_plugin.get_optional_data  = kbytestream_plugin_get_optional_data;
+    that->input_plugin.dispose            = kbytestream_plugin_dispose;
+    that->input_plugin.input_class        = cls_gen;
 
-    return that;
+    return &that->input_plugin;
 }
 
-#define PLUGIN_DESCRIPTION "kbytestream input plugin"
-#define PLUGIN_IDENTIFIER "kbytestream"
 
-#if XINE_MAJOR_VERSION < 1 || ( XINE_MAJOR_VERSION == 1 && ( XINE_MINOR_VERSION < 1 || ( XINE_MINOR_VERSION == 1 && XINE_SUB_VERSION < 90 ) ) )
-#define NEED_DESCRIPTION_FUNCTION 1
-#else
-#define NEED_DESCRIPTION_FUNCTION 0
-#endif
+/*
+ * plugin class functions
+ */
 
-#if NEED_DESCRIPTION_FUNCTION
+
 #if (XINE_SUB_VERSION > 3 && XINE_MINOR_VERSION == 1) || (XINE_MINOR_VERSION > 1 && XINE_MAJOR_VERSION == 1) || XINE_MAJOR_VERSION > 1
-static const char *kbytestream_class_get_description(input_class_t *)
-{
-    return PLUGIN_DESCRIPTION;
-}
+static const char *
 #else
-static char *kbytestream_class_get_description(input_class_t *)
-{
-    return const_cast<char *>(PLUGIN_DESCRIPTION);
-}
+static char *
 #endif
-
-static const char *kbytestream_class_get_identifier(input_class_t *)
-{
-    return PLUGIN_IDENTIFIER;
-}
-#endif /* NEED_DESCRIPTION_FUNCTIONS */
-
-static void kbytestream_class_dispose (input_class_t *this_gen)
-{
-    delete this_gen;
+        kbytestream_class_get_description (input_class_t * /*this_gen*/) {
+    return ( char* ) _("kbytestream input plugin");
 }
 
-void *init_kbytestream_plugin (xine_t *xine, void *data)
-{
-    Q_UNUSED(xine);
-    Q_UNUSED(data);
-    input_class_t *that = new input_class_t;
-    memset(that, 0, sizeof(that));
+static const char *kbytestream_class_get_identifier (input_class_t * /*this_gen*/) {
+    return "kbytestream";
+}
 
-    that->get_instance       = kbytestream_class_get_instance;
-#if NEED_DESCRIPTION_FUNCTION
-    that->get_identifier     = kbytestream_class_get_identifier;
-    that->get_description    = kbytestream_class_get_description;
-#else
-    that->description        = PLUGIN_DESCRIPTION;
-    that->text_domain        = "phonon-xine";
-    that->identifier         = PLUGIN_IDENTIFIER;
-#endif
-    that->get_dir            = NULL;
-    that->get_autoplay_list  = NULL;
-    that->dispose            = kbytestream_class_dispose;
-    that->eject_media        = NULL;
+static void kbytestream_class_dispose (input_class_t *this_gen) {
+    kbytestream_input_class_t  *that = (kbytestream_input_class_t *) this_gen;
+    free (that);
+}
 
-    return that;
+extern "C" {
+    void *init_kbytestream_plugin (xine_t *xine, void * /*data*/) {
+        kbytestream_input_class_t  *that;
+
+        that = (kbytestream_input_class_t *) xine_xmalloc (sizeof (kbytestream_input_class_t));
+
+        that->xine   = xine;
+        that->config = xine->config;
+
+        that->input_class.get_instance       = kbytestream_class_get_instance;
+        that->input_class.get_identifier     = kbytestream_class_get_identifier;
+        that->input_class.get_description    = kbytestream_class_get_description;
+        that->input_class.get_dir            = NULL;
+        that->input_class.get_autoplay_list  = NULL;
+        that->input_class.dispose            = kbytestream_class_dispose;
+        that->input_class.eject_media        = NULL;
+
+        return that;
+    }
 }
 } // extern "C"
 
