@@ -45,6 +45,8 @@ namespace Xine
 
 			Q_INVOKABLE Phonon::VideoWidget::AspectRatio aspectRatio() const;
 			Q_INVOKABLE void setAspectRatio( Phonon::VideoWidget::AspectRatio aspectRatio );
+			Q_INVOKABLE void setZoomX( int percent );
+			Q_INVOKABLE void setZoomY( int percent );
 
 			Q_INVOKABLE QWidget *widget() { return this; }
 

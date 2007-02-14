@@ -195,6 +195,22 @@ void VideoWidget::setAspectRatio( Phonon::VideoWidget::AspectRatio aspectRatio )
     }
 }
 
+void VideoWidget::setZoomX( int percent )
+{
+	if (m_path && m_path->producer()) {
+        XineStream &xs = m_path->producer()->stream();
+        xs.setParam(XINE_PARAM_VO_ZOOM_X, percent);
+	}
+}
+
+void VideoWidget::setZoomY( int percent )
+{
+	if (m_path && m_path->producer()) {
+        XineStream &xs = m_path->producer()->stream();
+        xs.setParam(XINE_PARAM_VO_ZOOM_Y, percent);
+	}
+}
+
 bool VideoWidget::event(QEvent *ev)
 {
     switch (ev->type()) {
