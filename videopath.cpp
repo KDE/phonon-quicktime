@@ -107,7 +107,8 @@ bool VideoPath::removeOutput( QObject* videoOutput )
 
 	Xine::VideoDataOutput *vdo = qobject_cast<Xine::VideoDataOutput*>( videoOutput );
 	Q_ASSERT( vdo );
-	Q_ASSERT( m_outputs.removeAll( vdo ) == 1 );
+    const int r = m_outputs.removeAll(vdo);
+    Q_ASSERT(r == 1);
 	vdo->removePath( this );
 	return true;
 }
