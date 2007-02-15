@@ -5,6 +5,7 @@ set(xineengine_LIB_SRCS
     xineengine.cpp
     xinestream.cpp
     audioport.cpp
+    audiopostlist.cpp
    )
 kde4_automoc(${xineengine_LIB_SRCS})
 kde4_add_library(phononxineengine SHARED ${xineengine_LIB_SRCS})
@@ -35,6 +36,7 @@ set(phonon_xine_PART_SRCS
     backend.cpp
     volumefadereffect.cpp
     bytestreamplugin.cpp
+    volumefader_plugin.cpp
     plugins.c
    )
 

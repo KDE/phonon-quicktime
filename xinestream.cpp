@@ -1,5 +1,5 @@
 /*  This file is part of the KDE project
-    Copyright (C) 2006 Matthias Kretz <kretz@kde.org>
+    Copyright (C) 2006-2007 Matthias Kretz <kretz@kde.org>
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -50,7 +50,27 @@ enum {
     SetTickInterval = 2012,
     SetAboutToFinishTime = 2013,
     SetParam = 2014,
-    EventSend = 2015
+    EventSend = 2015,
+    AudioRewire = 2016,
+    AddAudioPostList = 2017
+};
+
+class ChangeAudioPostListEvent : public QEvent
+{
+    public:
+        enum AddOrRemove { Add, Remove };
+        ChangeAudioPostListEvent(const AudioPostList &x, AddOrRemove y)
+            : QEvent(static_cast<QEvent::Type>(AddAudioPostList)), postList(x), what(y) {}
+
+        AudioPostList postList;
+        AddOrRemove what;
+};
+
+class AudioRewireEvent : public QEvent
+{
+    public:
+        AudioRewireEvent(AudioPostList *x) : QEvent(static_cast<QEvent::Type>(AudioRewire)), postList(x) {}
+        AudioPostList *postList;
 };
 
 class EventSendEvent : public QEvent
@@ -300,14 +320,23 @@ bool XineStream::createStream()
     }
 
     m_portMutex.lock();
-    m_audioPort = m_newAudioPort;
     m_videoPort = m_newVideoPort;
-    kDebug(610) << k_funcinfo << "AudioPort.xinePort() = " << m_audioPort.xinePort() << endl;
+    //kDebug(610) << k_funcinfo << "AudioPort.xinePort() = " << m_audioPort.xinePort() << endl;
     xine_video_port_t *videoPort = m_videoPort ? m_videoPort->videoPort() : 0;
-    m_stream = xine_stream_new(XineEngine::xine(), m_audioPort.xinePort(), videoPort);
-    if (!m_audioPort.isValid()) {
-        xine_set_param(m_stream, XINE_PARAM_IGNORE_AUDIO, 1);
-    } else if (m_volume != 100) {
+    //m_stream = xine_stream_new(XineEngine::xine(), m_audioPort.xinePort(), videoPort);
+    m_stream = xine_stream_new(XineEngine::xine(), XineEngine::nullPort(), videoPort);
+    if (m_audioPostLists.size() == 1) {
+        m_audioPostLists.first().wireStream(xine_get_audio_source(m_stream));
+    } else if (m_audioPostLists.size() > 1) {
+        kWarning(610) << "multiple AudioPaths per MediaProducer is not supported. Trying anyway." << endl;
+        foreach (AudioPostList apl, m_audioPostLists) {
+            apl.wireStream(xine_get_audio_source(m_stream));
+        }
+    }
+    //if (!m_audioPort.isValid()) {
+        //xine_set_param(m_stream, XINE_PARAM_IGNORE_AUDIO, 1);
+    //} else
+        if (m_volume != 100) {
         xine_set_param(m_stream, XINE_PARAM_AUDIO_AMP_LEVEL, m_volume);
     }
     if (!m_videoPort) {
@@ -339,18 +368,15 @@ void XineStream::setVolume(int vol)
 }
 
 //called from main thread
-void XineStream::setAudioPort(AudioPort port)
+void XineStream::addAudioPostList(const AudioPostList &postList)
 {
-    m_portMutex.lock();
-    if (m_audioPort == m_newAudioPort && port == m_audioPort) {
-        m_portMutex.unlock();
-        return;
-    }
-    m_newAudioPort = port;
-    m_portMutex.unlock();
+    QCoreApplication::postEvent(this, new ChangeAudioPostListEvent(postList, ChangeAudioPostListEvent::Add));
+}
 
-    // schedule m_stream rewiring
-    rewireOutputPorts();
+//called from main thread
+void XineStream::removeAudioPostList(const AudioPostList &postList)
+{
+    QCoreApplication::postEvent(this, new ChangeAudioPostListEvent(postList, ChangeAudioPostListEvent::Remove));
 }
 
 //called from main thread
@@ -394,6 +420,12 @@ void XineStream::setTickInterval(qint32 interval)
 void XineStream::setAboutToFinishTime(qint32 time)
 {
     QCoreApplication::postEvent(this, new SetAboutToFinishTimeEvent(time));
+}
+
+// called from main thread
+void XineStream::needRewire(AudioPostList *postList)
+{
+    QCoreApplication::postEvent(this, new AudioRewireEvent(postList));
 }
 
 // called from main thread
@@ -570,6 +602,10 @@ const char* nameForEvent(int e)
             //return "EventSend";
         case SetParam:
             return "SetParam";
+        case AddAudioPostList:
+            return "AddAudioPostList";
+        case AudioRewire:
+            return "AudioRewire";
         default:
             return 0;
     }
@@ -596,6 +632,37 @@ bool XineStream::event(QEvent *ev)
         kDebug(610) << "################################ Event: " << eventName << endl;
     }
     switch (ev->type()) {
+        case AddAudioPostList:
+            ev->accept();
+            {
+                ChangeAudioPostListEvent *e = static_cast<ChangeAudioPostListEvent *>(ev);
+                if (e->what == ChangeAudioPostListEvent::Add) {
+                    m_audioPostLists << e->postList;
+                    if (m_stream) {
+                        if (m_audioPostLists.size() > 1) {
+                            kWarning(610) << "attaching multiple AudioPaths to one MediaProducer is not supported yet." << endl;
+                        }
+                        e->postList.wireStream(xine_get_audio_source(m_stream));
+                    }
+                    e->postList.addXineStream(this);
+                } else { // Remove
+                    e->postList.removeXineStream(this);
+                    const int r = m_audioPostLists.removeAll(e->postList);
+                    Q_ASSERT(1 == r);
+                    xine_post_wire(xine_get_audio_source(m_stream), 0);
+                    if (m_audioPostLists.size() > 0) {
+                        m_audioPostLists.last().wireStream(xine_get_audio_source(m_stream));
+                    }
+                }
+            }
+            return true;
+        case AudioRewire:
+            ev->accept();
+            if (m_stream) {
+                AudioRewireEvent *e = static_cast<AudioRewireEvent *>(ev);
+                e->postList->wireStream(xine_get_audio_source(m_stream));
+            }
+            return true;
         case EventSend:
             ev->accept();
             {
@@ -761,22 +828,24 @@ bool XineStream::event(QEvent *ev)
                 }
 
                 m_portMutex.lock();
-                bool needRecreate = (
-                        (!m_audioPort.isValid() && m_newAudioPort.isValid()) ||
-                        (!m_newAudioPort.isValid() && m_audioPort.isValid()) ||
+                /*bool needRecreate = (
                         (m_newVideoPort == 0 && m_videoPort != 0) ||
                         (m_videoPort == 0 && m_newVideoPort != 0)
-                        );
-                if (!needRecreate) {
+                        );*/
+                //if (!needRecreate) {
                     kDebug(610) << "rewiring ports" << endl;
-                    if (m_audioPort != m_newAudioPort) {
+                    /*if (m_audioPort != m_newAudioPort) {
                         xine_post_out_t *audioSource = xine_get_audio_source(m_stream);
-                        xine_post_wire_audio_port(audioSource, m_newAudioPort.xinePort());
+                        if (m_newAudioPort.postPort()) {
+                            xine_post_wire(audioSource, m_newAudioPort.postPort());
+                        } else {
+                            xine_post_wire_audio_port(audioSource, m_newAudioPort.xinePort());
+                        }
                         m_audioPort = m_newAudioPort;
                         if (m_volume != 100) {
                             xine_set_param(m_stream, XINE_PARAM_AUDIO_AMP_LEVEL, m_volume);
                         }
-                    }
+                    }*/
                     if (m_videoPort != m_newVideoPort) {
                         xine_post_out_t *videoSource = xine_get_video_source(m_stream);
                         xine_video_port_t *videoPort = m_newVideoPort ? m_newVideoPort->videoPort() : 0;
@@ -786,6 +855,7 @@ bool XineStream::event(QEvent *ev)
                     m_portMutex.unlock();
                     m_waitingForRewire.wakeAll();
                     return true;
+#if 0
                 }
                 m_portMutex.unlock();
 
@@ -846,11 +916,12 @@ bool XineStream::event(QEvent *ev)
                             break;
                     }
                 }
+#endif
             }
             return true;
         case PlayCommand:
             ev->accept();
-            if (!m_audioPort.isValid() && !m_videoPort) {
+            if (m_audioPostLists.isEmpty() && !m_videoPort) {
                 kWarning(610) << "request to play a stream, but no valid audio/video outputs are given/available" << endl;
                 error(Phonon::FatalError, i18n("Playback failed because no valid audio or video outputs are available"));
                 return true;

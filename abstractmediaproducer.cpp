@@ -41,7 +41,6 @@ AbstractMediaProducer::AbstractMediaProducer(QObject *parent)
     : QObject( parent ),
     m_state(Phonon::LoadingState),
     m_stream(0),
-    m_audioPath(0),
     m_videoPath(0),
     m_seeking(0),
     m_currentTimeOverride(-1)
@@ -68,8 +67,10 @@ void AbstractMediaProducer::seekDone()
 
 AbstractMediaProducer::~AbstractMediaProducer()
 {
-    if (m_audioPath) {
-        m_audioPath->removeMediaProducer(this);
+    if (!m_audioPaths.isEmpty()) {
+        foreach (AudioPath *p, m_audioPaths) {
+            p->removeMediaProducer(this);
+        }
     }
     if (m_videoPath) {
         m_videoPath->unsetMediaProducer(this);
@@ -102,14 +103,12 @@ bool AbstractMediaProducer::addVideoPath(QObject *videoPath)
 
 bool AbstractMediaProducer::addAudioPath(QObject *audioPath)
 {
-    if (m_audioPath) {
-        return false;
-    }
-
-    m_audioPath = qobject_cast<AudioPath*>(audioPath);
-    Q_ASSERT(m_audioPath);
-    m_audioPath->addMediaProducer(this);
-    m_stream.setAudioPort(m_audioPath->audioPort(&m_stream));
+    AudioPath *ap = qobject_cast<AudioPath*>(audioPath);
+    Q_ASSERT(ap);
+    m_audioPaths << ap;
+    ap->addMediaProducer(this);
+    m_stream.addAudioPostList(ap->audioPostList());
+    //m_stream.setAudioPort(m_audioPath->audioPort(&m_stream));
 
     return true;
 }
@@ -126,12 +125,12 @@ void AbstractMediaProducer::removeVideoPath(QObject *videoPath)
 
 void AbstractMediaProducer::removeAudioPath(QObject *audioPath)
 {
-    Q_ASSERT(audioPath);
-    if (m_audioPath == qobject_cast<AudioPath*>(audioPath)) {
-        m_stream.setAudioPort(AudioPort());
-        m_audioPath->removeMediaProducer(this);
-        m_audioPath = 0;
-    }
+    AudioPath *ap = qobject_cast<AudioPath*>(audioPath);
+    Q_ASSERT(ap);
+    const int count = m_audioPaths.removeAll(ap);
+    Q_ASSERT(1 == count);
+    m_stream.removeAudioPostList(ap->audioPostList());
+    ap->removeMediaProducer(this);
 }
 
 State AbstractMediaProducer::state() const

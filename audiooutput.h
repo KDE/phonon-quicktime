@@ -42,7 +42,7 @@ namespace Xine
             AudioOutput(QObject *parent);
 			~AudioOutput();
 
-            AudioPort audioPort(XineStream* forStream);
+            AudioPort audioPort() const;
 			void updateVolume( AbstractMediaProducer* mp ) const;
 
 			// Attributes Getters:
@@ -63,8 +63,7 @@ namespace Xine
 		private:
 			float m_volume;
 			int m_device;
-            typedef QMap<XineStream*, AudioPort> PortMap;
-            PortMap m_audioPorts;
+            AudioPort m_audioPort;
 	};
 }} //namespace Phonon::Xine
 

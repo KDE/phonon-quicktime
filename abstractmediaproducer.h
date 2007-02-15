@@ -82,7 +82,7 @@ namespace Xine
 
 			XineStream& stream() { return m_stream; }
 			const XineStream& stream() const { return m_stream; }
-            void setAudioPort(AudioPort port) { m_stream.setAudioPort(port); }
+            //void setAudioPort(AudioPort port) { m_stream.setAudioPort(port); }
             void setVideoPort(VideoWidgetInterface *port) { m_stream.setVideoPort(port); }
 
 		public slots:
@@ -113,7 +113,7 @@ namespace Xine
             Phonon::State m_state;
             XineStream m_stream;
             qint32 m_tickInterval;
-            AudioPath *m_audioPath;
+            QList<AudioPath *> m_audioPaths;
             VideoPath *m_videoPath;
 
 			QHash<const QObject*, QString> m_selectedAudioStream;

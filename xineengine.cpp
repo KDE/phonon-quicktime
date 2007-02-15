@@ -81,7 +81,8 @@ namespace Xine
     XineEngine::XineEngine(const KSharedConfigPtr& _config)
         : m_xine(xine_new()),
         m_config(_config),
-        d(new XineEnginePrivate)
+        d(new XineEnginePrivate),
+        m_nullPort(0)
     {
         Q_ASSERT(s_instance == 0);
         s_instance = this;
@@ -183,14 +184,28 @@ namespace Xine
             case XINE_EVENT_AUDIO_DEVICE_FAILED:    /* audio device is gone */
                 kDebug(610) << "XINE_EVENT_AUDIO_DEVICE_FAILED" << endl;
                 {
-                    AudioPort ap = xs->audioPort();
-                    if (ap.audioOutput()) {
-                        QCoreApplication::postEvent(ap.audioOutput(), new QEvent(static_cast<QEvent::Type>(Xine::AudioDeviceFailedEvent)));
+                    // we don't know for sure which AudioOutput failed. but the one without any
+                    // capabilities must be the guilty one
+                    QList<AudioPostList> posts = xs->audioPostLists();
+                    foreach (AudioPostList post, posts) {
+                        AudioPort ap = post.audioPort();
+                        if (ap.isValid()) {
+                            QCoreApplication::postEvent(ap.audioOutput(), new QEvent(static_cast<QEvent::Type>(Xine::AudioDeviceFailedEvent)));
+                        }
                     }
                 }
                 break;
 #endif
         }
+    }
+
+    xine_audio_port_t *XineEngine::nullPort()
+    {
+        if (!s_instance->m_nullPort) {
+            s_instance->m_nullPort = xine_open_audio_driver(s_instance->m_xine, "none", 0);
+        }
+        Q_ASSERT(s_instance->m_nullPort);
+        return s_instance->m_nullPort;
     }
 
     QSet<int> XineEngine::audioOutputIndexes()

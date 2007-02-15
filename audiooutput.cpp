@@ -92,42 +92,18 @@ void AudioOutput::setVolume( float newVolume )
 	emit volumeChanged( m_volume );
 }
 
-AudioPort AudioOutput::audioPort(XineStream* forStream)
+AudioPort AudioOutput::audioPort() const
 {
-    if (!m_audioPorts.contains(forStream)) {
-        m_audioPorts[forStream] = AudioPort(m_device);
-        m_audioPorts[forStream].setAudioOutput(this);
-    }
-    return m_audioPorts[forStream];
+    return m_audioPort;
 }
 
 bool AudioOutput::setOutputDevice(int newDevice)
 {
     m_device = newDevice;
-
-    if (m_audioPorts.isEmpty()) {
-        // no AudioPort object will be created so we won't know whether the device is usable
-        // creating one now to check
-        AudioPort test(m_device);
-        if (!test.isValid()) {
-            kDebug(610) << "new audio port is invalid" << endl;
-            return false;
-        }
-    } else {
-        PortMap::Iterator it = m_audioPorts.begin();
-        const PortMap::Iterator end = m_audioPorts.end();
-        for (; it != end; ++it) {
-            AudioPort newAudioPort(m_device);
-            if (!newAudioPort.isValid()) {
-                kDebug(610) << "new audio port is invalid" << endl;
-                return false;
-            }
-            newAudioPort.setAudioOutput(this);
-
-            // notify the connected XineStream of the new device
-            it.key()->setAudioPort(newAudioPort);
-            it.value() = newAudioPort;
-        }
+    m_audioPort = AudioPort(m_device);
+    if (!m_audioPort.isValid()) {
+        kDebug(610) << "new audio port is invalid" << endl;
+        return false;
     }
     return true;
 }
