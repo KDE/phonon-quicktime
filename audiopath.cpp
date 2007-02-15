@@ -58,6 +58,11 @@ bool AudioPath::hasOutput() const
     return AudioPort();
 }*/
 
+void AudioPath::audioPortChanged(const AudioPort &port)
+{
+    m_effects.setAudioPort(port);
+}
+
 bool AudioPath::addOutput( QObject* audioOutput )
 {
 	AudioOutput *ao = qobject_cast<AudioOutput*>( audioOutput );
@@ -68,6 +73,7 @@ bool AudioPath::addOutput( QObject* audioOutput )
 		m_output = ao;
 		m_output->addPath( this );
         m_effects.setAudioPort(ao->audioPort());
+        connect(m_output, SIGNAL(audioPortChanged(AudioPort)), SLOT(audioPortChanged(AudioPort)));
 		return true;
 	}
 
@@ -84,6 +90,7 @@ bool AudioPath::removeOutput( QObject* audioOutput )
 	AudioOutput *ao = qobject_cast<AudioOutput*>( audioOutput );
 	if( ao && m_output == ao )
 	{
+        disconnect(m_output, SIGNAL(audioPortChanged(AudioPort)), this, SLOT(audioPortChanged(AudioPort)));
 		m_output->removePath( this );
 		m_output = 0;
         m_effects.setAudioPort(AudioPort());

@@ -57,6 +57,9 @@ class XineStream;
 			bool insertEffect( QObject* newEffect, QObject* insertBefore = 0 );
 			bool removeEffect( QObject* effect );
 
+        private slots:
+            void audioPortChanged(const AudioPort &);
+
 		private:
 			AudioOutput *m_output;
             AudioPostList m_effects;

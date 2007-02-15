@@ -105,6 +105,7 @@ bool AudioOutput::setOutputDevice(int newDevice)
         kDebug(610) << "new audio port is invalid" << endl;
         return false;
     }
+    emit audioPortChanged(m_audioPort);
     return true;
 }
 

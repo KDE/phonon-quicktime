@@ -60,6 +60,8 @@ namespace Xine
 			void volumeChanged( float newVolume );
             void audioDeviceFailed();
 
+            void audioPortChanged(const AudioPort &);
+
 		private:
 			float m_volume;
 			int m_device;
