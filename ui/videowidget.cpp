@@ -1,5 +1,5 @@
 /*  This file is part of the KDE project
-    Copyright (C) 2006 Matthias Kretz <kretz@kde.org>
+    Copyright (C) 2006-2007 Matthias Kretz <kretz@kde.org>
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License version 2
@@ -174,7 +174,7 @@ void VideoWidget::setAspectRatio( Phonon::VideoWidget::AspectRatio aspectRatio )
         XineStream &xs = m_path->producer()->stream();
         switch (m_aspectRatio) {
             case Phonon::VideoWidget::AspectRatioWidget:
-                xs.setParam(XINE_PARAM_VO_ASPECT_RATIO, XINE_VO_ASPECT_NUM_RATIOS);
+                xs.setParam(XINE_PARAM_VO_ASPECT_RATIO, XINE_VO_ASPECT_SQUARE);
                 break;
             case Phonon::VideoWidget::AspectRatioAuto:
                 xs.setParam(XINE_PARAM_VO_ASPECT_RATIO, XINE_VO_ASPECT_AUTO);
@@ -192,23 +192,83 @@ void VideoWidget::setAspectRatio( Phonon::VideoWidget::AspectRatio aspectRatio )
                 xs.setParam(XINE_PARAM_VO_ASPECT_RATIO, XINE_VO_ASPECT_DVB);
                 break;
         }
+        updateZoom();
     }
 }
 
-void VideoWidget::setZoomX( int percent )
+Phonon::VideoWidget::ScaleMode VideoWidget::scaleMode() const
 {
-	if (m_path && m_path->producer()) {
-        XineStream &xs = m_path->producer()->stream();
-        xs.setParam(XINE_PARAM_VO_ZOOM_X, percent);
-	}
+    return m_scaleMode;
 }
 
-void VideoWidget::setZoomY( int percent )
+void VideoWidget::setScaleMode(Phonon::VideoWidget::ScaleMode mode)
 {
-	if (m_path && m_path->producer()) {
+    m_scaleMode = mode;
+    updateZoom();
+}
+
+void VideoWidget::updateZoom()
+{
+    if (m_path && m_path->producer()) {
         XineStream &xs = m_path->producer()->stream();
-        xs.setParam(XINE_PARAM_VO_ZOOM_Y, percent);
-	}
+        if (m_aspectRatio == Phonon::VideoWidget::AspectRatioWidget) {
+            const QSize s = size();
+            QSize imageSize = m_sizeHint;
+            imageSize.scale(s, Qt::KeepAspectRatio);
+            if (imageSize.width() < s.width()) {
+                const int zoom = s.width() * 100 / imageSize.width();
+                xs.setParam(XINE_PARAM_VO_ZOOM_X, zoom);
+                xs.setParam(XINE_PARAM_VO_ZOOM_Y, 100);
+            } else {
+                const int zoom = s.height() * 100 / imageSize.height();
+                xs.setParam(XINE_PARAM_VO_ZOOM_X, 100);
+                xs.setParam(XINE_PARAM_VO_ZOOM_Y, zoom);
+            }
+        } else if (m_scaleMode == Phonon::VideoWidget::ExpandMode) {
+            const QSize s = size();
+            QSize imageSize = m_sizeHint;
+            // the image size is in square pixels
+            // first transform it to the current aspect ratio
+            kDebug(610) << imageSize << endl;
+            switch (m_aspectRatio) {
+                case Phonon::VideoWidget::AspectRatioAuto:
+                    // FIXME: how can we find out the ratio xine decided on? the event?
+                    break;
+                case Phonon::VideoWidget::AspectRatio4_3:
+                    imageSize.setWidth(imageSize.height() * 4 / 3);
+                    break;
+                case Phonon::VideoWidget::AspectRatioAnamorphic:
+                    imageSize.setWidth(imageSize.height() * 16 / 9);
+                    break;
+                case Phonon::VideoWidget::AspectRatioDvb:
+                    imageSize.setWidth(imageSize.height() * 2);
+                    break;
+                default:
+                    // correct ratio already
+                    break;
+            }
+            kDebug(610) << imageSize << endl;
+            imageSize.scale(s, Qt::KeepAspectRatioByExpanding);
+            kDebug(610) << imageSize << s << endl;
+            int zoom;
+            if (imageSize.width() > s.width()) {
+                zoom = imageSize.width() * 100 / s.width();
+            } else {
+                zoom = imageSize.height() * 100 / s.height();
+            }
+            xs.setParam(XINE_PARAM_VO_ZOOM_X, zoom);
+            xs.setParam(XINE_PARAM_VO_ZOOM_Y, zoom);
+        } else {
+            xs.setParam(XINE_PARAM_VO_ZOOM_X, 100);
+            xs.setParam(XINE_PARAM_VO_ZOOM_Y, 100);
+        }
+    }
+}
+
+void VideoWidget::resizeEvent(QResizeEvent *ev)
+{
+    updateZoom();
+    QWidget::resizeEvent(ev);
 }
 
 bool VideoWidget::event(QEvent *ev)
