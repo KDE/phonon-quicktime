@@ -44,6 +44,11 @@
 #include <phonon/audiodevice.h>
 #include <phonon/audiodeviceenumerator.h>
 
+extern "C" {
+#include <xine/xine_plugin.h>
+extern plugin_info_t phonon_xine_plugin_info[];
+}
+
 typedef KGenericFactory<Phonon::Xine::Backend> XineBackendFactory;
 K_EXPORT_COMPONENT_FACTORY(phonon_xine, XineBackendFactory("xinebackend"))
 
@@ -67,6 +72,8 @@ Backend::Backend( QObject* parent, const QStringList& )
 
     connect(XineEngine::sender(), SIGNAL(objectDescriptionChanged(ObjectDescriptionType)),
             SIGNAL(objectDescriptionChanged(ObjectDescriptionType)));
+
+    xine_register_plugins(XineEngine::xine(), phonon_xine_plugin_info);
 }
 
 Backend::~Backend()

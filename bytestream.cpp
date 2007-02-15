@@ -27,9 +27,8 @@
 #include <unistd.h>
 
 extern "C" {
-#include <xine/xine_plugin.h>
 #define this this_xine
-#include <xine/input_plugin.h>
+#include <xine/input_plugin.h> // needed for MAX_PREVIEW_SIZE
 #undef this
 }
 
@@ -42,8 +41,6 @@ extern "C" {
 #define PXINE_DEBUG kDebug( 610 )
 
 static const size_t MAXBUFFERSIZE = 1024 * 128; // 128kB
-
-extern plugin_info_t kbytestream_xine_plugin_info[];
 
 namespace Phonon
 {
@@ -63,8 +60,6 @@ ByteStream::ByteStream(QObject* parent)
 {
     // created in the main thread
     m_mainThread = pthread_self();
-
-    xine_register_plugins(XineEngine::xine(), kbytestream_xine_plugin_info);
 
     connect(this, SIGNAL(needDataQueued()), this, SIGNAL(needData()), Qt::QueuedConnection);
     connect(this, SIGNAL(seekStreamQueued(qint64)), this, SLOT(syncSeekStream(qint64)), Qt::QueuedConnection);
