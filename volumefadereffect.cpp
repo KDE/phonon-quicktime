@@ -31,7 +31,8 @@ enum ParameterIds {
     VolumeParameter = 0,
     FadeCurveParameter = 1,
     FadeToParameter = 2,
-    FadeTimeParameter = 3
+    FadeTimeParameter = 3,
+    StartFadeParameter = 4
 };
 
 VolumeFaderEffect::VolumeFaderEffect( QObject* parent )
@@ -45,6 +46,8 @@ VolumeFaderEffect::VolumeFaderEffect( QObject* parent )
     addParameter(EffectParameter(FadeToParameter, i18n("Fade To Volume"), 0, one, zero, one));
     addParameter(EffectParameter(FadeTimeParameter, i18n("Fade Time"),
                 EffectParameter::IntegerHint, 0, 0, 10000));
+    addParameter(EffectParameter(StartFadeParameter, i18n("Start Fade"),
+                EffectParameter::ToggledHint, 0, 0, 1));
 }
 
 VolumeFaderEffect::~VolumeFaderEffect()
@@ -62,6 +65,8 @@ QVariant VolumeFaderEffect::value(int parameterId) const
             return static_cast<double>(m_parameters.fadeTo);
         case FadeTimeParameter:
             return m_parameters.fadeTime;
+        case StartFadeParameter:
+            return 0;
     }
     kError(610) << k_funcinfo << "request for unknown parameter " << parameterId << endl;
     return QVariant();
@@ -77,10 +82,15 @@ void VolumeFaderEffect::setValue(int parameterId, QVariant newValue)
             setFadeCurve(static_cast<Phonon::VolumeFaderEffect::FadeCurve>(newValue.toInt()));
             break;
         case FadeToParameter:
-            fadeTo(newValue.toDouble(), m_parameters.fadeTime);
+            m_parameters.fadeTo = newValue.toDouble();
             break;
         case FadeTimeParameter:
-            fadeTo(m_parameters.fadeTo, newValue.toInt());
+            m_parameters.fadeTime = newValue.toInt();
+            break;
+        case StartFadeParameter:
+            if (newValue.toBool()) {
+                fadeTo(m_parameters.fadeTo, m_parameters.fadeTime);
+            }
             break;
         default:
             kError(610) << k_funcinfo << "request for unknown parameter " << parameterId << endl;
@@ -125,11 +135,7 @@ float VolumeFaderEffect::volume() const
 void VolumeFaderEffect::setVolume( float volume )
 {
     //kDebug(610) << k_funcinfo << volume << endl;
-    //getParameters();
     m_parameters.currentVolume = volume;
-    m_parameters.fadeTo = m_parameters.currentVolume;
-    m_parameters.fadeTime = 0;
-    setParameters();
 }
 
 Phonon::VolumeFaderEffect::FadeCurve VolumeFaderEffect::fadeCurve() const
@@ -142,9 +148,7 @@ Phonon::VolumeFaderEffect::FadeCurve VolumeFaderEffect::fadeCurve() const
 void VolumeFaderEffect::setFadeCurve( Phonon::VolumeFaderEffect::FadeCurve curve )
 {
     //kDebug(610) << k_funcinfo << curve << endl;
-    //getParameters();
     m_parameters.fadeCurve = curve;
-    setParameters();
 }
 
 void VolumeFaderEffect::fadeTo( float volume, int fadeTime )
