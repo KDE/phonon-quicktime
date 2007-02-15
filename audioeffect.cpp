@@ -34,6 +34,12 @@ AudioEffect::~AudioEffect()
 {
 }
 
+xine_post_t *AudioEffect::newInstance(xine_audio_port_t *)
+{
+    // TODO
+    return 0;
+}
+
 QVariant AudioEffect::value( int parameterId ) const
 {
 	return QVariant(); // invalid

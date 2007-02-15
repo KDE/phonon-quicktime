@@ -1,5 +1,6 @@
 /*  This file is part of the KDE project
     Copyright (C) 2006 Tim Beaulen <tbscope@gmail.com>
+    Copyright (C) 2006-2007 Matthias Kretz <kretz@kde.org>
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -22,6 +23,9 @@
 #include <QTime>
 #include "audioeffect.h"
 #include <phonon/volumefadereffect.h>
+#include <QList>
+
+#include <xine.h>
 
 namespace Phonon
 {
@@ -34,6 +38,8 @@ namespace Xine
 			VolumeFaderEffect( QObject* parent );
 			~VolumeFaderEffect();
 
+            xine_post_t *newInstance(xine_audio_port_t *);
+
 		public slots:
 			float volume() const;
 			void setVolume( float volume );
@@ -41,12 +47,25 @@ namespace Xine
 			void setFadeCurve( Phonon::VolumeFaderEffect::FadeCurve curve );
 			void fadeTo( float volume, int fadeTime );
 
+            QVariant value(int parameterId) const;
+            void setValue(int parameterId, QVariant newValue);
+
 		private:
-			float m_volume;
-			float m_endvolume;
-			int m_fadeTime;
-			QTime m_fadeStart;
-			Phonon::VolumeFaderEffect::FadeCurve m_fadeCurve;
+            void setParameters();
+            void getParameters() const;
+
+            QList<xine_post_t *> m_plugins;
+            QList<xine_post_api_t *> m_pluginApis;
+
+            struct PluginParameters
+            {
+                Phonon::VolumeFaderEffect::FadeCurve fadeCurve;
+                float currentVolume;
+                float fadeTo;
+                int fadeTime;
+            };
+
+            mutable PluginParameters m_parameters;
 	};
 }} //namespace Phonon::Xine
 

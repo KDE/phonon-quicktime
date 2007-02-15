@@ -20,6 +20,11 @@
 #define Phonon_XINE_AUDIOEFFECT_H
 
 #include <QObject>
+#include "audiopostlist.h"
+#include <phonon/effectparameter.h>
+
+typedef struct xine_post_s xine_post_t;
+typedef struct xine_audio_port_s xine_audio_port_t;
 
 namespace Phonon
 {
@@ -32,9 +37,25 @@ namespace Xine
 			AudioEffect( int effectId, QObject* parent );
 			~AudioEffect();
 
+            /**
+             * calls xine_post_init for one input, the given audio port and no
+             * video port
+             *
+             * \warning called from the xine thread
+             */
+            virtual xine_post_t *newInstance(xine_audio_port_t *);
+
 		public slots:
+            QList<EffectParameter> parameterList() const { return m_parameterList; }
 			QVariant value( int parameterId ) const;
 			void setValue( int parameterId, QVariant newValue );
+
+        protected:
+            void addParameter(const EffectParameter &p) { m_parameterList << p; }
+
+        private:
+            AudioPostList m_postList;
+            QList<Phonon::EffectParameter> m_parameterList;
 	};
 }} //namespace Phonon::Xine
 

@@ -50,13 +50,13 @@ bool AudioPath::hasOutput() const
     return m_output;
 }
 
-AudioPort AudioPath::audioPort(XineStream* forStream) const
+/*AudioPort AudioPath::audioPort(XineStream* forStream) const
 {
     if (m_output) {
         return m_output->audioPort(forStream);
     }
     return AudioPort();
-}
+}*/
 
 bool AudioPath::addOutput( QObject* audioOutput )
 {
@@ -67,8 +67,7 @@ bool AudioPath::addOutput( QObject* audioOutput )
 			return false;
 		m_output = ao;
 		m_output->addPath( this );
-		foreach( AbstractMediaProducer *mp, m_producers )
-            mp->setAudioPort(ao->audioPort(&mp->stream()));
+        m_effects.setAudioPort(ao->audioPort());
 		return true;
 	}
 
@@ -87,13 +86,13 @@ bool AudioPath::removeOutput( QObject* audioOutput )
 	{
 		m_output->removePath( this );
 		m_output = 0;
-		foreach( AbstractMediaProducer *mp, m_producers )
-            mp->setAudioPort(AudioPort());
+        m_effects.setAudioPort(AudioPort());
 		return true;
 	}
 	AbstractAudioOutput* aao = qobject_cast<AbstractAudioOutput*>( audioOutput );
 	Q_ASSERT( aao );
-	Q_ASSERT( m_outputs.removeAll( aao ) == 1 );
+    const int removed = m_outputs.removeAll(aao);
+    Q_ASSERT(removed == 1);
 	aao->removePath( this );
 	return true;
 }

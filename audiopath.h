@@ -23,6 +23,7 @@
 #include <QList>
 #include <xine.h>
 #include "audioport.h"
+#include "audiopostlist.h"
 
 namespace Phonon
 {
@@ -46,7 +47,8 @@ class XineStream;
 			QList<AbstractMediaProducer*> producers() { return m_producers; }
 
 			bool hasOutput() const;
-            AudioPort audioPort(XineStream *forStream) const;
+            AudioPostList audioPostList() const { return m_effects; }
+            //AudioPort audioPort(XineStream *forStream) const;
 			void updateVolume( AbstractMediaProducer* mp ) const;
 
 		public slots:
@@ -57,7 +59,7 @@ class XineStream;
 
 		private:
 			AudioOutput *m_output;
-			QList<AudioEffect*> m_effects;
+            AudioPostList m_effects;
 			QList<AbstractAudioOutput*> m_outputs;
 			QList<AbstractMediaProducer*> m_producers;
 	};

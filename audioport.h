@@ -1,5 +1,5 @@
 /*  This file is part of the KDE project
-    Copyright (C) 2006 Matthias Kretz <kretz@kde.org>
+    Copyright (C) 2006-2007 Matthias Kretz <kretz@kde.org>
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -45,7 +45,13 @@ class PHONON_XINE_ENGINE_EXPORT AudioPort
         bool isValid() const;
         bool operator==(const AudioPort& rhs) const;
         bool operator!=(const AudioPort& rhs) const;
+
+        operator xine_audio_port_t*() const;
         xine_audio_port_t *xinePort() const;
+
+        /**
+         * used to send XINE_EVENT_AUDIO_DEVICE_FAILED to the AudioOutput
+         */
         void setAudioOutput(QObject *audioOutput);
         QObject *audioOutput() const;
 

@@ -92,6 +92,7 @@ namespace Xine
             static bool audioOutputAvailable(int audioDevice);
             static QString audioDriverFor(int audioDevice);
             static QStringList alsaDevicesFor(int audioDevice);
+            static xine_audio_port_t *nullPort();
 
             static QObject *sender();
 
@@ -124,6 +125,7 @@ namespace Xine
             KSharedConfigPtr m_config;
             bool m_useOss;
             XineEnginePrivate *d;
+            xine_audio_port_t *m_nullPort;
 	};
 }
 }

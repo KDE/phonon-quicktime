@@ -1,5 +1,5 @@
 /*  This file is part of the KDE project
-    Copyright (C) 2006 Matthias Kretz <kretz@kde.org>
+    Copyright (C) 2006-2007 Matthias Kretz <kretz@kde.org>
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -31,6 +31,7 @@
 #include <time.h>
 #include "audioport.h"
 #include "phononxineexport.h"
+#include "audiopostlist.h"
 
 class QTimer;
 
@@ -63,11 +64,16 @@ class PHONON_XINE_ENGINE_EXPORT XineStream : public QThread
         bool hasVideo() const;
         bool isSeekable() const;
         void setVolume(int vol);
-        void setAudioPort(AudioPort port);
+
+        void addAudioPostList(const AudioPostList &);
+        void removeAudioPostList(const AudioPostList &);
+        const QList<AudioPostList>& audioPostLists() { return m_audioPostLists; }
+
         void setVideoPort(VideoWidgetInterface *vwi);
         void setTickInterval(qint32 interval);
         void setAboutToFinishTime(qint32 time);
 
+        void needRewire(AudioPostList *postList);
         void setParam(int param, int value);
         void eventSend(xine_event_t *);
         void useGaplessPlayback(bool);
@@ -83,7 +89,6 @@ class PHONON_XINE_ENGINE_EXPORT XineStream : public QThread
             }
             return m_videoPort;
         }
-        AudioPort audioPort() const { return m_audioPort; }
 
         QString errorString() const { return m_errorString; }
         Phonon::ErrorType errorType() const { return m_errorType; }
@@ -135,8 +140,8 @@ class PHONON_XINE_ENGINE_EXPORT XineStream : public QThread
         xine_stream_t *m_stream;
         xine_event_queue_t *m_event_queue;
 
-        AudioPort m_audioPort;
-        AudioPort m_newAudioPort;
+        QList<AudioPostList> m_audioPostLists;
+
         VideoWidgetInterface *m_videoPort;
         VideoWidgetInterface *m_newVideoPort;
 

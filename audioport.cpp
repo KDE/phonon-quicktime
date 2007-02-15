@@ -1,5 +1,5 @@
 /*  This file is part of the KDE project
-    Copyright (C) 2006 Matthias Kretz <kretz@kde.org>
+    Copyright (C) 2006-2007 Matthias Kretz <kretz@kde.org>
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -106,7 +106,8 @@ AudioPort::AudioPort(int deviceIndex)
             alsaDeviceConfig.str_value = deviceStr.data();
             xine_config_update_entry(XineEngine::xine(), &alsaDeviceConfig);
 
-            Q_ASSERT(xine_config_lookup_entry(XineEngine::xine(), "audio.device.alsa_front_device", &alsaDeviceConfig));
+            int err = xine_config_lookup_entry(XineEngine::xine(), "audio.device.alsa_front_device", &alsaDeviceConfig);
+            Q_ASSERT(err);
             Q_ASSERT(alsaDeviceConfig.type == XINE_CONFIG_TYPE_STRING);
             alsaDeviceConfig.str_value = deviceStr.data();
             xine_config_update_entry(XineEngine::xine(), &alsaDeviceConfig);
@@ -137,6 +138,11 @@ bool AudioPort::operator==(const AudioPort& rhs) const
 bool AudioPort::operator!=(const AudioPort& rhs) const
 {
     return d->port != rhs.d->port;
+}
+
+AudioPort::operator xine_audio_port_t*() const
+{
+    return d->port;
 }
 
 xine_audio_port_t *AudioPort::xinePort() const
