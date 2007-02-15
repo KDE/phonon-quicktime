@@ -1,5 +1,5 @@
 /*  This file is part of the KDE project
-    Copyright (C) 2005-2006 Matthias Kretz <kretz@kde.org>
+    Copyright (C) 2005-2007 Matthias Kretz <kretz@kde.org>
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -45,8 +45,8 @@ namespace Xine
 
 			Q_INVOKABLE Phonon::VideoWidget::AspectRatio aspectRatio() const;
 			Q_INVOKABLE void setAspectRatio( Phonon::VideoWidget::AspectRatio aspectRatio );
-			Q_INVOKABLE void setZoomX( int percent );
-			Q_INVOKABLE void setZoomY( int percent );
+            Q_INVOKABLE Phonon::VideoWidget::ScaleMode scaleMode() const;
+            Q_INVOKABLE void setScaleMode(Phonon::VideoWidget::ScaleMode mode);
 
 			Q_INVOKABLE QWidget *widget() { return this; }
 
@@ -63,6 +63,7 @@ namespace Xine
 			void videoPortChanged();
 
 		protected:
+            virtual void resizeEvent(QResizeEvent *);
             virtual bool event(QEvent *);
             virtual void mouseMoveEvent(QMouseEvent *);
             virtual void mousePressEvent(QMouseEvent *);
@@ -73,9 +74,11 @@ namespace Xine
             virtual QSize sizeHint() const { return m_sizeHint; }
 
 		private:
+            void updateZoom();
 			xine_video_port_t* m_videoPort;
             xcb_visual_t m_visual;
 			Phonon::VideoWidget::AspectRatio m_aspectRatio;
+            Phonon::VideoWidget::ScaleMode m_scaleMode;
 			VideoPath* m_path;
 
             xcb_connection_t *m_xcbConnection;
