@@ -69,6 +69,22 @@ typedef struct KVolumeFaderPlugin
 
 static const float maxVolume = 1.0f;
 
+/*
+ * power = voltage²
+ *
+ * let max. voltage = 1.0
+ * => max. power = 1.0
+ *
+ * let log(power=0.5) = -3dB
+ *                                                               ___
+ * -3dB  =   log(0.5)             => power = 0.5   => voltage = √0.5
+ *
+ * -6dB  = 2*log(0.5) = log(0.5²) => power = 0.25  => voltage = 0.5
+ *                                                               ____
+ * -9dB  = 3*log(0.5) = log(0.5³) => power = 0.125 => voltage = √0.5³
+ *
+ * -12dB = 4*log(0.5) = log(0.5⁴) => power = 0.5⁴  => voltage = 0.5²
+ */
 static float curveValueFadeIn3dB(const float &fadeStart, const float &fadeDiff, const int &position, const float &length)
 {
     return (fadeStart + fadeDiff * sqrt(static_cast<double>(position) * length));
@@ -84,26 +100,20 @@ static float curveValueFade6dB(const float &fadeStart, const float &fadeDiff, co
 }
 static float curveValueFadeIn9dB(const float &fadeStart, const float &fadeDiff, const int &position, const float &length)
 {
-    //return (fadeStart + fadeDiff * pow(static_cast<double>(position) * length, 1.5));
-    const float x = position * length;
-    return (fadeStart + fadeDiff * x * x);
+    return (fadeStart + fadeDiff * pow(static_cast<double>(position) * length, 1.5));
 }
 static float curveValueFadeOut9dB(const float &fadeStart, const float &fadeDiff, const int &position, const float &length)
 {
-    //return (fadeStart + fadeDiff * (1.0 - pow(1.0 - static_cast<double>(position) * length, 1.5)));
-    const float x = 1.0f - position * length;
-    return (fadeStart + fadeDiff * (1.0 - x * x));
+    return (fadeStart + fadeDiff * (1.0 - pow(1.0 - static_cast<double>(position) * length, 1.5)));
 }
 static float curveValueFadeIn12dB(const float &fadeStart, const float &fadeDiff, const int &position, const float &length)
 {
-    const float y = position * length;
-    const float x = y * y;
+    const float x = position * length;
     return (fadeStart + fadeDiff * x * x);
 }
 static float curveValueFadeOut12dB(const float &fadeStart, const float &fadeDiff, const int &position, const float &length)
 {
-    const float y = 1.0f - position * length;
-    const float x = y * y;
+    const float x = 1.0f - position * length;
     return (fadeStart + fadeDiff * (1.0 - x * x));
 }
 
