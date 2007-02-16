@@ -84,20 +84,26 @@ static float curveValueFade6dB(const float &fadeStart, const float &fadeDiff, co
 }
 static float curveValueFadeIn9dB(const float &fadeStart, const float &fadeDiff, const int &position, const float &length)
 {
-    return (fadeStart + fadeDiff * pow(static_cast<double>(position) * length, 1.5));
+    //return (fadeStart + fadeDiff * pow(static_cast<double>(position) * length, 1.5));
+    const float x = position * length;
+    return (fadeStart + fadeDiff * x * x);
 }
 static float curveValueFadeOut9dB(const float &fadeStart, const float &fadeDiff, const int &position, const float &length)
 {
-    return (fadeStart + fadeDiff * (1.0 - pow(1.0 - static_cast<double>(position) * length, 1.5)));
+    //return (fadeStart + fadeDiff * (1.0 - pow(1.0 - static_cast<double>(position) * length, 1.5)));
+    const float x = 1.0f - position * length;
+    return (fadeStart + fadeDiff * (1.0 - x * x));
 }
 static float curveValueFadeIn12dB(const float &fadeStart, const float &fadeDiff, const int &position, const float &length)
 {
-    const float x = position * length;
+    const float y = position * length;
+    const float x = y * y;
     return (fadeStart + fadeDiff * x * x);
 }
 static float curveValueFadeOut12dB(const float &fadeStart, const float &fadeDiff, const int &position, const float &length)
 {
-    const float x = 1.0f - position * length;
+    const float y = 1.0f - position * length;
+    const float x = y * y;
     return (fadeStart + fadeDiff * (1.0 - x * x));
 }
 
