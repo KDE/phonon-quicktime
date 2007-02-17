@@ -18,6 +18,7 @@
 */
 
 #include "audioport.h"
+#include "audioport_p.h"
 #include "xineengine.h"
 #include "backend.h"
 #include <QByteArray>
@@ -30,6 +31,18 @@ namespace Phonon
 {
 namespace Xine
 {
+
+AudioPortDeleter::AudioPortDeleter(const AudioPort &port)
+    : m_port(port)
+{
+    startTimer(2000);
+}
+
+void AudioPortDeleter::timerEvent(QTimerEvent *e)
+{
+    killTimer(e->timerId());
+    deleteLater();
+}
 
 class AudioPortData : public QSharedData
 {
@@ -140,6 +153,11 @@ bool AudioPort::operator!=(const AudioPort& rhs) const
     return d->port != rhs.d->port;
 }
 
+void AudioPort::waitALittleWithDying()
+{
+    new AudioPortDeleter(*this);
+}
+
 AudioPort::operator xine_audio_port_t*() const
 {
     return d->port;
@@ -162,4 +180,6 @@ QObject *AudioPort::audioOutput() const
 
 } // namespace Xine
 } // namespace Phonon
+
+#include "audioport_p.moc"
 // vim: sw=4 sts=4 et tw=100
