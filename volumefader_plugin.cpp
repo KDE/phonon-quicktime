@@ -55,6 +55,7 @@ typedef struct KVolumeFaderPlugin
     Phonon::VolumeFaderEffect::FadeCurve fadeCurve;
     float fadeStart;
     float fadeDiff;
+    int fadeTime;
     int curvePosition;
     int curveLength;
     float oneOverCurveLength;
@@ -150,6 +151,7 @@ static int set_parameters (xine_post_t *this_gen, void *param_gen)
     that->fadeStart = param->currentVolume;
     that->fadeDiff = param->fadeTo - that->fadeStart;
     that->curvePosition = 0;
+    that->fadeTime = param->fadeTime;
     that->curveLength = static_cast<int>((param->fadeTime * that->rate) / 1000);
     that->oneOverCurveLength = 1000.0f / (param->fadeTime * that->rate);
     const char *x = "unknown";
@@ -188,7 +190,9 @@ static int set_parameters (xine_post_t *this_gen, void *param_gen)
         << that->fadeStart << ", "
         << that->fadeDiff << ", "
         << that->curvePosition << ", "
-        << that->oneOverCurveLength << endl;
+        << that->oneOverCurveLength << ", "
+        << param->fadeTime
+        << endl;
     pthread_mutex_unlock (&that->lock);
 
     return 1;
@@ -273,6 +277,8 @@ static int kvolumefader_port_open(xine_audio_port_t *port_gen, xine_stream_t *st
             that->rate *= 6;
             break;
     }
+    that->curveLength = static_cast<int>((that->fadeTime * that->rate) / 1000);
+    that->oneOverCurveLength = 1000.0f / (that->fadeTime * that->rate);
 
     return port->original_port->open(port->original_port, stream, bits, rate, mode);
 }
@@ -439,6 +445,7 @@ static post_plugin_t *kvolumefader_open_plugin(post_class_t *class_gen, int inpu
     that->curveValue = curveValueFadeIn3dB;
     that->fadeStart = 1.0f;
     that->fadeDiff = 0.0f;
+    that->fadeTime = 0;
     that->curvePosition = 0;
     that->curveLength = 0;
     that->oneOverCurveLength = 0.0f;
