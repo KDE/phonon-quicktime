@@ -36,18 +36,20 @@ enum ParameterIds {
 };
 
 VolumeFaderEffect::VolumeFaderEffect( QObject* parent )
-	: AudioEffect( -1, parent )
+    : AudioEffect("KVolumeFader", parent),
+    m_parameters(Phonon::VolumeFaderEffect::Fade3Decibel, 1.0f, 0.0f, 2000)
 {
-    QVariant one = 1.0;
-    QVariant zero = 0.0;
-    addParameter(EffectParameter(VolumeParameter, i18n("Volume"), 0, one, zero, one));
+    const QVariant one = 1.0;
+    const QVariant dZero = 0.0;
+    const QVariant iZero = 0;
+    addParameter(EffectParameter(VolumeParameter, i18n("Volume"), 0, one, dZero, one));
     addParameter(EffectParameter(FadeCurveParameter, i18n("Fade Curve"),
-                EffectParameter::IntegerHint, 0, 0, 3));
-    addParameter(EffectParameter(FadeToParameter, i18n("Fade To Volume"), 0, one, zero, one));
+                EffectParameter::IntegerHint, iZero, iZero, 3));
+    addParameter(EffectParameter(FadeToParameter, i18n("Fade To Volume"), 0, one, dZero, one));
     addParameter(EffectParameter(FadeTimeParameter, i18n("Fade Time"),
-                EffectParameter::IntegerHint, 0, 0, 10000));
+                EffectParameter::IntegerHint, iZero, iZero, 10000));
     addParameter(EffectParameter(StartFadeParameter, i18n("Start Fade"),
-                EffectParameter::ToggledHint, 0, 0, 1));
+                EffectParameter::ToggledHint, iZero, iZero, 1));
 }
 
 VolumeFaderEffect::~VolumeFaderEffect()
@@ -56,6 +58,7 @@ VolumeFaderEffect::~VolumeFaderEffect()
 
 QVariant VolumeFaderEffect::value(int parameterId) const
 {
+    kDebug(610) << k_funcinfo << parameterId << endl;
     switch (static_cast<ParameterIds>(parameterId)) {
         case VolumeParameter:
             return static_cast<double>(volume());
@@ -74,6 +77,7 @@ QVariant VolumeFaderEffect::value(int parameterId) const
 
 void VolumeFaderEffect::setValue(int parameterId, QVariant newValue)
 {
+    kDebug(610) << k_funcinfo << parameterId << newValue << endl;
     switch (static_cast<ParameterIds>(parameterId)) {
         case VolumeParameter:
             setVolume(newValue.toDouble());
@@ -101,7 +105,7 @@ void VolumeFaderEffect::setValue(int parameterId, QVariant newValue)
 xine_post_t *VolumeFaderEffect::newInstance(xine_audio_port_t *audioPort)
 {
     kDebug(610) << k_funcinfo << audioPort << endl;
-    xine_post_t *x = xine_post_init(XineEngine::xine(), "KVolumeFader", 0, &audioPort, 0);
+    xine_post_t *x = xine_post_init(XineEngine::xine(), "KVolumeFader", 1, &audioPort, 0);
     m_plugins << x;
     xine_post_in_t *paraInput = xine_post_input(x, "parameters");
     Q_ASSERT(paraInput);

@@ -54,15 +54,14 @@ namespace Xine
             void setParameters();
             void getParameters() const;
 
-            QList<xine_post_t *> m_plugins;
-            QList<xine_post_api_t *> m_pluginApis;
-
             struct PluginParameters
             {
                 Phonon::VolumeFaderEffect::FadeCurve fadeCurve;
                 float currentVolume;
                 float fadeTo;
                 int fadeTime;
+                PluginParameters(Phonon::VolumeFaderEffect::FadeCurve a, float b, float c, int d)
+                    : fadeCurve(a), currentVolume(b), fadeTo(c), fadeTime(d) {}
             };
 
             mutable PluginParameters m_parameters;
