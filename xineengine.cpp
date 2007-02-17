@@ -82,7 +82,8 @@ namespace Xine
         : m_xine(xine_new()),
         m_config(_config),
         d(new XineEnginePrivate),
-        m_nullPort(0)
+        m_nullPort(0),
+        m_nullVideoPort(0)
     {
         Q_ASSERT(s_instance == 0);
         s_instance = this;
@@ -206,6 +207,15 @@ namespace Xine
         }
         Q_ASSERT(s_instance->m_nullPort);
         return s_instance->m_nullPort;
+    }
+
+    xine_video_port_t *XineEngine::nullVideoPort()
+    {
+        if (!s_instance->m_nullVideoPort) {
+            s_instance->m_nullVideoPort = xine_open_video_driver(s_instance->m_xine, "auto", XINE_VISUAL_TYPE_NONE, 0);
+        }
+        Q_ASSERT(s_instance->m_nullVideoPort);
+        return s_instance->m_nullVideoPort;
     }
 
     QSet<int> XineEngine::audioOutputIndexes()
