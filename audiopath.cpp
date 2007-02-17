@@ -109,6 +109,9 @@ bool AudioPath::insertEffect( QObject* newEffect, QObject* insertBefore )
 	Q_ASSERT( newEffect );
 	AudioEffect* ae = qobject_cast<AudioEffect*>( newEffect );
 	Q_ASSERT( ae );
+    if (!ae->isValid()) {
+        return false;
+    }
 	AudioEffect* before = 0;
 	if( insertBefore )
 	{
