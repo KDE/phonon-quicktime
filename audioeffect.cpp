@@ -20,13 +20,32 @@
 #include "audioeffect.h"
 #include <klocale.h>
 #include <QVariant>
+#include "xineengine.h"
 
 namespace Phonon
 {
 namespace Xine
 {
 AudioEffect::AudioEffect( int effectId, QObject* parent )
-	: QObject( parent )
+    : QObject(parent),
+    m_pluginName(0)
+{
+    const char *const *postPlugins = xine_list_post_plugins_typed(XineEngine::xine(), XINE_POST_TYPE_AUDIO_FILTER);
+    if (effectId >= 0x7F000000) {
+        effectId -= 0x7F000000;
+        for(int i = 0; postPlugins[i]; ++i) {
+            if (i == effectId) {
+                // found it
+                m_pluginName = postPlugins[i];
+                break;
+            }
+        }
+    }
+}
+
+AudioEffect::AudioEffect(const char *name, QObject *parent)
+    : QObject(parent),
+    m_pluginName(name)
 {
 }
 
@@ -34,9 +53,29 @@ AudioEffect::~AudioEffect()
 {
 }
 
-xine_post_t *AudioEffect::newInstance(xine_audio_port_t *)
+bool AudioEffect::isValid() const
 {
-    // TODO
+    return m_pluginName != 0;
+}
+
+xine_post_t *AudioEffect::newInstance(xine_audio_port_t *audioPort)
+{
+    if (m_pluginName) {
+        xine_post_t *x = xine_post_init(XineEngine::xine(), m_pluginName, 1, &audioPort, 0);
+        m_plugins << x;
+        xine_post_in_t *paraInput = xine_post_input(x, "parameters");
+        if (paraInput) {
+            Q_ASSERT(paraInput->type == XINE_POST_DATA_PARAMETERS);
+            Q_ASSERT(paraInput->data);
+            m_pluginApis << reinterpret_cast<xine_post_api_t *>(paraInput->data);
+            if (m_parameterList.isEmpty()) {
+                // TODO: add EffectParameter objects
+            }
+        } else {
+            m_pluginApis << 0;
+        }
+        return x;
+    }
     return 0;
 }
 

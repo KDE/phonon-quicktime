@@ -22,9 +22,8 @@
 #include <QObject>
 #include "audiopostlist.h"
 #include <phonon/effectparameter.h>
-
-typedef struct xine_post_s xine_post_t;
-typedef struct xine_audio_port_s xine_audio_port_t;
+#include <QList>
+#include <xine.h>
 
 namespace Phonon
 {
@@ -36,6 +35,8 @@ namespace Xine
 		public:
 			AudioEffect( int effectId, QObject* parent );
 			~AudioEffect();
+
+            bool isValid() const;
 
             /**
              * calls xine_post_init for one input, the given audio port and no
@@ -51,9 +52,14 @@ namespace Xine
 			void setValue( int parameterId, QVariant newValue );
 
         protected:
+            AudioEffect(const char *name, QObject *parent);
             void addParameter(const EffectParameter &p) { m_parameterList << p; }
 
+            QList<xine_post_t *> m_plugins;
+            QList<xine_post_api_t *> m_pluginApis;
+
         private:
+            const char *m_pluginName;
             AudioPostList m_postList;
             QList<Phonon::EffectParameter> m_parameterList;
 	};
