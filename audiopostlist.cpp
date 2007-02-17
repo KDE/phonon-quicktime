@@ -70,9 +70,12 @@ class ListData
             m_next = audioSink;
             if (!m_post) {
                 m_post = m_effect->newInstance(audioPort);
+                Q_ASSERT(m_post);
+            } else {
+                kDebug(610) << "xine_post_wire(" << outputFor(m_post) << ", " << audioSink << ")" << endl;
+                int err = xine_post_wire(outputFor(m_post), audioSink);
+                Q_ASSERT(err == 1);
             }
-            kDebug(610) << "xine_post_wire(" << outputFor(m_post) << ", " << audioSink << ")" << endl;
-            xine_post_wire(outputFor(m_post), audioSink);
         }
         // called from the xine thread
         void setOutput(const AudioPort &audioPort)
@@ -84,9 +87,11 @@ class ListData
             m_next = reinterpret_cast<xine_post_in_t *>(-1);
             if (!m_post) {
                 m_post = m_effect->newInstance(audioPort);
+                Q_ASSERT(m_post);
             } else {
                 kDebug(610) << "xine_post_wire_audio_port(" << outputFor(m_post) << ", " << audioPort << ")" << endl;
-                xine_post_wire_audio_port(outputFor(m_post), audioPort);
+                int err = xine_post_wire_audio_port(outputFor(m_post), audioPort);
+                Q_ASSERT(err == 1);
             }
         }
 
@@ -108,6 +113,7 @@ class AudioPostListData : public QSharedData
         {
             kDebug(610) << k_funcinfo << endl;
             foreach (XineStream *xs, streams) {
+                Q_ASSERT(xs);
                 kDebug(610) << xs << "->needRewire" << endl;
                 xs->needRewire(o);
             }
@@ -119,6 +125,7 @@ class AudioPostListData : public QSharedData
 void AudioPostList::wireStream(xine_post_out_t *audioSource)
 {
     if (d->newOutput.isValid()) {
+        int err;
         if (!d->effects.isEmpty()) {
             xine_post_t *next = 0;
 
@@ -137,11 +144,13 @@ void AudioPostList::wireStream(xine_post_out_t *audioSource)
                 next = effect.post();
             }
             kDebug(610) << "xine_post_wire(" << audioSource << ", " << inputFor(next) << ")" << endl;
-            xine_post_wire(audioSource, inputFor(next));
+            err = xine_post_wire(audioSource, inputFor(next));
         } else {
             kDebug(610) << "xine_post_wire_audio_port(" << audioSource << ", " << d->newOutput << ")" << endl;
-            xine_post_wire_audio_port(audioSource, d->newOutput);
+            err = xine_post_wire_audio_port(audioSource, d->newOutput);
         }
+        Q_ASSERT(err == 1);
+        d->output.waitALittleWithDying(); // xine still accesses the port after a rewire :(
         d->output = d->newOutput;
     } else {
         kDebug(610) << "no valid audio output given, no audio" << endl;
@@ -232,7 +241,6 @@ void AudioPostList::addXineStream(XineStream *xs)
 
 void AudioPostList::removeXineStream(XineStream *xs)
 {
-    Q_ASSERT(d->streams.contains(xs));
     const int r = d->streams.removeAll(xs);
     Q_ASSERT(1 == r);
 }
