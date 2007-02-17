@@ -100,6 +100,7 @@ class PHONON_XINE_ENGINE_EXPORT XineStream : public QThread
         void pause();
         void stop();
         void seek(qint64 time);
+        void quit();
 
         /**
          * all signals emitted from the xine thread
