@@ -52,7 +52,8 @@ enum {
     SetParam = 2014,
     EventSend = 2015,
     AudioRewire = 2016,
-    AddAudioPostList = 2017
+    ChangeAudioPostList = 2017,
+    QuitEventLoop = 2018
 };
 
 class ChangeAudioPostListEvent : public QEvent
@@ -60,7 +61,7 @@ class ChangeAudioPostListEvent : public QEvent
     public:
         enum AddOrRemove { Add, Remove };
         ChangeAudioPostListEvent(const AudioPostList &x, AddOrRemove y)
-            : QEvent(static_cast<QEvent::Type>(AddAudioPostList)), postList(x), what(y) {}
+            : QEvent(static_cast<QEvent::Type>(ChangeAudioPostList)), postList(x), what(y) {}
 
         AudioPostList postList;
         AddOrRemove what;
@@ -253,7 +254,6 @@ bool XineStream::hasVideo() const
         // because of this
         if (!m_waitingForStreamInfo.wait(&m_streamInfoMutex, 80)) {
             kDebug(610) << k_funcinfo << "waitcondition timed out" << endl;
-            return false;
         }
     }
     return m_hasVideo;
@@ -322,7 +322,7 @@ bool XineStream::createStream()
     m_portMutex.lock();
     m_videoPort = m_newVideoPort;
     //kDebug(610) << k_funcinfo << "AudioPort.xinePort() = " << m_audioPort.xinePort() << endl;
-    xine_video_port_t *videoPort = m_videoPort ? m_videoPort->videoPort() : 0;
+    xine_video_port_t *videoPort = m_videoPort ? m_videoPort->videoPort() : XineEngine::nullVideoPort();
     //m_stream = xine_stream_new(XineEngine::xine(), m_audioPort.xinePort(), videoPort);
     m_stream = xine_stream_new(XineEngine::xine(), XineEngine::nullPort(), videoPort);
     if (m_audioPostLists.size() == 1) {
@@ -602,8 +602,8 @@ const char* nameForEvent(int e)
             //return "EventSend";
         case SetParam:
             return "SetParam";
-        case AddAudioPostList:
-            return "AddAudioPostList";
+        case ChangeAudioPostList:
+            return "ChangeAudioPostList";
         case AudioRewire:
             return "AudioRewire";
         default:
@@ -621,7 +621,12 @@ bool XineStream::event(QEvent *ev)
     if (m_closing) {
         // when closing all events except MrlChanged are ignored. MrlChanged is used to detach from
         // a kbytestream:/ MRL
-        if (static_cast<int>(ev->type()) != MrlChanged) {
+        switch (ev->type()) {
+        case MrlChanged:
+        case QuitEventLoop:
+        //case ChangeAudioPostList:
+            break;
+        default:
             if (eventName) {
                 kDebug(610) << "####################### ignoring Event: " << eventName << endl;
             }
@@ -632,11 +637,16 @@ bool XineStream::event(QEvent *ev)
         kDebug(610) << "################################ Event: " << eventName << endl;
     }
     switch (ev->type()) {
-        case AddAudioPostList:
+    case QuitEventLoop:
+        ev->accept();
+        QThread::quit();
+        return true;
+    case ChangeAudioPostList:
             ev->accept();
             {
                 ChangeAudioPostListEvent *e = static_cast<ChangeAudioPostListEvent *>(ev);
                 if (e->what == ChangeAudioPostListEvent::Add) {
+                    Q_ASSERT(!m_audioPostLists.contains(e->postList));
                     m_audioPostLists << e->postList;
                     if (m_stream) {
                         if (m_audioPostLists.size() > 1) {
@@ -649,9 +659,12 @@ bool XineStream::event(QEvent *ev)
                     e->postList.removeXineStream(this);
                     const int r = m_audioPostLists.removeAll(e->postList);
                     Q_ASSERT(1 == r);
-                    xine_post_wire(xine_get_audio_source(m_stream), 0);
-                    if (m_audioPostLists.size() > 0) {
-                        m_audioPostLists.last().wireStream(xine_get_audio_source(m_stream));
+                    if (m_stream) {
+                        if (m_audioPostLists.size() > 0) {
+                            m_audioPostLists.last().wireStream(xine_get_audio_source(m_stream));
+                        } else {
+                            xine_post_wire_audio_port(xine_get_audio_source(m_stream), XineEngine::nullPort());
+                        }
                     }
                 }
             }
@@ -848,7 +861,7 @@ bool XineStream::event(QEvent *ev)
                     }*/
                     if (m_videoPort != m_newVideoPort) {
                         xine_post_out_t *videoSource = xine_get_video_source(m_stream);
-                        xine_video_port_t *videoPort = m_newVideoPort ? m_newVideoPort->videoPort() : 0;
+                        xine_video_port_t *videoPort = m_newVideoPort ? m_newVideoPort->videoPort() : XineEngine::nullVideoPort();
                         xine_post_wire_video_port(videoSource, videoPort);
                         m_videoPort = m_newVideoPort;
                     }
@@ -1145,6 +1158,12 @@ void XineStream::closeBlocking()
         //m_closing = false;
     }
     m_mutex.unlock();
+}
+
+// called from main thread
+void XineStream::quit()
+{
+    QCoreApplication::postEvent(this, new QEvent(static_cast<QEvent::Type>(QuitEventLoop)));
 }
 
 // called from main thread
