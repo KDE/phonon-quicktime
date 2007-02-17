@@ -201,7 +201,11 @@ static int get_parameters (xine_post_t *this_gen, void *param_gen)
 
     pthread_mutex_lock (&that->lock);
     param->fadeCurve = that->fadeCurve;
-    param->currentVolume = that->curveValue(that->fadeStart, that->fadeDiff, that->curvePosition, that->oneOverCurveLength);
+    if (that->curvePosition == 0) {
+        param->currentVolume = that->fadeStart;
+    } else {
+        param->currentVolume = that->curveValue(that->fadeStart, that->fadeDiff, that->curvePosition, that->oneOverCurveLength);
+    }
     param->fadeTo = that->fadeDiff + that->fadeStart;
     param->fadeTime = (that->curveLength - that->curvePosition) * 1000 / that->rate;
     pthread_mutex_unlock (&that->lock);
