@@ -67,10 +67,9 @@ void AbstractMediaProducer::seekDone()
 
 AbstractMediaProducer::~AbstractMediaProducer()
 {
-    if (!m_audioPaths.isEmpty()) {
-        foreach (AudioPath *p, m_audioPaths) {
-            p->removeMediaProducer(this);
-        }
+    foreach (AudioPath *p, m_audioPaths) {
+        m_stream.removeAudioPostList(p->audioPostList());
+        p->removeMediaProducer(this);
     }
     if (m_videoPath) {
         m_videoPath->unsetMediaProducer(this);
@@ -105,6 +104,7 @@ bool AbstractMediaProducer::addAudioPath(QObject *audioPath)
 {
     AudioPath *ap = qobject_cast<AudioPath*>(audioPath);
     Q_ASSERT(ap);
+    Q_ASSERT(!m_audioPaths.contains(ap));
     m_audioPaths << ap;
     ap->addMediaProducer(this);
     m_stream.addAudioPostList(ap->audioPostList());
