@@ -51,7 +51,6 @@ namespace Xine
             void setValue(int parameterId, QVariant newValue);
 
 		private:
-            void setParameters();
             void getParameters() const;
 
             struct PluginParameters

@@ -37,7 +37,7 @@ enum ParameterIds {
 
 VolumeFaderEffect::VolumeFaderEffect( QObject* parent )
     : AudioEffect("KVolumeFader", parent),
-    m_parameters(Phonon::VolumeFaderEffect::Fade3Decibel, 1.0f, 0.0f, 2000)
+    m_parameters(Phonon::VolumeFaderEffect::Fade3Decibel, 1.0f, 1.0f, 0)
 {
     const QVariant one = 1.0;
     const QVariant dZero = 0.0;
@@ -104,7 +104,7 @@ void VolumeFaderEffect::setValue(int parameterId, QVariant newValue)
 
 xine_post_t *VolumeFaderEffect::newInstance(xine_audio_port_t *audioPort)
 {
-    kDebug(610) << k_funcinfo << audioPort << endl;
+    kDebug(610) << k_funcinfo << audioPort << " fadeTime = " << m_parameters.fadeTime << endl;
     xine_post_t *x = xine_post_init(XineEngine::xine(), "KVolumeFader", 1, &audioPort, 0);
     m_plugins << x;
     xine_post_in_t *paraInput = xine_post_input(x, "parameters");
@@ -112,14 +112,8 @@ xine_post_t *VolumeFaderEffect::newInstance(xine_audio_port_t *audioPort)
     Q_ASSERT(paraInput->type == XINE_POST_DATA_PARAMETERS);
     Q_ASSERT(paraInput->data);
     m_pluginApis << reinterpret_cast<xine_post_api_t *>(paraInput->data);
+    m_pluginApis.last()->set_parameters(m_plugins.last(), &m_parameters);
     return x;
-}
-
-void VolumeFaderEffect::setParameters()
-{
-    for (int i = 0; i < m_pluginApis.size(); ++i) {
-        m_pluginApis[i]->set_parameters(m_plugins[i], &m_parameters);
-    }
 }
 
 void VolumeFaderEffect::getParameters() const
@@ -160,7 +154,9 @@ void VolumeFaderEffect::fadeTo( float volume, int fadeTime )
     //kDebug(610) << k_funcinfo << volume << fadeTime << endl;
     m_parameters.fadeTo = volume;
     m_parameters.fadeTime = fadeTime;
-    setParameters();
+    for (int i = 0; i < m_pluginApis.size(); ++i) {
+        m_pluginApis[i]->set_parameters(m_plugins[i], &m_parameters);
+    }
 }
 
 }} //namespace Phonon::Xine
