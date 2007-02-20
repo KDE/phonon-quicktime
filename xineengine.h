@@ -26,7 +26,7 @@
 #include <QString>
 #include <QSet>
 #include <QStringList>
-#include <kconfig.h>
+#include <ksharedconfig.h>
 #include "phononxineexport.h"
 #include <QSize>
 
