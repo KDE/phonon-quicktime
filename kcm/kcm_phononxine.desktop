@@ -11,5 +11,8 @@ X-KDE-FactoryName=kcm_phononxine
 X-KDE-ParentComponents=phonon_xine
 
 Name=Phonon Xine
+Name[x-test]=xxPhonon Xinexx
 Comment=Xine Backend Configuration
+Comment[x-test]=xxXine Backend Configurationxx
 Keywords=Xine
+Keywords[x-test]=xxXinexx
