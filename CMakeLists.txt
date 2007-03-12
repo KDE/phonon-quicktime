@@ -1,6 +1,8 @@
 add_subdirectory(ui)
 add_subdirectory(kcm)
 
+include_directories(${XINE_INCLUDE_DIR})
+
 set(xineengine_LIB_SRCS
     xineengine.cpp
     xinestream.cpp
