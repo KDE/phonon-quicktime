@@ -115,8 +115,10 @@ namespace Xine
 		QWaitCondition m_seekWaitCondition;
 
 		size_t m_buffersize;
+        size_t m_oldbuffersize;
 		int m_offset;
 		QQueue<QByteArray> m_buffers;
+        QQueue<QByteArray> m_oldbuffers;
 		pthread_t m_mainThread;
 		qint64 m_currentPosition;
         bool m_inDtor;
