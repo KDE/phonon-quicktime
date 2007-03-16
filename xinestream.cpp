@@ -160,6 +160,16 @@ XineStream::XineStream(QObject *parent)
 {
 }
 
+XineStream::~XineStream()
+{
+    QList<AudioPostList>::Iterator it = m_audioPostLists.begin();
+    const QList<AudioPostList>::Iterator end = m_audioPostLists.end();
+    for (; it != end; ++it) {
+        kDebug(610) << k_funcinfo << "removeXineStream" << endl;
+        it->removeXineStream(this);
+    }
+}
+
 // xine thread
 bool XineStream::xineOpen()
 {
@@ -1145,11 +1155,8 @@ void XineStream::waitForEventLoop()
 void XineStream::closeBlocking()
 {
     m_mutex.lock();
+    m_closing = true;
     if (m_stream && xine_get_status(m_stream) != XINE_STATUS_IDLE) {
-        //m_mrl.clear();
-        //Q_ASSERT(m_mrl.isEmpty());
-        m_closing = true;
-
         // this event will call xine_close
         QCoreApplication::postEvent(this, new MrlChangedEvent(QByteArray()));
 
