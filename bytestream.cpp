@@ -40,7 +40,9 @@ extern "C" {
 #endif
 #define PXINE_DEBUG kDebug( 610 )
 
-static const size_t MAXBUFFERSIZE = 1024 * 128; // 128kB
+static const size_t MAXBUFFERSIZE = 1024 * 1024; // 1MB
+static const size_t MAXOLDBUFFERSIZE = 1024 * 1024; // 1MB
+static const size_t NOSEEKSIZE = 1024 * 512; // 0.5MB
 
 namespace Phonon
 {
@@ -53,6 +55,7 @@ ByteStream::ByteStream(QObject* parent)
     m_streamSize(0),
     m_intstate(CreatedState),
     m_buffersize(0),
+    m_oldbuffersize(0),
     m_offset(0),
     m_currentPosition(0),
     m_inDtor(false),
@@ -102,6 +105,11 @@ void ByteStream::pullBuffer(char *buf, int len)
         if (m_buffers.head().size() - m_offset <= len) {
             // The whole data of the next buffer is needed
             QByteArray buffer = m_buffers.dequeue();
+            m_oldbuffers.enqueue(buffer);
+            m_oldbuffersize += buffer.size();
+            while (m_oldbuffersize > MAXOLDBUFFERSIZE) {
+                m_oldbuffersize -= m_oldbuffers.dequeue().size();
+            }
             PXINE_VDEBUG << k_funcinfo << "dequeue one buffer of size " << buffer.size()
                 << ", reading at offset = " << m_offset << ", resetting m_offset to 0" << endl;
             Q_ASSERT(buffer.size() > 0);
@@ -212,6 +220,13 @@ off_t ByteStream::seekBuffer(qint64 offset)
         return m_currentPosition;
     }
 
+    // impossible seek
+    if (offset > streamSize()) {
+        //kDebug(610) << "UNLOCKING m_mutex: " << k_funcinfo << endl;
+        kWarning(610) << "xine is asking to seek behind the end of the data stream" << endl;
+        return m_currentPosition;
+    }
+
     // first try to seek in the data we have buffered
     m_mutex.lock();
     //kDebug(610) << "LOCKED m_mutex: " << k_funcinfo << endl;
@@ -219,17 +234,23 @@ off_t ByteStream::seekBuffer(qint64 offset)
         // seek in the preview data
         m_offset = 0;
         m_currentPosition = offset;
+
         //kDebug(610) << "UNLOCKING m_mutex: " << k_funcinfo << endl;
         m_mutex.unlock();
         return m_currentPosition;
     } else if (offset > m_currentPosition && offset < m_currentPosition + m_buffersize) {
+        kDebug(610) << "seeking behind current position, but inside the buffered data" << endl;
         // seek behind the current position in the buffer
         while( offset > m_currentPosition ) {
             const int gap = offset - m_currentPosition;
+            Q_ASSERT(!m_buffers.isEmpty());
             const int buffersize = m_buffers.head().size() - m_offset;
             if (buffersize <= gap) {
                 // discard buffers if they hold data before offset
+                Q_ASSERT(!m_buffers.isEmpty());
                 QByteArray buffer = m_buffers.dequeue();
+                m_oldbuffers.enqueue(buffer);
+                m_oldbuffersize += buffer.size();
                 m_buffersize -= buffersize;
                 m_currentPosition += buffersize;
                 m_offset = 0;
@@ -240,6 +261,65 @@ off_t ByteStream::seekBuffer(qint64 offset)
                 m_offset += gap;
             }
         }
+        while (m_oldbuffersize > MAXOLDBUFFERSIZE) {
+            Q_ASSERT(!m_oldbuffers.isEmpty());
+            m_oldbuffersize -= m_oldbuffers.dequeue().size();
+        }
+        kDebug(610) << "m_oldbuffersize: " << m_oldbuffersize << endl;
+        Q_ASSERT( offset == m_currentPosition );
+        //kDebug(610) << "UNLOCKING m_mutex: " << k_funcinfo << endl;
+        m_mutex.unlock();
+        // The buffer is half empty and there's more data to come: request more data
+        if (m_buffersize < MAXBUFFERSIZE / 2 && !m_eod) {
+            PXINE_VDEBUG << k_funcinfo << "emitting needData" << endl;
+            emit needDataQueued();
+        }
+        return m_currentPosition;
+    } else if (offset > m_currentPosition && offset < m_currentPosition + m_buffersize + NOSEEKSIZE) {
+        kDebug(610) << "seeking behind current position, but a little outside the buffered data" << endl;
+        m_oldbuffersize += m_buffersize + m_offset;
+        m_currentPosition += m_buffersize;
+        m_offset = 0;
+        m_buffersize = 0;
+        while (!m_buffers.isEmpty()) {
+            m_oldbuffers.enqueue(m_buffers.dequeue());
+        }
+
+        while (!m_eod && m_buffersize + m_currentPosition < offset) {
+            emit needDataQueued();
+            m_waitingForData.wait(&m_mutex);
+        }
+
+        if (m_buffersize + m_currentPosition < offset) {
+            kError(610) << "could not get enough data for the seek" << endl;
+            m_mutex.unlock();
+            return m_currentPosition;
+        }
+        while (offset > m_currentPosition) {
+            const int gap = offset - m_currentPosition;
+            Q_ASSERT(!m_buffers.isEmpty());
+            const int buffersize = m_buffers.head().size();
+            if (buffersize <= gap) {
+                // discard buffers if they hold data before offset
+                Q_ASSERT(!m_buffers.isEmpty());
+                QByteArray buffer = m_buffers.dequeue();
+                m_oldbuffers.enqueue(buffer);
+                m_oldbuffersize += buffer.size();
+                m_buffersize -= buffersize;
+                m_currentPosition += buffersize;
+            } else {
+                // offset points to data in the next buffer
+                m_buffersize -= gap;
+                m_currentPosition += gap;
+                m_offset += gap;
+            }
+        }
+        while (m_oldbuffersize > MAXOLDBUFFERSIZE) {
+            Q_ASSERT(!m_oldbuffers.isEmpty());
+            m_oldbuffersize -= m_oldbuffers.dequeue().size();
+        }
+        kDebug(610) << "m_oldbuffersize: " << m_oldbuffersize << endl;
+
         Q_ASSERT( offset == m_currentPosition );
         //kDebug(610) << "UNLOCKING m_mutex: " << k_funcinfo << endl;
         m_mutex.unlock();
@@ -250,6 +330,7 @@ off_t ByteStream::seekBuffer(qint64 offset)
         }
         return m_currentPosition;
     } else if (offset < m_currentPosition && m_currentPosition - offset <= m_offset) {
+        kDebug(610) << "seeking in current buffer: m_currentPosition = " << m_currentPosition << ", m_offset = " << m_offset << endl;
         // seek before the current position in the buffer
         m_offset -= m_currentPosition - offset;
         m_buffersize += m_currentPosition - offset;
@@ -258,34 +339,53 @@ off_t ByteStream::seekBuffer(qint64 offset)
         //kDebug(610) << "UNLOCKING m_mutex: " << k_funcinfo << endl;
         m_mutex.unlock();
         return m_currentPosition;
+    } else if (offset < m_currentPosition && m_currentPosition - m_offset - m_oldbuffersize < offset) {
+        kDebug(610) << "seeking in old buffer: m_oldbuffersize = " << m_oldbuffersize << endl;
+        // m_oldbuffers still contains the data we want to seek to
+        m_currentPosition -= m_offset;
+        m_buffersize += m_offset;
+        m_offset = 0;
+        while (m_currentPosition > offset) {
+            Q_ASSERT(!m_oldbuffers.isEmpty());
+            QByteArray buffer = m_oldbuffers.takeLast();
+            m_buffers.prepend(buffer);
+            m_oldbuffersize -= buffer.size();
+            m_currentPosition -= buffer.size();
+            m_buffersize += buffer.size();
+        }
+        m_offset = offset - m_currentPosition;
+        m_buffersize -= m_offset;
+        m_currentPosition = offset;
+
+        //kDebug(610) << "UNLOCKING m_mutex: " << k_funcinfo << endl;
+        m_mutex.unlock();
+        return m_currentPosition;
     }
-    //kDebug(610) << "UNLOCKING m_mutex: " << k_funcinfo << endl;
-    m_mutex.unlock();
 
     // the ByteStream is not seekable: no chance to seek to the requested offset
     if (!streamSeekable()) {
+        //kDebug(610) << "UNLOCKING m_mutex: " << k_funcinfo << endl;
+        m_mutex.unlock();
         return m_currentPosition;
     }
 
-    // impossible seek
-    if (offset > streamSize()) {
-        kWarning(610) << "xine is asking to seek behind the end of the data stream" << endl;
-        return m_currentPosition;
-    }
+    PXINE_DEBUG << "seeking to a position that's not in the buffered data: clear the buffer. "
+        "m_buffersize = " << m_buffersize <<
+        ", m_offset = " << m_offset <<
+        ", m_eod = " << m_eod <<
+        ", m_currentPosition = " << m_currentPosition <<
+        ", m_oldbuffersize = " << m_oldbuffersize <<
+        endl;
 
     // throw away the buffers and ask for new data
-
-    m_mutex.lock();
-    //kDebug(610) << "LOCKED m_mutex: " << k_funcinfo << endl;
     m_buffers.clear();
     m_buffersize = 0;
+    m_oldbuffers.clear();
+    m_oldbuffersize = 0;
     m_offset = 0;
     m_eod = false;
 
     m_currentPosition = offset;
-    PXINE_VDEBUG << "seeking to a position that's not in the buffered data: clear the buffer. "
-        "m_buffersize = " << m_buffersize << ", m_offset = " << m_offset << ", m_eod = " << m_eod
-        << ", m_currentPosition = " << m_currentPosition << endl;
     //kDebug(610) << "UNLOCKING m_mutex: " << k_funcinfo << endl;
     m_mutex.unlock();
 
@@ -398,8 +498,9 @@ void ByteStream::endOfData()
 {
     PXINE_VDEBUG << k_funcinfo << endl;
     m_eod = true;
-    // FIXME: the following line has no effect - a reset of the XineStream was intended
-    stream().setMrl(mrl());
+    // don't reset the XineStream because many demuxers hit eod while trying to find the format of
+    // the data
+    // stream().setMrl(mrl());
     m_waitingForData.wakeAll();
 }
 
