@@ -51,6 +51,8 @@ AudioEffect::AudioEffect(const char *name, QObject *parent)
 
 AudioEffect::~AudioEffect()
 {
+    qDeleteAll(m_pluginApis);
+    qDeleteAll(m_plugins);
 }
 
 bool AudioEffect::isValid() const
