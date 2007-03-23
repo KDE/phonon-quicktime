@@ -95,7 +95,7 @@ namespace Xine
             static xine_audio_port_t *nullPort();
             static xine_video_port_t *nullVideoPort();
 
-            static QObject *sender();
+            static const QObject *sender();
 
         protected:
             XineEngine(const KSharedConfigPtr &cfg);
@@ -125,7 +125,7 @@ namespace Xine
             QList<AudioOutputInfo> m_audioOutputInfos;
             KSharedConfigPtr m_config;
             bool m_useOss;
-            XineEnginePrivate *d;
+            const XineEnginePrivate *const d;
             xine_audio_port_t *m_nullPort;
             xine_video_port_t *m_nullVideoPort;
 	};
