@@ -94,9 +94,16 @@ namespace Xine
     XineEngine::~XineEngine()
     {
         //kDebug(610) << k_funcinfo << endl;
+        if (m_nullPort) {
+            xine_close_audio_driver(m_xine, m_nullPort);
+        }
+        if (m_nullVideoPort) {
+            xine_close_video_driver(m_xine, m_nullVideoPort);
+        }
         xine_exit(m_xine);
         m_xine = 0;
         s_instance = 0;
+        delete d;
     }
 
     XineEngine *XineEngine::self()
@@ -105,7 +112,7 @@ namespace Xine
         return s_instance;
     }
 
-    QObject *XineEngine::sender()
+    const QObject *XineEngine::sender()
     {
         return self()->d;
     }
