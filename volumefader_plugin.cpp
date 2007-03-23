@@ -292,55 +292,6 @@ static void kvolumefader_port_close(xine_audio_port_t *port_gen, xine_stream_t *
     _x_post_dec_usage(port);
 }
 
-/*        Volume
- *           ^
- *           |
- *   fadeEnd-|                                       __x
- *           |                             _____-----
- *           |                 ______--X---
- *           |     ______------
- * fadeStart-x-----
- *           |
- *           +-------------------------+---------------+-->  time
- *           |                         |               |
- *           0                    curvePosition   curveLength
- *
- *  where fadeEnd = fadeStart + fadeDiff
- */
-#if 0
-inline int KVolumeFaderPlugin::curveValue()
-{
-    if (curveLength <= 0) {
-        return fadeStart;
-    }
-    switch (fadeCurve) {
-        case Phonon::VolumeFaderEffect::Fade3Decibel:
-            // after curveLength/2 the curve has reached half power (power = voltage^2)
-            // f(t=0)             = fadeStart
-            // f(t=curveLength/2) = fadeStart + sqrt(fadeDiff^2 / 2)
-            // f(t)               = fadeStart + fadeDiff * sqrt(t / curveLength)
-            return fadeStart + static_cast<int>(fadeDiff * sqrt(static_cast<double>(curvePosition) * oneOverCurveLength));
-        case Phonon::VolumeFaderEffect::Fade6Decibel:
-            // easy: linear function from fadeStart to fadeEnd
-            {
-            int ret = fadeStart + static_cast<int>(curvePosition * oneOverCurveLength * fadeDiff);
-            //kDebug(610) << ret << "=" << fadeStart << "+" << curvePosition << "*" << fadeDiff << "*" << oneOverCurveLength << endl;
-            return ret;
-            }
-        case Phonon::VolumeFaderEffect::Fade9Decibel:
-            // f(t) = fadeStart + fadeDiff * (t / curveLength)^1.5
-            return fadeStart + static_cast<int>(fadeDiff * pow(static_cast<double>(curvePosition) * oneOverCurveLength, 1.5));
-        case Phonon::VolumeFaderEffect::Fade12Decibel:
-            // f(t) = fadeStart + fadeDiff * (t / curveLength)^2
-            {
-                const float x = curvePosition * oneOverCurveLength;
-                return fadeStart + static_cast<int>(fadeDiff * x * x);
-            }
-    }
-    return maxVolume;
-}
-#endif
-
 void KVolumeFaderPlugin::fadeBuffer(audio_buffer_t *buf)
 {
     const int num_channels = _x_ao_mode2channels(buf->format.mode);
@@ -363,6 +314,7 @@ void KVolumeFaderPlugin::fadeBuffer(audio_buffer_t *buf)
             curveLength = 0;
             oneOverCurveLength = 0.0f;
             fadeStart += fadeDiff;
+            fadeDiff = 0.0f; // else a new mediaobject using this effect will start a 0s fade with fadeDiff != 0
             kDebug(610) << "fade ended: stay at " << fadeStart << endl;
         }
         if (fadeStart == 0.0f) {
