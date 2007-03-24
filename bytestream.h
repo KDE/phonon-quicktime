@@ -64,6 +64,8 @@ namespace Xine
 			void setStreamSize( qint64 );
 			qint64 streamSize() const;
 
+            void setPauseForBuffering(bool);
+
             void setAboutToFinishTime(qint32 newAboutToFinishTime) { MediaObjectBase::setAboutToFinishTime(newAboutToFinishTime); }
             qint32 aboutToFinishTime() const { return MediaObjectBase::aboutToFinishTime(); }
 
@@ -83,7 +85,6 @@ namespace Xine
 
         protected:
             virtual void stateTransition(int newState);
-            bool canRecreateStream() const;
 
             bool m_aboutToFinishNotEmitted;
 
@@ -96,11 +97,9 @@ namespace Xine
             void pullBuffer(char *buf, int len);
             enum State
             {
-                CreatedState = 1,
-                PreviewReadyState = 2,
-                StreamSizeSetState = 4,
-                AboutToOpenState = CreatedState | PreviewReadyState | StreamSizeSetState,
-                PlaybackState = 16
+                PreviewReadyState = 1,
+                StreamSizeSetState = 2,
+                AboutToOpenState = PreviewReadyState | StreamSizeSetState,
             };
 
             bool m_seekable;
@@ -108,21 +107,22 @@ namespace Xine
             qint64 m_streamSize;
 
 		QByteArray m_preview;
-		int m_intstate;
 		QMutex m_mutex;
 		QMutex m_seekMutex;
 		QWaitCondition m_waitingForData;
 		QWaitCondition m_seekWaitCondition;
 
 		size_t m_buffersize;
-        size_t m_oldbuffersize;
 		int m_offset;
 		QQueue<QByteArray> m_buffers;
-        QQueue<QByteArray> m_oldbuffers;
-		pthread_t m_mainThread;
+        //pthread_t m_mainThread;
 		qint64 m_currentPosition;
-        bool m_inDtor;
-        bool m_eod;
+
+        int m_intstate;
+        bool m_stopped : 1;
+        bool m_eod : 1;
+        bool m_buffering : 1;
+        bool m_playRequested : 1;
 	};
 }} //namespace Phonon::Xine
 

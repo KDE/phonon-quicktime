@@ -92,6 +92,8 @@ namespace Xine
 			void tick( qint64 time );
 			void metaDataChanged( const QMultiMap<QString, QString>& );
             void seekableChanged(bool);
+            void hasVideoChanged(bool);
+            void bufferStatus(int);
 			void asyncSeek( xine_stream_t*, qint64, bool );
 
 		protected:

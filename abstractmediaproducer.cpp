@@ -42,8 +42,7 @@ AbstractMediaProducer::AbstractMediaProducer(QObject *parent)
     m_state(Phonon::LoadingState),
     m_stream(0),
     m_videoPath(0),
-    m_seeking(0),
-    m_currentTimeOverride(-1)
+    m_seeking(0)
 {
     m_stream.moveToThread(&m_stream);
     m_stream.start();
@@ -55,6 +54,8 @@ AbstractMediaProducer::AbstractMediaProducer(QObject *parent)
     connect(&m_stream, SIGNAL(metaDataChanged(const QMultiMap<QString, QString>&)),
             SIGNAL(metaDataChanged(const QMultiMap<QString, QString>&)));
     connect(&m_stream, SIGNAL(seekableChanged(bool)), SIGNAL(seekableChanged(bool)));
+    connect(&m_stream, SIGNAL(hasVideoChanged(bool)), SIGNAL(hasVideoChanged(bool)));
+    connect(&m_stream, SIGNAL(bufferStatus(int)), SIGNAL(bufferStatus(int)));
     connect(&m_stream, SIGNAL(seekDone()), SLOT(seekDone()));
     connect(&m_stream, SIGNAL(tick(qint64)), SIGNAL(tick(qint64)));
 }
@@ -63,6 +64,9 @@ void AbstractMediaProducer::seekDone()
 {
     //kDebug(610) << k_funcinfo << endl;
     --m_seeking;
+    if (0 == m_seeking) {
+        emit tick(currentTime());
+    }
 }
 
 AbstractMediaProducer::~AbstractMediaProducer()
@@ -155,21 +159,7 @@ qint64 AbstractMediaProducer::currentTime() const
         case Phonon::PausedState:
         case Phonon::BufferingState:
         case Phonon::PlayingState:
-            {
-                if (m_seeking) {
-                    return m_currentTimeOverride;
-                }
-                const int current = m_stream.currentTime();
-                if (m_currentTimeOverride >= 0) {
-                    if (current <= 0) {
-                        return m_currentTimeOverride;
-                    } else {
-                        m_currentTimeOverride = -1;
-                    }
-                }
-                return current;
-            }
-            break;
+            return m_stream.currentTime();
         case Phonon::StoppedState:
         case Phonon::LoadingState:
             return 0;
@@ -193,11 +183,6 @@ qint64 AbstractMediaProducer::remainingTime() const
         case Phonon::BufferingState:
         case Phonon::PlayingState:
             {
-                if (m_seeking) {
-                    const qint64 ret = stream().totalTime() - m_currentTimeOverride;
-                    //kDebug(610) << k_funcinfo << "returning " << ret << endl;
-                    return ret;
-                }
                 const qint64 ret = stream().remainingTime();
                 //kDebug(610) << k_funcinfo << "returning " << ret << endl;
                 return ret;
@@ -290,7 +275,6 @@ void AbstractMediaProducer::selectSubtitleStream(const QString& streamName, cons
 
 void AbstractMediaProducer::play()
 {
-    m_currentTimeOverride = -1;
     if (m_state == Phonon::StoppedState || m_state == Phonon::LoadingState || m_state == Phonon::PausedState) {
         changeState(Phonon::BufferingState);
     }
@@ -318,7 +302,6 @@ void AbstractMediaProducer::seek(qint64 time)
 
     m_stream.seek(time);
     ++m_seeking;
-    m_currentTimeOverride = time;
 }
 
 QString AbstractMediaProducer::errorString() const

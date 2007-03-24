@@ -38,6 +38,7 @@ set(phonon_xine_PART_SRCS
     backend.cpp
     volumefadereffect.cpp
     bytestreamplugin.cpp
+    net_buf_ctrl.c
     volumefader_plugin.cpp
     plugins.c
    )

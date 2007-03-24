@@ -37,6 +37,8 @@ extern "C" {
 #include <xine/input_plugin.h>
 #include <xine/xine_internal.h>
 #include <xine/xineutils.h>
+#include "net_buf_ctrl.h"
+#include <assert.h>
 #undef this
 
 typedef struct {
@@ -50,6 +52,7 @@ typedef struct {
     input_plugin_t    input_plugin;
 
     xine_stream_t    *stream;
+    nbc_t *nbc;
     char *mrl;
     Phonon::Xine::ByteStream *bytestream;
 } kbytestream_input_plugin_t;
@@ -123,7 +126,7 @@ static off_t kbytestream_plugin_get_length (input_plugin_t *this_gen) {
 }
 
 static uint32_t kbytestream_plugin_get_blocksize (input_plugin_t * /*this_gen*/) {
-    return 0;
+    return 32768;
 }
 
 #if (XINE_SUB_VERSION > 3 && XINE_MINOR_VERSION == 1) || (XINE_MINOR_VERSION > 1 && XINE_MAJOR_VERSION == 1) || XINE_MAJOR_VERSION > 1
@@ -149,6 +152,10 @@ static int kbytestream_plugin_get_optional_data (input_plugin_t *this_gen,
 static void kbytestream_plugin_dispose (input_plugin_t *this_gen ) {
     kbytestream_input_plugin_t *that = (kbytestream_input_plugin_t *) this_gen;
 
+    if (that->nbc) {
+        nbc_close(that->nbc);
+        that->nbc = NULL;
+    }
     free (that->mrl);
     free (that);
 }
@@ -168,6 +175,18 @@ static int kbytestream_plugin_open (input_plugin_t *this_gen ) {
     return 1;
 }
 
+static void kbytestream_pause_cb(void *that_gen)
+{
+    kbytestream_input_plugin_t *that = reinterpret_cast<kbytestream_input_plugin_t *>(that_gen);
+    that->bytestream->setPauseForBuffering(true);
+}
+
+static void kbytestream_normal_cb(void *that_gen)
+{
+    kbytestream_input_plugin_t *that = reinterpret_cast<kbytestream_input_plugin_t *>(that_gen);
+    that->bytestream->setPauseForBuffering(false);
+}
+
 static input_plugin_t *kbytestream_class_get_instance (input_class_t *cls_gen, xine_stream_t *stream,
         const char *data) {
     /* kbytestream_input_class_t  *cls = (kbytestream_input_class_t *) cls_gen; */
@@ -181,23 +200,37 @@ static input_plugin_t *kbytestream_class_get_instance (input_class_t *cls_gen, x
 
     that = (kbytestream_input_plugin_t *) xine_xmalloc (sizeof (kbytestream_input_plugin_t));
     that->stream = stream;
+    that->nbc    = nbc_init(that->stream);
+    nbc_set_pause_cb(that->nbc, kbytestream_pause_cb, that);
+    nbc_set_normal_cb(that->nbc, kbytestream_normal_cb, that);
     that->mrl    = strdup( mrl );
+    assert(strlen(mrl) > 16 && strlen(mrl) < 18 + sizeof(void *));
     const unsigned char *encoded = reinterpret_cast<const unsigned char*>( mrl + 13 );
-    const unsigned char *addr = 0;
-    for( unsigned int i = 0; i < sizeof( void* ); ++i )
-    {
+    unsigned char *addrHack = reinterpret_cast<unsigned char *>(&that->bytestream);
+    for (unsigned int i = 0; i < sizeof(void *); ++i, ++encoded) {
         if( *encoded == 0x01 )
         {
             ++encoded;
-            if( *encoded == 0x02 )
-                addr += 1 << ( 8 * i );
+            switch (*encoded) {
+            case 0x01:
+                addrHack[i] = '\0';
+                break;
+            case 0x02:
+                addrHack[i] = '\1';
+                break;
+            case 0x03:
+                addrHack[i] = '#';
+                break;
+            case 0x04:
+                addrHack[i] = '%';
+                break;
+            default:
+                abort();
+            }
         }
         else
-            addr += *encoded << ( 8 * i );
-
-        ++encoded;
+            addrHack[i] = *encoded;
     }
-    that->bytestream = ( Phonon::Xine::ByteStream* )addr;
 
     that->input_plugin.open               = kbytestream_plugin_open;
     that->input_plugin.get_capabilities   = kbytestream_plugin_get_capabilities;
