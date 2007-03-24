@@ -51,8 +51,9 @@ AudioEffect::AudioEffect(const char *name, QObject *parent)
 
 AudioEffect::~AudioEffect()
 {
-    qDeleteAll(m_pluginApis);
-    qDeleteAll(m_plugins);
+    foreach (xine_post_t *post, m_plugins) {
+        xine_post_dispose(XineEngine::xine(), post);
+    }
 }
 
 bool AudioEffect::isValid() const
