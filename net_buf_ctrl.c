@@ -16,7 +16,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
  *
  * network buffering control
  */
@@ -42,9 +42,6 @@
 
 #define FIFO_PUT                   0
 #define FIFO_GET                   1
-
-/*#define streamClock(stream) stream->clock*/
-#define streamClock(stream) stream->xine->clock
 
 struct nbc_s {
 
@@ -106,14 +103,14 @@ static void nbc_set_speed_pause (void *data) {
   xine_stream_t *stream = (xine_stream_t *)data;
   xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "\nnet_buf_ctrl: nbc_set_speed_pause\n");
   _x_set_speed (stream, XINE_SPEED_PAUSE);
-  streamClock(stream)->set_option (streamClock(stream), CLOCK_SCR_ADJUSTABLE, 0);
+  stream->xine->clock->set_option (stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 0);
 }
 
 static void nbc_set_speed_normal (void *data) {
   xine_stream_t *stream = (xine_stream_t *)data;
   xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "\nnet_buf_ctrl: nbc_set_speed_normal\n");
   _x_set_speed (stream, XINE_SPEED_NORMAL);
-  streamClock(stream)->set_option (streamClock(stream), CLOCK_SCR_ADJUSTABLE, 1);
+  stream->xine->clock->set_option (stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 1);
 }
 
 int report_bufferstatus (nbc_t *this)
@@ -157,7 +154,6 @@ int report_bufferstatus (nbc_t *this)
     return progress;
 }
 
-#if 0
 static void display_stats (nbc_t *this) {
   printf("buff: %d, enb: %d "\
 	 "vid %3d%% %4.1fs %4" PRId64 "kbps %1d, "\
@@ -175,7 +171,6 @@ static void display_stats (nbc_t *this) {
 	 );
   fflush(stdout);
 }
-#endif
 
 /*  Try to compute the length of the fifo in 1/1000 s
  *  2 methods :
@@ -188,7 +183,7 @@ static void nbc_compute_fifo_length(nbc_t *this,
                                     fifo_buffer_t *fifo,
                                     buf_element_t *buf,
                                     int action) {
-  int fifo_free, fifo_fill, fifo_div;
+  int fifo_free, fifo_fill;
   int64_t video_br, audio_br, diff;
   int has_video, has_audio;
 
@@ -199,13 +194,10 @@ static void nbc_compute_fifo_length(nbc_t *this,
 
   fifo_free = fifo->buffer_pool_num_free;
   fifo_fill = fifo->fifo_size;
-  fifo_div = fifo_fill + fifo_free - 1;
-  if (fifo_div == 0)
-    fifo_div = 1; /* avoid a possible divide-by-zero */
 
   if (fifo == this->video_fifo) {
     this->video_fifo_free = fifo_free;
-    this->video_fifo_fill = (100 * fifo_fill) / fifo_div;
+    this->video_fifo_fill = (100 * fifo_fill) / (fifo_fill + fifo_free - 1);
     this->video_fifo_size = fifo->fifo_data_size;
     
     if (buf->pts && (this->video_in_disc == 0)) {
@@ -238,7 +230,7 @@ static void nbc_compute_fifo_length(nbc_t *this,
 
   } else {
     this->audio_fifo_free = fifo_free;
-    this->audio_fifo_fill = (100 * fifo_fill) / fifo_div;
+    this->audio_fifo_fill = (100 * fifo_fill) / (fifo_fill + fifo_free - 1);
     this->audio_fifo_size = fifo->fifo_data_size;
     
     if (buf->pts && (this->audio_in_disc == 0)) {
@@ -613,7 +605,7 @@ void nbc_close (nbc_t *this) {
   audio_fifo->unregister_get_cb(audio_fifo, nbc_get_cb);
 
   /* now we are sure that nobody will call a callback */
-  this->streamClock(stream)->set_option (this->streamClock(stream), CLOCK_SCR_ADJUSTABLE, 1);
+  this->stream->xine->clock->set_option (this->stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 1);
 
   pthread_mutex_destroy(&this->mutex);
   free (this);

@@ -115,6 +115,8 @@ class PHONON_XINE_ENGINE_EXPORT XineStream : public QThread
         void tick(qint64);
         void aboutToFinish(qint32);
         void seekableChanged(bool);
+        void hasVideoChanged(bool);
+        void bufferStatus(int);
 
     protected:
         bool event(QEvent *ev);

@@ -28,6 +28,12 @@
 #include "videowidgetinterface.h"
 #include <klocale.h>
 
+extern "C" {
+#define this _this_xine_
+#include <xine/xine_internal.h>
+#undef this
+}
+
 //#define DISABLE_FILE_MRLS
 
 namespace Phonon
@@ -53,7 +59,9 @@ enum {
     EventSend = 2015,
     AudioRewire = 2016,
     ChangeAudioPostList = 2017,
-    QuitEventLoop = 2018
+    QuitEventLoop = 2018,
+    PauseForBuffering = 2019,  // XXX numerically used in bytestream.cpp
+    UnpauseForBuffering = 2020 // XXX numerically used in bytestream.cpp
 };
 
 class ChangeAudioPostListEvent : public QEvent
@@ -300,14 +308,16 @@ void XineStream::getStreamInfo()
             }
         }
         QMutexLocker locker(&m_streamInfoMutex);
-        m_hasVideo   = xine_get_stream_info(m_stream, XINE_STREAM_INFO_HAS_VIDEO);
+        bool hasVideo   = xine_get_stream_info(m_stream, XINE_STREAM_INFO_HAS_VIDEO);
         bool isSeekable = xine_get_stream_info(m_stream, XINE_STREAM_INFO_SEEKABLE);
+        m_streamInfoReady = true;
+        if (m_hasVideo != hasVideo) {
+            m_hasVideo = hasVideo;
+            emit hasVideoChanged(m_hasVideo);
+        }
         if (m_isSeekable != isSeekable) {
             m_isSeekable = isSeekable;
-            m_streamInfoReady = true;
             emit seekableChanged(m_isSeekable);
-        } else {
-            m_streamInfoReady = true;
         }
         if (m_hasVideo) {
             uint32_t width = xine_get_stream_info(m_stream, XINE_STREAM_INFO_VIDEO_WIDTH);
@@ -644,9 +654,26 @@ bool XineStream::event(QEvent *ev)
         }
     }
     if (eventName) {
-        kDebug(610) << "################################ Event: " << eventName << endl;
+        if (static_cast<int>(ev->type()) == Xine::ProgressEvent) {
+            XineProgressEvent* e = static_cast<XineProgressEvent*>(ev);
+            kDebug(610) << "################################ Event: " << eventName << ": " << e->percent() << endl;
+        } else {
+            kDebug(610) << "################################ Event: " << eventName << endl;
+        }
     }
     switch (ev->type()) {
+    case PauseForBuffering:
+        ev->accept();
+        xine_set_param(m_stream, XINE_PARAM_SPEED, XINE_SPEED_PAUSE); //_x_set_speed (m_stream, XINE_SPEED_PAUSE);
+        m_stream->xine->clock->set_option (m_stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 0);
+        return true;
+    case UnpauseForBuffering:
+        ev->accept();
+        if (Phonon::PausedState != m_state) {
+            xine_set_param(m_stream, XINE_PARAM_SPEED, XINE_SPEED_NORMAL); //_x_set_speed (m_stream, XINE_SPEED_NORMAL);
+        }
+        m_stream->xine->clock->set_option (m_stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 1);
+        return true;
     case QuitEventLoop:
         ev->accept();
         QThread::quit();
@@ -773,8 +800,10 @@ bool XineStream::event(QEvent *ev)
                     if (m_state == Phonon::BufferingState) {
                         changeState(Phonon::PlayingState);
                     }
-                    QTimer::singleShot(20, this, SLOT(getStartTime()));
+                    //QTimer::singleShot(20, this, SLOT(getStartTime()));
                 }
+                kDebug(610) << "emit bufferStatus(" << e->percent() << ")" << endl;
+                emit bufferStatus(e->percent());
             }
             ev->accept();
             return true;
@@ -1094,7 +1123,7 @@ bool XineStream::event(QEvent *ev)
                     case Phonon::PausedState:
                     case Phonon::BufferingState:
                     case Phonon::PlayingState:
-                        kDebug(610) << k_funcinfo << "seeking xine stream to " << e->time() << "ms" << endl;
+                        kDebug(610) << "seeking xine stream to " << e->time() << "ms" << endl;
                         // xine_trick_mode aborts :(
                         //if (0 == xine_trick_mode(m_stream, XINE_TRICK_MODE_SEEK_TO_TIME, time)) {
                         xine_play(m_stream, 0, e->time());
@@ -1223,37 +1252,42 @@ void XineStream::seek(qint64 time)
 bool XineStream::updateTime()
 {
     Q_ASSERT(QThread::currentThread() == this);
-    if (m_stream) {
-        if (xine_get_status(m_stream) == XINE_STATUS_IDLE) {
-            kDebug(610) << "calling xineOpen from " << k_funcinfo << endl;
-            if (!xineOpen()) {
-                return false;
-            }
-        }
-        QMutexLocker locker(&m_updateTimeMutex);
-        int newTotalTime;
-        if (xine_get_pos_length(m_stream, 0, &m_currentTime, &newTotalTime) != 1) {
-            m_currentTime = -1;
-            m_totalTime = -1;
-            m_lastTimeUpdate.tv_sec = 0;
+    if (!m_stream) {
+        return false;
+    }
+
+    if (xine_get_status(m_stream) == XINE_STATUS_IDLE) {
+        kDebug(610) << "calling xineOpen from " << k_funcinfo << endl;
+        if (!xineOpen()) {
             return false;
-        }
-        if (newTotalTime != m_totalTime) {
-            m_totalTime = newTotalTime;
-            emit length(m_totalTime);
-        }
-        if (m_currentTime == 0) {
-            // are we seeking? when xine seeks xine_get_pos_length returns 0 for m_currentTime
-            m_lastTimeUpdate.tv_sec = 0;
-            // XineStream::currentTime will return 0 now
-            return false;
-        }
-        if (m_state == Phonon::PlayingState) {
-            gettimeofday(&m_lastTimeUpdate, 0);
-        } else {
-            m_lastTimeUpdate.tv_sec = 0;
         }
     }
+
+    QMutexLocker locker(&m_updateTimeMutex);
+    int newTotalTime;
+    int newCurrentTime;
+    if (xine_get_pos_length(m_stream, 0, &newCurrentTime, &newTotalTime) != 1) {
+        //m_currentTime = -1;
+        //m_totalTime = -1;
+        //m_lastTimeUpdate.tv_sec = 0;
+        return false;
+    }
+    if (newTotalTime != m_totalTime) {
+        m_totalTime = newTotalTime;
+        emit length(m_totalTime);
+    }
+    if (newCurrentTime <= 0) {
+        // are we seeking? when xine seeks xine_get_pos_length returns 0 for m_currentTime
+        //m_lastTimeUpdate.tv_sec = 0;
+        // XineStream::currentTime will still return the old value counting with gettimeofday
+        return false;
+    }
+    if (m_state == Phonon::PlayingState && m_currentTime != newCurrentTime) {
+        gettimeofday(&m_lastTimeUpdate, 0);
+    } else {
+        m_lastTimeUpdate.tv_sec = 0;
+    }
+    m_currentTime = newCurrentTime;
     return true;
 }
 
@@ -1304,6 +1338,12 @@ void XineStream::timerEvent(QTimerEvent *event)
 {
     Q_ASSERT(QThread::currentThread() == this);
     if (m_waitForPlayingTimerId == event->timerId()) {
+        if (m_state != Phonon::BufferingState) {
+            // the state has already changed somewhere else (probably from XineProgressEvents)
+            killTimer(m_waitForPlayingTimerId);
+            m_waitForPlayingTimerId = -1;
+            return;
+        }
         if (updateTime()) {
             changeState(Phonon::PlayingState);
             killTimer(m_waitForPlayingTimerId);
@@ -1330,8 +1370,8 @@ void XineStream::emitTick()
         kDebug(610) << k_funcinfo << "no useful time information available. skipped." << endl;
         return;
     }
-    //kDebug(610) << k_funcinfo << m_currentTime << endl;
     if (m_ticking) {
+        //kDebug(610) << k_funcinfo << m_currentTime << endl;
         emit tick(m_currentTime);
     }
     if (m_aboutToFinishNotEmitted && m_aboutToFinishTime > 0) {
