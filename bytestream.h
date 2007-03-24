@@ -99,7 +99,7 @@ namespace Xine
             {
                 PreviewReadyState = 1,
                 StreamSizeSetState = 2,
-                AboutToOpenState = PreviewReadyState | StreamSizeSetState,
+                AboutToOpenState = PreviewReadyState | StreamSizeSetState
             };
 
             bool m_seekable;
