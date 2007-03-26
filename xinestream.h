@@ -91,6 +91,7 @@ class PHONON_XINE_ENGINE_EXPORT XineStream : public QThread
             return m_videoPort;
         }
 
+        void setError(Phonon::ErrorType, const QString &);
         QString errorString() const { return m_errorString; }
         Phonon::ErrorType errorType() const { return m_errorType; }
 

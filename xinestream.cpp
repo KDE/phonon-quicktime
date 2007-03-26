@@ -61,7 +61,17 @@ enum {
     ChangeAudioPostList = 2017,
     QuitEventLoop = 2018,
     PauseForBuffering = 2019,  // XXX numerically used in bytestream.cpp
-    UnpauseForBuffering = 2020 // XXX numerically used in bytestream.cpp
+    UnpauseForBuffering = 2020, // XXX numerically used in bytestream.cpp
+    Error = 2021
+};
+
+class ErrorEvent : public QEvent
+{
+    public:
+        ErrorEvent(Phonon::ErrorType t, const QString &r)
+            : QEvent(static_cast<QEvent::Type>(Error)), type(t), reason(r) {}
+        Phonon::ErrorType type;
+        QString reason;
 };
 
 class ChangeAudioPostListEvent : public QEvent
@@ -662,6 +672,13 @@ bool XineStream::event(QEvent *ev)
         }
     }
     switch (ev->type()) {
+    case Error:
+        ev->accept();
+        {
+            ErrorEvent *e = static_cast<ErrorEvent *>(ev);
+            error(e->type, e->reason);
+        }
+        return true;
     case PauseForBuffering:
         ev->accept();
         xine_set_param(m_stream, XINE_PARAM_SPEED, XINE_SPEED_PAUSE); //_x_set_speed (m_stream, XINE_SPEED_PAUSE);
@@ -1202,6 +1219,11 @@ void XineStream::quit()
     QCoreApplication::postEvent(this, new QEvent(static_cast<QEvent::Type>(QuitEventLoop)));
 }
 
+// called from main thread
+void XineStream::setError(Phonon::ErrorType type, const QString &reason)
+{
+    QCoreApplication::postEvent(this, new ErrorEvent(type, reason));
+}
 // called from main thread
 void XineStream::setUrl(const KUrl &url)
 {

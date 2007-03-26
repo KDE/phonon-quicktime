@@ -97,12 +97,9 @@ namespace Xine
 			void asyncSeek( xine_stream_t*, qint64, bool );
 
 		protected:
-			void setState( State );
-			void updateMetaData();
             virtual void reachedPlayingState() {}
             virtual void leftPlayingState() {}
 			VideoPath* videoPath() const { return m_videoPath; }
-			bool outputPortsNotChanged() const;
 
 		protected slots:
             void changeState(Phonon::State);
