@@ -19,6 +19,7 @@
 
 #include "mediaobject.h"
 #include <kdebug.h>
+#include <klocale.h>
 
 #include "xineengine.h"
 #include <QEvent>
@@ -74,6 +75,12 @@ void MediaObject::setUrl( const KUrl& url )
 	//kDebug( 610 ) << k_funcinfo << endl;
     if (state() != Phonon::LoadingState) {
         stop();
+    }
+    if (url.scheme() == QLatin1String("kbytestream")) {
+        kError(610) << "do not ever use kbytestream:/ URLs with MediaObject!" << endl;
+        stream().setMrl(QByteArray());
+        stream().setError(Phonon::NormalError, i18n("Cannot open media data at '<i>%1</i>'", url.prettyUrl()));
+        return;
     }
     stream().setUrl(url);
     m_url = url;
