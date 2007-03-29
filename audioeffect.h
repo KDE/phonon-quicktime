@@ -24,6 +24,7 @@
 #include <phonon/effectparameter.h>
 #include <QList>
 #include <xine.h>
+#include <QMutex>
 
 namespace Phonon
 {
@@ -47,11 +48,12 @@ namespace Xine
             virtual xine_post_t *newInstance(xine_audio_port_t *);
 
 		public slots:
-            QList<EffectParameter> parameterList() const { return m_parameterList; }
+            QList<EffectParameter> parameterList() const { const_cast<AudioEffect *>(this)->ensureParametersReady(); return m_parameterList; }
 			QVariant value( int parameterId ) const;
 			void setValue( int parameterId, QVariant newValue );
 
         protected:
+            virtual void ensureParametersReady();
             AudioEffect(const char *name, QObject *parent);
             void addParameter(const EffectParameter &p) { m_parameterList << p; }
 
@@ -59,7 +61,9 @@ namespace Xine
             QList<xine_post_api_t *> m_pluginApis;
 
         private:
+            mutable QMutex m_mutex;
             const char *m_pluginName;
+            char *m_pluginParams;
             AudioPostList m_postList;
             QList<Phonon::EffectParameter> m_parameterList;
 	};
