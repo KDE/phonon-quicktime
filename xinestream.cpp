@@ -211,7 +211,23 @@ bool XineStream::xineOpen()
     //kDebug(610) << "xine_open(" << m_mrl.constData() << ")" << endl;
     if (xine_open(m_stream, m_mrl.constData()) == 0) {
         kDebug(610) << "xine_open failed for m_mrl = " << m_mrl.constData() << endl;
-        error(Phonon::NormalError, i18n("Cannot open media data at '<i>%1</i>'", m_mrl.constData()));
+        switch (xine_get_error(m_stream)) {
+        case XINE_ERROR_NONE:
+            // hmm?
+            abort();
+        case XINE_ERROR_NO_INPUT_PLUGIN:
+            error(Phonon::NormalError, i18n("cannot find input plugin for MRL [%1]", m_mrl.constData()));
+            break;
+        default:
+            {
+                const char *const *logs = xine_get_log(XineEngine::xine(), XINE_LOG_MSG);
+                error(Phonon::NormalError, QString::fromUtf8(logs[0]));
+            }
+            break;
+//X         default:
+//X             error(Phonon::NormalError, i18n("Cannot open media data at '<i>%1</i>'", m_mrl.constData()));
+//X             break;
+        }
         return false;
     }
 
