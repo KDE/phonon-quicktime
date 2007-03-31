@@ -30,6 +30,7 @@
 #include <xine.h>
 #include "xineengine.h"
 #include <phonon/mediaproducerinterface.h>
+#include <phonon/addoninterface.h>
 #include <QMultiMap>
 #include "xinestream.h"
 
@@ -39,10 +40,10 @@ namespace Xine
 {
 	class SeekThread;
 
-	class AbstractMediaProducer : public QObject, public MediaProducerInterface
+	class AbstractMediaProducer : public QObject, public MediaProducerInterface, public AddonInterface
 	{
 		Q_OBJECT
-		Q_INTERFACES( Phonon::MediaProducerInterface )
+        Q_INTERFACES(Phonon::MediaProducerInterface Phonon::AddonInterface)
 		public:
 			AbstractMediaProducer( QObject* parent );
 			virtual ~AbstractMediaProducer();
@@ -84,6 +85,9 @@ namespace Xine
 			const XineStream& stream() const { return m_stream; }
             //void setAudioPort(AudioPort port) { m_stream.setAudioPort(port); }
             void setVideoPort(VideoWidgetInterface *port) { m_stream.setVideoPort(port); }
+
+            bool hasInterface(AddonInterface::Interface) const { return false; }
+            QVariant interfaceCall(AddonInterface::Interface, int, const QList<QVariant> &) { return QVariant(); }
 
 		public slots:
 
