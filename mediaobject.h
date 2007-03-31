@@ -26,6 +26,8 @@
 
 #include "xineengine.h"
 #include <phonon/mediaobjectinterface.h>
+#include <QByteArray>
+#include <QList>
 
 class KUrl;
 
@@ -70,9 +72,15 @@ namespace Xine
             void setAboutToFinishTime(qint32 newAboutToFinishTime) { MediaObjectBase::setAboutToFinishTime(newAboutToFinishTime); }
             qint32 aboutToFinishTime() const { return MediaObjectBase::aboutToFinishTime(); }
 			void setUrl( const KUrl& url );
+            void openMedia(Phonon::MediaObject::Media m);
+
+            bool hasInterface(AddonInterface::Interface i) const;
+            QVariant interfaceCall(AddonInterface::Interface, int, const QList<QVariant> &);
 
 		protected:
 			KUrl m_url;
+            QList<QByteArray> m_tracks;
+            int m_currentTrack;
 	};
 }} //namespace Phonon::Xine
 
