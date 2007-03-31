@@ -179,18 +179,18 @@ void VideoWidget::setAspectRatio( Phonon::VideoWidget::AspectRatio aspectRatio )
             case Phonon::VideoWidget::AspectRatioAuto:
                 xs.setParam(XINE_PARAM_VO_ASPECT_RATIO, XINE_VO_ASPECT_AUTO);
                 break;
-            case Phonon::VideoWidget::AspectRatioSquare:
-                xs.setParam(XINE_PARAM_VO_ASPECT_RATIO, XINE_VO_ASPECT_SQUARE);
-                break;
+//X             case Phonon::VideoWidget::AspectRatioSquare:
+//X                 xs.setParam(XINE_PARAM_VO_ASPECT_RATIO, XINE_VO_ASPECT_SQUARE);
+//X                 break;
             case Phonon::VideoWidget::AspectRatio4_3:
                 xs.setParam(XINE_PARAM_VO_ASPECT_RATIO, XINE_VO_ASPECT_4_3);
                 break;
-            case Phonon::VideoWidget::AspectRatioAnamorphic:
+            case Phonon::VideoWidget::AspectRatio16_9:
                 xs.setParam(XINE_PARAM_VO_ASPECT_RATIO, XINE_VO_ASPECT_ANAMORPHIC);
                 break;
-            case Phonon::VideoWidget::AspectRatioDvb:
-                xs.setParam(XINE_PARAM_VO_ASPECT_RATIO, XINE_VO_ASPECT_DVB);
-                break;
+//X             case Phonon::VideoWidget::AspectRatioDvb:
+//X                 xs.setParam(XINE_PARAM_VO_ASPECT_RATIO, XINE_VO_ASPECT_DVB);
+//X                 break;
         }
         updateZoom();
     }
@@ -237,12 +237,12 @@ void VideoWidget::updateZoom()
                 case Phonon::VideoWidget::AspectRatio4_3:
                     imageSize.setWidth(imageSize.height() * 4 / 3);
                     break;
-                case Phonon::VideoWidget::AspectRatioAnamorphic:
+                case Phonon::VideoWidget::AspectRatio16_9:
                     imageSize.setWidth(imageSize.height() * 16 / 9);
                     break;
-                case Phonon::VideoWidget::AspectRatioDvb:
-                    imageSize.setWidth(imageSize.height() * 2);
-                    break;
+//X                 case Phonon::VideoWidget::AspectRatioDvb:
+//X                     imageSize.setWidth(imageSize.height() * 2);
+//X                     break;
                 default:
                     // correct ratio already
                     break;
