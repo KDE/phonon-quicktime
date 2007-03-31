@@ -77,10 +77,16 @@ namespace Xine
             bool hasInterface(AddonInterface::Interface i) const;
             QVariant interfaceCall(AddonInterface::Interface, int, const QList<QVariant> &);
 
+        private slots:
+            void nextTrack();
+
 		protected:
 			KUrl m_url;
             QList<QByteArray> m_tracks;
             int m_currentTrack;
+
+        private:
+            bool m_autoplayTracks;
 	};
 }} //namespace Phonon::Xine
 
