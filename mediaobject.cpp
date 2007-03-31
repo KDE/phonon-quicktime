@@ -37,7 +37,8 @@ MediaObjectBase::MediaObjectBase(QObject *parent)
 }
 
 MediaObject::MediaObject(QObject *parent)
-    : MediaObjectBase(parent)
+    : MediaObjectBase(parent),
+    m_autoplayTracks(true)
 {
 }
 
@@ -107,6 +108,13 @@ void MediaObject::openMedia(Phonon::MediaObject::Media m)
             if (!m_tracks.isEmpty()) {
                 mrl = m_tracks.first();
                 m_currentTrack = 1;
+                if (m_autoplayTracks) {
+                    stream().useGaplessPlayback(true);
+                    connect(&stream(), SIGNAL(needNextUrl()), this, SLOT(nextTrack()));
+                } else {
+                    stream().useGaplessPlayback(false);
+                    disconnect(&stream(), SIGNAL(needNextUrl()), this, SLOT(nextTrack()));
+                }
             }
         }
         break;
@@ -124,11 +132,15 @@ void MediaObject::openMedia(Phonon::MediaObject::Media m)
             if (!m_tracks.isEmpty()) {
                 mrl = m_tracks.first();
                 m_currentTrack = 1;
+                if (m_autoplayTracks) {
+                    stream().useGaplessPlayback(true);
+                    connect(&stream(), SIGNAL(needNextUrl()), this, SLOT(nextTrack()));
+                } else {
+                    stream().useGaplessPlayback(false);
+                    disconnect(&stream(), SIGNAL(needNextUrl()), this, SLOT(nextTrack()));
+                }
             }
         }
-        break;
-    case Phonon::MediaObject::DVB:
-        mrl = "dvb:/";
         break;
     case Phonon::MediaObject::VCD:
         mrl = "vcd:/";
@@ -144,6 +156,13 @@ void MediaObject::openMedia(Phonon::MediaObject::Media m)
             if (!m_tracks.isEmpty()) {
                 mrl = m_tracks.first();
                 m_currentTrack = 1;
+                if (m_autoplayTracks) {
+                    stream().useGaplessPlayback(true);
+                    connect(&stream(), SIGNAL(needNextUrl()), this, SLOT(nextTrack()));
+                } else {
+                    stream().useGaplessPlayback(false);
+                    disconnect(&stream(), SIGNAL(needNextUrl()), this, SLOT(nextTrack()));
+                }
             }
         }
         break;
@@ -195,16 +214,41 @@ QVariant MediaObject::interfaceCall(Interface interface, int command, const QLis
                 }
                 kDebug(610) << "change track from " << m_currentTrack << " to " << t << endl;
                 m_currentTrack = t;
-                //State s = state();
                 stream().setMrl(m_tracks[t - 1]);
-                //if (s == PlayingState || s == BufferingState) {
-                    //stream().play();
-                //}
+                return true;
+            }
+        case AddonInterface::autoplayTracks:
+            return m_autoplayTracks;
+        case AddonInterface::setAutoplayTracks:
+            {
+                if (arguments.isEmpty() || !arguments.first().canConvert(QVariant::Bool)) {
+                    kDebug(610) << "arguments invalid" << endl;
+                    return false;
+                }
+                bool b = arguments.first().toBool();
+                if (b == m_autoplayTracks) {
+                    return false;
+                }
+                if (b) {
+                    stream().useGaplessPlayback(true);
+                    connect(&stream(), SIGNAL(needNextUrl()), this, SLOT(nextTrack()));
+                } else {
+                    stream().useGaplessPlayback(false);
+                    disconnect(&stream(), SIGNAL(needNextUrl()), this, SLOT(nextTrack()));
+                }
                 return true;
             }
         }
     }
     return QVariant();
+}
+
+void MediaObject::nextTrack()
+{
+    if (m_tracks.size() > m_currentTrack) {
+        stream().gaplessSwitchTo(m_tracks[m_currentTrack]);
+        ++m_currentTrack;
+    }
 }
 
 void MediaObjectBase::setAboutToFinishTime( qint32 newAboutToFinishTime )
