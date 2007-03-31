@@ -248,6 +248,8 @@ void MediaObject::nextTrack()
     if (m_tracks.size() > m_currentTrack) {
         stream().gaplessSwitchTo(m_tracks[m_currentTrack]);
         ++m_currentTrack;
+    } else {
+        stream().gaplessSwitchTo(QByteArray());
     }
 }
 
