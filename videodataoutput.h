@@ -20,7 +20,7 @@
 #define Phonon_XINE_VIDEODATAOUTPUT_H
 
 #include "abstractvideooutput.h"
-#include <phonon/videoframe.h>
+#include <phonon/experimental/videoframe.h>
 #include <QVector>
 #include <QByteArray>
 #include <QObject>
@@ -58,7 +58,7 @@ namespace Xine
 			void setFormat( quint32 fourcc );
 
 		signals:
-			void frameReady( const Phonon::VideoFrame& frame );
+            void frameReady(const Phonon::Experimental::VideoFrame &frame);
 			void endOfMedia();
 
 		private:
