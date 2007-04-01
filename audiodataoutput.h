@@ -21,13 +21,13 @@
 
 #include "abstractaudiooutput.h"
 #include <QVector>
-#include <phonon/audiodataoutput.h>
+#include <phonon/experimental/audiodataoutput.h>
 
 namespace Phonon
 {
 namespace Xine
 {
-	class AudioDataOutput : public AbstractAudioOutput
+    class AudioDataOutput : public AbstractAudioOutput
 	{
 		Q_OBJECT
 		public:
@@ -35,21 +35,21 @@ namespace Xine
 			~AudioDataOutput();
 
 		public slots:
-			Phonon::AudioDataOutput::Format format() const;
+            Phonon::Experimental::AudioDataOutput::Format format() const;
 			int dataSize() const;
 			int sampleRate() const;
-			void setFormat( Phonon::AudioDataOutput::Format format );
+            void setFormat(Phonon::Experimental::AudioDataOutput::Format format);
 			void setDataSize( int size );
 
 		signals:
-			void dataReady( const QMap<Phonon::AudioDataOutput::Channel, QVector<qint16> >& data );
-			void dataReady( const QMap<Phonon::AudioDataOutput::Channel, QVector<float> >& data );
+            void dataReady(const QMap<Phonon::Experimental::AudioDataOutput::Channel, QVector<qint16> > &data);
+            void dataReady(const QMap<Phonon::Experimental::AudioDataOutput::Channel, QVector<float> > &data);
 			void endOfMedia( int remainingSamples );
 
 		private:
 			void convertAndEmit( const QVector<float>& buffer );
 
-			Phonon::AudioDataOutput::Format m_format;
+            Phonon::Experimental::AudioDataOutput::Format m_format;
 			int m_dataSize;
 			QVector<float> m_pendingData;
 	};
