@@ -21,7 +21,7 @@
 #define Phonon_XINE_VIDEOPATH_H
 
 #include <QObject>
-#include <phonon/videoframe.h>
+#include <phonon/experimental/videoframe.h>
 #include <QList>
 #include <xine.h>
 
