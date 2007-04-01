@@ -86,6 +86,7 @@ namespace Xine
             int m_currentTrack;
 
         private:
+            QByteArray autoplayMrlsToTracks(const char *plugin, const char *defaultMrl);
             bool m_autoplayTracks;
 	};
 }} //namespace Phonon::Xine

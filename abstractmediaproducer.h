@@ -100,6 +100,10 @@ namespace Xine
             void bufferStatus(int);
 			void asyncSeek( xine_stream_t*, qint64, bool );
 
+            // AddonInterface
+            void availableTracksChanged(int);
+            void trackChanged(int);
+
 		protected:
             virtual void reachedPlayingState() {}
             virtual void leftPlayingState() {}
