@@ -87,6 +87,34 @@ void MediaObject::setUrl( const KUrl& url )
     m_url = url;
 }
 
+QByteArray MediaObject::autoplayMrlsToTracks(const char *plugin, const char *defaultMrl)
+{
+    const int lastSize = m_tracks.size();
+    m_tracks.clear();
+    int num = 0;
+    char **mrls = xine_get_autoplay_mrls(XineEngine::xine(), plugin, &num);
+    for (int i = 0; i < num; ++i) {
+        if (mrls[i]) {
+            m_tracks << QByteArray(mrls[i]);
+        }
+    }
+    if (lastSize != m_tracks.size()) {
+        emit availableTracksChanged(m_tracks.size());
+    }
+    if (m_tracks.isEmpty()) {
+        return defaultMrl;
+    }
+    m_currentTrack = 1;
+    if (m_autoplayTracks) {
+        stream().useGaplessPlayback(true);
+        connect(&stream(), SIGNAL(needNextUrl()), this, SLOT(nextTrack()));
+    } else {
+        stream().useGaplessPlayback(false);
+        disconnect(&stream(), SIGNAL(needNextUrl()), this, SLOT(nextTrack()));
+    }
+    return m_tracks.first();
+}
+
 void MediaObject::openMedia(Phonon::MediaObject::Media m)
 {
     QByteArray mrl;
@@ -95,76 +123,13 @@ void MediaObject::openMedia(Phonon::MediaObject::Media m)
         setUrl(KUrl());
         return;
     case Phonon::MediaObject::CD:
-        mrl = "cdda:/";
-        {
-            m_tracks.clear();
-            int num = 0;
-            char **mrls = xine_get_autoplay_mrls(XineEngine::xine(), "CD", &num);
-            for (int i = 0; i < num; ++i) {
-                if (mrls[i]) {
-                    m_tracks << QByteArray(mrls[i]);
-                }
-            }
-            if (!m_tracks.isEmpty()) {
-                mrl = m_tracks.first();
-                m_currentTrack = 1;
-                if (m_autoplayTracks) {
-                    stream().useGaplessPlayback(true);
-                    connect(&stream(), SIGNAL(needNextUrl()), this, SLOT(nextTrack()));
-                } else {
-                    stream().useGaplessPlayback(false);
-                    disconnect(&stream(), SIGNAL(needNextUrl()), this, SLOT(nextTrack()));
-                }
-            }
-        }
+        mrl = autoplayMrlsToTracks("CD", "cdda:/");
         break;
     case Phonon::MediaObject::DVD:
-        mrl = "dvd:/";
-        {
-            m_tracks.clear();
-            int num = 0;
-            char **mrls = xine_get_autoplay_mrls(XineEngine::xine(), "DVD", &num);
-            for (int i = 0; i < num; ++i) {
-                if (mrls[i]) {
-                    m_tracks << QByteArray(mrls[i]);
-                }
-            }
-            if (!m_tracks.isEmpty()) {
-                mrl = m_tracks.first();
-                m_currentTrack = 1;
-                if (m_autoplayTracks) {
-                    stream().useGaplessPlayback(true);
-                    connect(&stream(), SIGNAL(needNextUrl()), this, SLOT(nextTrack()));
-                } else {
-                    stream().useGaplessPlayback(false);
-                    disconnect(&stream(), SIGNAL(needNextUrl()), this, SLOT(nextTrack()));
-                }
-            }
-        }
+        mrl = autoplayMrlsToTracks("DVD", "dvd:/");
         break;
     case Phonon::MediaObject::VCD:
-        mrl = "vcd:/";
-        {
-            m_tracks.clear();
-            int num = 0;
-            char **mrls = xine_get_autoplay_mrls(XineEngine::xine(), "VCD", &num);
-            for (int i = 0; i < num; ++i) {
-                if (mrls[i]) {
-                    m_tracks << QByteArray(mrls[i]);
-                }
-            }
-            if (!m_tracks.isEmpty()) {
-                mrl = m_tracks.first();
-                m_currentTrack = 1;
-                if (m_autoplayTracks) {
-                    stream().useGaplessPlayback(true);
-                    connect(&stream(), SIGNAL(needNextUrl()), this, SLOT(nextTrack()));
-                } else {
-                    stream().useGaplessPlayback(false);
-                    disconnect(&stream(), SIGNAL(needNextUrl()), this, SLOT(nextTrack()));
-                }
-            }
-        }
+        mrl = autoplayMrlsToTracks("VCD", "vcd:/");
         break;
     default:
         kError(610) << "media " << m << " not implemented" << endl;
@@ -215,6 +180,7 @@ QVariant MediaObject::interfaceCall(Interface interface, int command, const QLis
                 kDebug(610) << "change track from " << m_currentTrack << " to " << t << endl;
                 m_currentTrack = t;
                 stream().setMrl(m_tracks[t - 1]);
+                emit trackChanged(m_currentTrack);
                 return true;
             }
         case AddonInterface::autoplayTracks:
@@ -248,6 +214,7 @@ void MediaObject::nextTrack()
     if (m_tracks.size() > m_currentTrack) {
         stream().gaplessSwitchTo(m_tracks[m_currentTrack]);
         ++m_currentTrack;
+        emit trackChanged(m_currentTrack);
     } else {
         stream().gaplessSwitchTo(QByteArray());
     }
