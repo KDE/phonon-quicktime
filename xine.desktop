@@ -14,4 +14,5 @@ Name=Xine
 Name[x-test]=xxXinexx
 
 Comment=Phonon Xine backend
+Comment[sv]=Phonon Xine-gränssnitt
 Comment[x-test]=xxPhonon Xine backendxx
