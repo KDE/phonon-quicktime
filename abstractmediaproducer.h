@@ -103,6 +103,8 @@ namespace Xine
             // AddonInterface
             void availableTracksChanged(int);
             void trackChanged(int);
+            void availableChaptersChanged(int);
+            void chapterChanged(int);
 
 		protected:
             virtual void reachedPlayingState() {}

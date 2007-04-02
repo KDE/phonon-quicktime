@@ -26,6 +26,7 @@
 #include <kurl.h>
 #include "audioport.h"
 #include "videowidgetinterface.h"
+#include "abstractmediaproducer.h"
 #include <klocale.h>
 
 extern "C" {
@@ -150,7 +151,7 @@ class SetAboutToFinishTimeEvent : public QEvent
 };
 
 // called from main thread
-XineStream::XineStream(QObject *parent)
+XineStream::XineStream(AbstractMediaProducer *parent)
     : QThread(parent),
     m_stream(0),
     m_event_queue(0),
@@ -165,6 +166,12 @@ XineStream::XineStream(QObject *parent)
 //    m_startTime(-1),
     m_totalTime(-1),
     m_currentTime(-1),
+    m_availableTitles(-1),
+    m_availableChapters(-1),
+    m_availableAngles(-1),
+    m_currentAngle(-1),
+    m_currentTitle(-1),
+    m_currentChapter(-1),
     m_streamInfoReady(false),
     m_hasVideo(false),
     m_isSeekable(false),
@@ -176,6 +183,7 @@ XineStream::XineStream(QObject *parent)
     m_eventLoopReady(false),
     m_playCalled(false)
 {
+    Q_ASSERT(parent);
 }
 
 XineStream::~XineStream()
@@ -336,6 +344,9 @@ void XineStream::getStreamInfo()
         QMutexLocker locker(&m_streamInfoMutex);
         bool hasVideo   = xine_get_stream_info(m_stream, XINE_STREAM_INFO_HAS_VIDEO);
         bool isSeekable = xine_get_stream_info(m_stream, XINE_STREAM_INFO_SEEKABLE);
+        int availableTitles   = xine_get_stream_info(m_stream, XINE_STREAM_INFO_DVD_TITLE_COUNT);
+        int availableChapters = xine_get_stream_info(m_stream, XINE_STREAM_INFO_DVD_CHAPTER_COUNT);
+        int availableAngles   = xine_get_stream_info(m_stream, XINE_STREAM_INFO_DVD_ANGLE_COUNT);
         m_streamInfoReady = true;
         if (m_hasVideo != hasVideo) {
             m_hasVideo = hasVideo;
@@ -344,6 +355,18 @@ void XineStream::getStreamInfo()
         if (m_isSeekable != isSeekable) {
             m_isSeekable = isSeekable;
             emit seekableChanged(m_isSeekable);
+        }
+        if (m_availableTitles != availableTitles) {
+            m_availableTitles = availableTitles;
+            emit availableTitlesChanged(m_availableTitles);
+        }
+        if (m_availableChapters != availableChapters) {
+            m_availableChapters = availableChapters;
+            emit availableChaptersChanged(m_availableChapters);
+        }
+        if (m_availableAngles != availableAngles) {
+            m_availableAngles = availableAngles;
+            emit availableAnglesChanged(m_availableAngles);
         }
         if (m_hasVideo) {
             uint32_t width = xine_get_stream_info(m_stream, XINE_STREAM_INFO_VIDEO_WIDTH);
@@ -612,6 +635,8 @@ inline void XineStream::error(Phonon::ErrorType type, const QString &string)
 const char* nameForEvent(int e)
 {
     switch (e) {
+        case Xine::UiChannelsChangedEvent:
+            return "Xine::UiChannelsChangedEvent";
         case Xine::MediaFinishedEvent:
             return "Xine::MediaFinishedEvent";
         case UpdateTime:
@@ -688,6 +713,27 @@ bool XineStream::event(QEvent *ev)
         }
     }
     switch (ev->type()) {
+    case Xine::UiChannelsChangedEvent:
+        ev->accept();
+        // check chapter, title, angle and substreams
+        if (m_stream) {
+            int currentTitle   = xine_get_stream_info(m_stream, XINE_STREAM_INFO_DVD_TITLE_NUMBER);
+            int currentChapter = xine_get_stream_info(m_stream, XINE_STREAM_INFO_DVD_CHAPTER_NUMBER);
+            int currentAngle   = xine_get_stream_info(m_stream, XINE_STREAM_INFO_DVD_ANGLE_NUMBER);
+            if (currentAngle != m_currentAngle) {
+                m_currentAngle = currentAngle;
+                emit angleChanged(m_currentAngle);
+            }
+            if (currentChapter != m_currentChapter) {
+                m_currentChapter = currentChapter;
+                emit chapterChanged(m_currentChapter);
+            }
+            if (currentTitle != m_currentTitle) {
+                m_currentTitle = currentTitle;
+                emit titleChanged(m_currentTitle);
+            }
+        }
+        return true;
     case Error:
         ev->accept();
         {
@@ -1240,6 +1286,7 @@ void XineStream::setError(Phonon::ErrorType type, const QString &reason)
 {
     QCoreApplication::postEvent(this, new ErrorEvent(type, reason));
 }
+
 // called from main thread
 void XineStream::setUrl(const KUrl &url)
 {

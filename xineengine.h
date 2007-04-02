@@ -45,7 +45,8 @@ namespace Xine
         NavButtonInEvent = 5403,
         NavButtonOutEvent = 5404,
         AudioDeviceFailedEvent = 5405,
-        FrameFormatChangeEvent = 5406
+        FrameFormatChangeEvent = 5406,
+        UiChannelsChangedEvent = 5407
 	};
 
 	class PHONON_XINE_ENGINE_EXPORT XineProgressEvent : public QEvent

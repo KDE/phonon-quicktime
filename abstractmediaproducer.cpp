@@ -40,7 +40,7 @@ namespace Xine
 AbstractMediaProducer::AbstractMediaProducer(QObject *parent)
     : QObject( parent ),
     m_state(Phonon::LoadingState),
-    m_stream(0),
+    m_stream(this),
     m_videoPath(0),
     m_seeking(0)
 {
@@ -58,6 +58,8 @@ AbstractMediaProducer::AbstractMediaProducer(QObject *parent)
     connect(&m_stream, SIGNAL(bufferStatus(int)), SIGNAL(bufferStatus(int)));
     connect(&m_stream, SIGNAL(seekDone()), SLOT(seekDone()));
     connect(&m_stream, SIGNAL(tick(qint64)), SIGNAL(tick(qint64)));
+    connect(&m_stream, SIGNAL(availableChaptersChanged(int)), SIGNAL(availableChaptersChanged(int)));
+    connect(&m_stream, SIGNAL(chapterChanged(int)), SIGNAL(chapterChanged(int)));
 }
 
 void AbstractMediaProducer::seekDone()
