@@ -82,11 +82,12 @@ namespace Xine
 
 		protected:
 			KUrl m_url;
-            QList<QByteArray> m_tracks;
-            int m_currentTrack;
 
-        private:
             QByteArray autoplayMrlsToTracks(const char *plugin, const char *defaultMrl);
+
+            QList<QByteArray> m_tracks;
+            QByteArray m_mediaDevice;
+            int m_currentTrack;
             bool m_autoplayTracks;
 	};
 }} //namespace Phonon::Xine

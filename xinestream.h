@@ -41,6 +41,7 @@ namespace Xine
 {
 class VideoWidgetInterface;
 class SeekCommandEvent;
+class AbstractMediaProducer;
 
 /**
  * \brief xine_stream_t wrapper that runs in its own thread.
@@ -54,7 +55,7 @@ class PHONON_XINE_ENGINE_EXPORT XineStream : public QThread
 {
     Q_OBJECT
     public:
-        XineStream(QObject *parent = 0);
+        XineStream(AbstractMediaProducer *parent);
         ~XineStream();
 
         Phonon::State state() const { return m_state; }
@@ -95,6 +96,13 @@ class PHONON_XINE_ENGINE_EXPORT XineStream : public QThread
         QString errorString() const { return m_errorString; }
         Phonon::ErrorType errorType() const { return m_errorType; }
 
+        int availableChapters() const { return m_availableChapters; }
+        int availableAngles()   const { return m_availableAngles;   }
+        int availableTitles()   const { return m_availableTitles;   }
+        int currentChapter()    const { return m_currentChapter;    }
+        int currentAngle()      const { return m_currentAngle;      }
+        int currentTitle()      const { return m_currentTitle;      }
+
     public slots:
         void setUrl(const KUrl &url);
         void setMrl(const QByteArray &mrl);
@@ -118,6 +126,13 @@ class PHONON_XINE_ENGINE_EXPORT XineStream : public QThread
         void seekableChanged(bool);
         void hasVideoChanged(bool);
         void bufferStatus(int);
+
+        void availableChaptersChanged(int);
+        void chapterChanged(int);
+        void availableAnglesChanged(int);
+        void angleChanged(int);
+        void availableTitlesChanged(int);
+        void titleChanged(int);
 
     protected:
         bool event(QEvent *ev);
@@ -177,6 +192,12 @@ class PHONON_XINE_ENGINE_EXPORT XineStream : public QThread
         int m_totalTime;
         int m_currentTime;
         int m_waitForPlayingTimerId;
+        int m_availableTitles;
+        int m_availableChapters;
+        int m_availableAngles;
+        int m_currentAngle;
+        int m_currentTitle;
+        int m_currentChapter;
         bool m_streamInfoReady : 1;
         bool m_hasVideo : 1;
         bool m_isSeekable : 1;

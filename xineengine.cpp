@@ -159,8 +159,12 @@ namespace Xine
                 break;
             case XINE_EVENT_UI_CHANNELS_CHANGED:    /* inform ui that new channel info is available */
                 kDebug(610) << "XINE_EVENT_UI_CHANNELS_CHANGED" << endl;
+                {
+                    QCoreApplication::postEvent(xs, new QEvent(static_cast<QEvent::Type>(Xine::UiChannelsChangedEvent)));
+                }
                 break;
             case XINE_EVENT_UI_MESSAGE:             /* message (dialog) for the ui to display */
+                //m_lastMessage = static_cast<xine_ui_message_data_t *>(xineEvent->data)
                 kDebug(610) << "XINE_EVENT_UI_MESSAGE" << endl;
                 break;
             case XINE_EVENT_FRAME_FORMAT_CHANGE:    /* e.g. aspect ratio change during dvd playback */

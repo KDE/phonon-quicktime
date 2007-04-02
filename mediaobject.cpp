@@ -23,6 +23,7 @@
 
 #include "xineengine.h"
 #include <QEvent>
+#include <QFile>
 
 namespace Phonon
 {
@@ -38,6 +39,7 @@ MediaObjectBase::MediaObjectBase(QObject *parent)
 
 MediaObject::MediaObject(QObject *parent)
     : MediaObjectBase(parent),
+    m_currentTrack(1),
     m_autoplayTracks(true)
 {
 }
@@ -95,6 +97,7 @@ QByteArray MediaObject::autoplayMrlsToTracks(const char *plugin, const char *def
     char **mrls = xine_get_autoplay_mrls(XineEngine::xine(), plugin, &num);
     for (int i = 0; i < num; ++i) {
         if (mrls[i]) {
+            kDebug(610) << k_funcinfo << mrls[i] << endl;
             m_tracks << QByteArray(mrls[i]);
         }
     }
@@ -115,8 +118,16 @@ QByteArray MediaObject::autoplayMrlsToTracks(const char *plugin, const char *def
     return m_tracks.first();
 }
 
-void MediaObject::openMedia(Phonon::MediaObject::Media m)
+void MediaObject::openMedia(Phonon::MediaObject::Media m /*TODO:, const QString &mediaDevice*/)
 {
+    QString mediaDevice;
+    m_mediaDevice = QFile::encodeName(mediaDevice);
+    if (!m_mediaDevice.isEmpty() && !m_mediaDevice.startsWith('/')) {
+        kError(610) << "mediaDevice '" << mediaDevice << "' has to be an absolute path - starts with a /" << endl;
+        m_mediaDevice.clear();
+    }
+    m_mediaDevice += '/';
+
     QByteArray mrl;
     switch (m) {
     case Phonon::MediaObject::None:
@@ -126,7 +137,7 @@ void MediaObject::openMedia(Phonon::MediaObject::Media m)
         mrl = autoplayMrlsToTracks("CD", "cdda:/");
         break;
     case Phonon::MediaObject::DVD:
-        mrl = autoplayMrlsToTracks("DVD", "dvd:/");
+        mrl = "dvd:" + m_mediaDevice;
         break;
     case Phonon::MediaObject::VCD:
         mrl = autoplayMrlsToTracks("VCD", "vcd:/");
@@ -146,6 +157,10 @@ bool MediaObject::hasInterface(Interface interface) const
         if (m_tracks.size() > 1) {
             return true;
         }
+    case AddonInterface::ChapterInterface:
+        if (stream().availableChapters() > 1) {
+            return true;
+        }
     }
     return false;
 }
@@ -154,8 +169,25 @@ QVariant MediaObject::interfaceCall(Interface interface, int command, const QLis
 {
     kDebug(610) << k_funcinfo << interface << ", " << command << endl;
     switch (interface) {
+    case AddonInterface::ChapterInterface:
+        switch (static_cast<AddonInterface::ChapterCommand>(command)) {
+        case AddonInterface::availableChapters:
+            return stream().availableChapters();
+        case AddonInterface::chapter:
+            return stream().currentChapter();
+        case AddonInterface::setChapter:
+            if (arguments.isEmpty() || !arguments.first().canConvert(QVariant::Int)) {
+                kDebug(610) << "arguments invalid" << endl;
+                return false;
+            }
+            int t = arguments.first().toInt();
+            QByteArray mrl = "dvd:" + m_mediaDevice + QByteArray::number(m_currentTrack) + '.' + QByteArray::number(t);
+            stream().setMrl(mrl);
+            return true;
+        }
+        break;
     case AddonInterface::TrackInterface:
-        switch (command) {
+        switch (static_cast<AddonInterface::TrackCommand>(command)) {
         case AddonInterface::availableTracks:
             kDebug(610) << m_tracks.size() << endl;
             return m_tracks.size();
