@@ -21,7 +21,7 @@
 #define Phonon_XINE_UI_BACKEND_H
 
 #include <QObject>
-#include <kdelibs_export.h>
+#include <kdemacros.h>
 
 namespace Phonon
 {

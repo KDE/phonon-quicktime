@@ -17,7 +17,7 @@
 
 */
 
-#include <kdelibs_export.h>
+#include <kdemacros.h>
 #include <phonon/volumefadereffect.h>
 #include <klocale.h>
 #include <kdebug.h>

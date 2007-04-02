@@ -23,7 +23,7 @@
 #define LOG
 */
 
-#include <kdelibs_export.h>
+#include <kdemacros.h>
 
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
