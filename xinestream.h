@@ -55,7 +55,7 @@ class PHONON_XINE_ENGINE_EXPORT XineStream : public QThread
 {
     Q_OBJECT
     public:
-        XineStream(AbstractMediaProducer *parent);
+        XineStream();
         ~XineStream();
 
         Phonon::State state() const { return m_state; }

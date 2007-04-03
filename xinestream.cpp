@@ -151,9 +151,8 @@ class SetAboutToFinishTimeEvent : public QEvent
 };
 
 // called from main thread
-XineStream::XineStream(AbstractMediaProducer *parent)
-    : QThread(parent),
-    m_stream(0),
+XineStream::XineStream()
+    : m_stream(0),
     m_event_queue(0),
     m_videoPort(0),
     m_newVideoPort(0),
@@ -183,7 +182,6 @@ XineStream::XineStream(AbstractMediaProducer *parent)
     m_eventLoopReady(false),
     m_playCalled(false)
 {
-    Q_ASSERT(parent);
 }
 
 XineStream::~XineStream()

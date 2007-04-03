@@ -40,7 +40,7 @@ namespace Xine
 AbstractMediaProducer::AbstractMediaProducer(QObject *parent)
     : QObject( parent ),
     m_state(Phonon::LoadingState),
-    m_stream(this),
+    m_stream(),
     m_videoPath(0),
     m_seeking(0)
 {
