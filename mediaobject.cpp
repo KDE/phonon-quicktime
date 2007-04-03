@@ -118,9 +118,8 @@ QByteArray MediaObject::autoplayMrlsToTracks(const char *plugin, const char *def
     return m_tracks.first();
 }
 
-void MediaObject::openMedia(Phonon::MediaObject::Media m /*TODO:, const QString &mediaDevice*/)
+void MediaObject::openMedia(Phonon::MediaObject::Media m, const QString &mediaDevice)
 {
-    QString mediaDevice;
     m_mediaDevice = QFile::encodeName(mediaDevice);
     if (!m_mediaDevice.isEmpty() && !m_mediaDevice.startsWith('/')) {
         kError(610) << "mediaDevice '" << mediaDevice << "' has to be an absolute path - starts with a /" << endl;
