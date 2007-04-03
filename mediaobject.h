@@ -72,7 +72,7 @@ namespace Xine
             void setAboutToFinishTime(qint32 newAboutToFinishTime) { MediaObjectBase::setAboutToFinishTime(newAboutToFinishTime); }
             qint32 aboutToFinishTime() const { return MediaObjectBase::aboutToFinishTime(); }
 			void setUrl( const KUrl& url );
-            void openMedia(Phonon::MediaObject::Media m);
+            void openMedia(Phonon::MediaObject::Media m, const QString &mediaDevice);
 
             bool hasInterface(AddonInterface::Interface i) const;
             QVariant interfaceCall(AddonInterface::Interface, int, const QList<QVariant> &);
