@@ -103,9 +103,18 @@ class PHONON_XINE_ENGINE_EXPORT XineStream : public QThread
         int currentAngle()      const { return m_currentAngle;      }
         int currentTitle()      const { return m_currentTitle;      }
 
+        enum StateForNewMrl {
+            // no use: Loading, Error, Buffering
+            StoppedState = Phonon::StoppedState,
+            PlayingState = Phonon::PlayingState,
+            PausedState = Phonon::PausedState,
+            KeepState = 0xff
+        };
+
+
     public slots:
         void setUrl(const KUrl &url);
-        void setMrl(const QByteArray &mrl);
+        void setMrl(const QByteArray &mrl, StateForNewMrl = StoppedState);
         void play();
         void pause();
         void stop();
@@ -156,6 +165,8 @@ class PHONON_XINE_ENGINE_EXPORT XineStream : public QThread
         bool updateTime();
         void playbackFinished();
         void error(Phonon::ErrorType, const QString &);
+        void internalPause();
+        void internalPlay();
 
         xine_stream_t *m_stream;
         xine_event_queue_t *m_event_queue;
