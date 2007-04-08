@@ -79,6 +79,7 @@ namespace Xine
 
         private slots:
             void nextTrack();
+            void availableTitlesChanged(int);
 
 		protected:
 			KUrl m_url;
@@ -87,6 +88,7 @@ namespace Xine
 
             QList<QByteArray> m_tracks;
             QByteArray m_mediaDevice;
+            Phonon::MediaObject::Media m_media;
             int m_currentTrack;
             bool m_autoplayTracks;
 	};

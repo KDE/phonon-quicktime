@@ -111,8 +111,10 @@ class SetParamEvent : public QEvent
 class MrlChangedEvent : public QEvent
 {
     public:
-        MrlChangedEvent(const QByteArray &_mrl) : QEvent(static_cast<QEvent::Type>(MrlChanged)), mrl(_mrl) {}
+        MrlChangedEvent(const QByteArray &_mrl, XineStream::StateForNewMrl _s)
+            : QEvent(static_cast<QEvent::Type>(MrlChanged)), mrl(_mrl), stateForNewMrl(_s) {}
         QByteArray mrl;
+        XineStream::StateForNewMrl stateForNewMrl;
 };
 
 class GaplessSwitchEvent : public QEvent
@@ -355,14 +357,17 @@ void XineStream::getStreamInfo()
             emit seekableChanged(m_isSeekable);
         }
         if (m_availableTitles != availableTitles) {
+            kDebug(610) << k_funcinfo << "available titles changed: " << availableTitles << endl;
             m_availableTitles = availableTitles;
             emit availableTitlesChanged(m_availableTitles);
         }
         if (m_availableChapters != availableChapters) {
+            kDebug(610) << k_funcinfo << "available chapters changed: " << availableChapters << endl;
             m_availableChapters = availableChapters;
             emit availableChaptersChanged(m_availableChapters);
         }
         if (m_availableAngles != availableAngles) {
+            kDebug(610) << k_funcinfo << "available angles changed: " << availableAngles << endl;
             m_availableAngles = availableAngles;
             emit availableAnglesChanged(m_availableAngles);
         }
@@ -715,18 +720,40 @@ bool XineStream::event(QEvent *ev)
         ev->accept();
         // check chapter, title, angle and substreams
         if (m_stream) {
+            int availableTitles   = xine_get_stream_info(m_stream, XINE_STREAM_INFO_DVD_TITLE_COUNT);
+            int availableChapters = xine_get_stream_info(m_stream, XINE_STREAM_INFO_DVD_CHAPTER_COUNT);
+            int availableAngles   = xine_get_stream_info(m_stream, XINE_STREAM_INFO_DVD_ANGLE_COUNT);
+            if (m_availableTitles != availableTitles) {
+                kDebug(610) << k_funcinfo << "available titles changed: " << availableTitles << endl;
+                m_availableTitles = availableTitles;
+                emit availableTitlesChanged(m_availableTitles);
+            }
+            if (m_availableChapters != availableChapters) {
+                kDebug(610) << k_funcinfo << "available chapters changed: " << availableChapters << endl;
+                m_availableChapters = availableChapters;
+                emit availableChaptersChanged(m_availableChapters);
+            }
+            if (m_availableAngles != availableAngles) {
+                kDebug(610) << k_funcinfo << "available angles changed: " << availableAngles << endl;
+                m_availableAngles = availableAngles;
+                emit availableAnglesChanged(m_availableAngles);
+            }
+
             int currentTitle   = xine_get_stream_info(m_stream, XINE_STREAM_INFO_DVD_TITLE_NUMBER);
             int currentChapter = xine_get_stream_info(m_stream, XINE_STREAM_INFO_DVD_CHAPTER_NUMBER);
             int currentAngle   = xine_get_stream_info(m_stream, XINE_STREAM_INFO_DVD_ANGLE_NUMBER);
             if (currentAngle != m_currentAngle) {
+                kDebug(610) << k_funcinfo << "current angle changed: " << currentAngle << endl;
                 m_currentAngle = currentAngle;
                 emit angleChanged(m_currentAngle);
             }
             if (currentChapter != m_currentChapter) {
+                kDebug(610) << k_funcinfo << "current chapter changed: " << currentChapter << endl;
                 m_currentChapter = currentChapter;
                 emit chapterChanged(m_currentChapter);
             }
             if (currentTitle != m_currentTitle) {
+                kDebug(610) << k_funcinfo << "current title changed: " << currentTitle << endl;
                 m_currentTitle = currentTitle;
                 emit titleChanged(m_currentTitle);
             }
@@ -904,6 +931,7 @@ bool XineStream::event(QEvent *ev)
                 if (m_mrl == e->mrl) {
                     return true;
                 }*/
+                State previousState = m_state;
                 m_mrl = e->mrl;
                 m_errorType = Phonon::NoError;
                 m_errorString = QString();
@@ -931,6 +959,38 @@ bool XineStream::event(QEvent *ev)
                 } else {
                     kDebug(610) << "calling xineOpen from MrlChanged" << endl;
                     xineOpen();
+                    switch (e->stateForNewMrl) {
+                    case StoppedState:
+                        break;
+                    case PlayingState:
+                        if (m_stream) {
+                            internalPlay();
+                        }
+                        break;
+                    case PausedState:
+                        if (m_stream) {
+                            internalPause();
+                        }
+                        break;
+                    case KeepState:
+                        switch (previousState) {
+                        case Phonon::PlayingState:
+                        case Phonon::BufferingState:
+                            if (m_stream) {
+                                internalPlay();
+                            }
+                            break;
+                        case Phonon::PausedState:
+                            if (m_stream) {
+                                internalPause();
+                            }
+                            break;
+                        case Phonon::LoadingState:
+                        case Phonon::StoppedState:
+                        case Phonon::ErrorState:
+                            break;
+                        }
+                    }
                 }
             }
             return true;
@@ -1093,13 +1153,7 @@ bool XineStream::event(QEvent *ev)
                         return true;
                     }
                 }
-                xine_play(m_stream, 0, 0);
-                if (updateTime()) {
-                    changeState(Phonon::PlayingState);
-                } else {
-                    changeState(Phonon::BufferingState);
-                    m_waitForPlayingTimerId = startTimer(50);
-                }
+                internalPlay();
             }
             return true;
         case PauseCommand:
@@ -1122,10 +1176,13 @@ bool XineStream::event(QEvent *ev)
                     return true;
                 }
             }
-            if (m_state == Phonon::PlayingState || m_state == Phonon::BufferingState) {
-                xine_set_param(m_stream, XINE_PARAM_SPEED, XINE_SPEED_PAUSE);
-                changeState(Phonon::PausedState);
+            if (xine_get_status(m_stream) == XINE_STATUS_IDLE) {
+                kDebug(610) << "calling xineOpen from PlayCommand" << endl;
+                if (!xineOpen()) {
+                    return true;
+                }
             }
+            internalPause();
             return true;
         case StopCommand:
             ev->accept();
@@ -1264,7 +1321,7 @@ void XineStream::closeBlocking()
     m_closing = true;
     if (m_stream && xine_get_status(m_stream) != XINE_STATUS_IDLE) {
         // this event will call xine_close
-        QCoreApplication::postEvent(this, new MrlChangedEvent(QByteArray()));
+        QCoreApplication::postEvent(this, new MrlChangedEvent(QByteArray(), StoppedState));
 
         // wait until the xine_close is done
         m_waitingForClose.wait(&m_mutex);
@@ -1292,10 +1349,10 @@ void XineStream::setUrl(const KUrl &url)
 }
 
 // called from main thread
-void XineStream::setMrl(const QByteArray &mrl)
+void XineStream::setMrl(const QByteArray &mrl, StateForNewMrl sfnm)
 {
     kDebug(610) << k_funcinfo << mrl << endl;
-    QCoreApplication::postEvent(this, new MrlChangedEvent(mrl));
+    QCoreApplication::postEvent(this, new MrlChangedEvent(mrl, sfnm));
 }
 
 // called from main thread
@@ -1514,6 +1571,29 @@ void XineStream::run()
     m_aboutToFinishTimer = 0;
     delete m_tickTimer;
     m_tickTimer = 0;
+}
+
+void XineStream::internalPause()
+{
+    if (m_state == Phonon::PlayingState || m_state == Phonon::BufferingState) {
+        xine_set_param(m_stream, XINE_PARAM_SPEED, XINE_SPEED_PAUSE);
+        changeState(Phonon::PausedState);
+    } else {
+        xine_play(m_stream, 0, 0);
+        xine_set_param(m_stream, XINE_PARAM_SPEED, XINE_SPEED_PAUSE);
+        changeState(Phonon::PausedState);
+    }
+}
+
+void XineStream::internalPlay()
+{
+    xine_play(m_stream, 0, 0);
+    if (updateTime()) {
+        changeState(Phonon::PlayingState);
+    } else {
+        changeState(Phonon::BufferingState);
+        m_waitForPlayingTimerId = startTimer(50);
+    }
 }
 
 } // namespace Xine
