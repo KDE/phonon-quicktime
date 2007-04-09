@@ -59,6 +59,8 @@ namespace Xine
 			void xineCallback( int &x, int &y, int &width, int &height,
 					double &ratio, int videoWidth, int videoHeight, double videoRatio, bool mayResize );
 
+            bool isValid() const { return m_videoPort != 0; }
+
 		signals:
 			void videoPortChanged();
 
