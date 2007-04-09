@@ -50,6 +50,9 @@ namespace Xine
 
 			Q_INVOKABLE QWidget *widget() { return this; }
 
+			Q_INVOKABLE int overlayCapabilities() const;
+			Q_INVOKABLE bool createOverlay(QWidget *widget, int type);
+
 			xine_video_port_t* videoPort() const { return m_videoPort; }
             QObject *qobject() { return this; }
 
@@ -65,6 +68,7 @@ namespace Xine
 			void videoPortChanged();
 
 		protected:
+			virtual void childEvent(QChildEvent *);
             virtual void resizeEvent(QResizeEvent *);
             virtual bool event(QEvent *);
             virtual void mouseMoveEvent(QMouseEvent *);
@@ -76,6 +80,7 @@ namespace Xine
             virtual QSize sizeHint() const { return m_sizeHint; }
 
 		private:
+			QWidget *overlay;
             void updateZoom();
 			xine_video_port_t* m_videoPort;
             xcb_visual_t m_visual;
