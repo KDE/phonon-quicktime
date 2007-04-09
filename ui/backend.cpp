@@ -44,7 +44,12 @@ UiBackend::~UiBackend()
 QObject* UiBackend::createVideoWidget( QWidget* parent )
 {
 	kDebug( 610 ) << k_funcinfo << endl;
-	return new Xine::VideoWidget( parent );
+    Xine::VideoWidget *vw = new Xine::VideoWidget(parent);
+    if (vw->isValid()) {
+        return vw;
+    }
+    delete vw;
+    return 0;
 }
 
 }}
