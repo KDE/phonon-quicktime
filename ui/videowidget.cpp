@@ -18,6 +18,7 @@
 */
 
 #include "videowidget.h"
+#include <phonon/experimental/overlayapi.h>
 #include <QPalette>
 #include <QImage>
 #include <QPainter>
@@ -27,6 +28,7 @@
 #include "../xineengine.h"
 #include "../abstractmediaproducer.h"
 #include <QApplication>
+#include <QVBoxLayout>
 
 #include <QDesktopWidget>
 #include <QMouseEvent>
@@ -80,6 +82,7 @@ void VideoWidget::xineCallback( int &x, int &y, int &width, int &height, double 
 
 VideoWidget::VideoWidget( QWidget* parent )
 	: QWidget( parent )
+	, overlay( 0 )
 	, m_videoPort( 0 )
 	, m_path( 0 )
 	, m_fullScreen( false )
@@ -207,6 +210,35 @@ void VideoWidget::setScaleMode(Phonon::VideoWidget::ScaleMode mode)
 {
     m_scaleMode = mode;
     updateZoom();
+}
+
+int VideoWidget::overlayCapabilities() const
+{
+	return Phonon::Experimental::OverlayApi::OverlayOpaque;
+}
+
+bool VideoWidget::createOverlay(QWidget *widget, int type)
+{
+	if ((overlay != 0) || (type != Phonon::Experimental::OverlayApi::OverlayOpaque))
+		return false;
+
+	if (layout() == 0) {
+		QLayout *layout = new QVBoxLayout(this);
+		layout->setMargin(0);
+		setLayout(layout);
+	}
+
+	layout()->addWidget(widget);
+	overlay = widget;
+
+	return true;
+}
+
+void VideoWidget::childEvent(QChildEvent *event)
+{
+	if (event->removed() && (event->child() == overlay))
+		overlay = 0;
+	QWidget::childEvent(event);
 }
 
 void VideoWidget::updateZoom()
