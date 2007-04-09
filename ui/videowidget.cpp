@@ -132,19 +132,21 @@ VideoWidget::VideoWidget( QWidget* parent )
 
 VideoWidget::~VideoWidget()
 {
-    xine_port_send_gui_data(m_videoPort, XINE_GUI_SEND_WILL_DESTROY_DRAWABLE, 0);
+    if (m_videoPort) {
+        xine_port_send_gui_data(m_videoPort, XINE_GUI_SEND_WILL_DESTROY_DRAWABLE, 0);
 
-	xine_video_port_t* vp = m_videoPort;
-	m_videoPort = 0;
-	// tell the xine stream to stop using this videoPort
-	//if( m_path && m_path->producer() )
-		//emit videoPortChanged();
-    if (m_path && m_path->producer()) {
-        XineStream &xs = m_path->producer()->stream();
-        xs.aboutToDeleteVideoWidget();
+        xine_video_port_t *vp = m_videoPort;
+        m_videoPort = 0;
+        // tell the xine stream to stop using this videoPort
+        //if( m_path && m_path->producer() )
+        //emit videoPortChanged();
+        if (m_path && m_path->producer()) {
+            XineStream &xs = m_path->producer()->stream();
+            xs.aboutToDeleteVideoWidget();
+        }
+
+        xine_close_video_driver(XineEngine::xine(), vp);
     }
-
-	xine_close_video_driver( XineEngine::xine(), vp );
 
     xcb_disconnect(m_xcbConnection);
     m_xcbConnection = 0;
