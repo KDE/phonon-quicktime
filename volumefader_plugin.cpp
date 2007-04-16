@@ -28,7 +28,7 @@
 
 #include <xine.h>
 extern "C" {
-    // stupid xine headers use the reserved keyword this:
+// xine headers use the reserved keyword this:
 #define this this_xine
 #include <xine/compat.h>
 #include <xine/post.h>
