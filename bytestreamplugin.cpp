@@ -31,7 +31,7 @@
 #include <xine.h>
 #include "bytestream.h"
 extern "C" {
-    // stupid xine headers use the reserved keyword this:
+// xine headers use the reserved keyword this:
 #define this this_xine
 #include <xine/compat.h>
 #include <xine/input_plugin.h>
