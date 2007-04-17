@@ -35,6 +35,7 @@ class VideoWidgetInterface
 	public:
 		virtual ~VideoWidgetInterface() {}
 		virtual xine_video_port_t* videoPort() const = 0;
+        bool isValid() const { return videoPort() != 0; }
 
 		virtual void setPath( VideoPath* vp ) = 0;
 		virtual void unsetPath( VideoPath* vp ) = 0;
