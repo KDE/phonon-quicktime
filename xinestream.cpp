@@ -1037,7 +1037,7 @@ bool XineStream::event(QEvent *ev)
                     }*/
                     if (m_videoPort != m_newVideoPort) {
                         xine_post_out_t *videoSource = xine_get_video_source(m_stream);
-                        xine_video_port_t *videoPort = m_newVideoPort ? m_newVideoPort->videoPort() : XineEngine::nullVideoPort();
+                        xine_video_port_t *videoPort = (m_newVideoPort && m_newVideoPort->isValid()) ? m_newVideoPort->videoPort() : XineEngine::nullVideoPort();
                         xine_post_wire_video_port(videoSource, videoPort);
                         m_videoPort = m_newVideoPort;
                     }
