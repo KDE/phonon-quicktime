@@ -19,7 +19,7 @@
 #ifndef Phonon_XINE_MEDIAOBJECT_H
 #define Phonon_XINE_MEDIAOBJECT_H
 
-#include "abstractmediaproducer.h"
+#include "mediaproducer.h"
 #include <kurl.h>
 
 #include <xine.h>
@@ -35,7 +35,7 @@ namespace Phonon
 {
 namespace Xine
 {
-    class MediaObjectBase : public AbstractMediaProducer
+    class MediaObjectBase : public MediaProducer
     {
         Q_OBJECT
         public:
@@ -67,8 +67,8 @@ namespace Xine
 
 		public slots:
 			KUrl url() const;
-            qint64 totalTime() const { return AbstractMediaProducer::totalTime(); }
-            qint64 remainingTime() const { return AbstractMediaProducer::remainingTime(); }
+            qint64 totalTime() const { return MediaProducer::totalTime(); }
+            qint64 remainingTime() const { return MediaProducer::remainingTime(); }
             void setAboutToFinishTime(qint32 newAboutToFinishTime) { MediaObjectBase::setAboutToFinishTime(newAboutToFinishTime); }
             qint32 aboutToFinishTime() const { return MediaObjectBase::aboutToFinishTime(); }
 			void setUrl( const KUrl& url );

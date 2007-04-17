@@ -21,7 +21,7 @@
 #include "xineengine.h"
 
 //#include <kdebug.h>
-#include "abstractmediaproducer.h"
+#include "mediaproducer.h"
 #include <QCoreApplication>
 #include <phonon/audiodeviceenumerator.h>
 #include <phonon/audiodevice.h>

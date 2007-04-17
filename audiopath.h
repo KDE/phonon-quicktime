@@ -31,7 +31,7 @@ namespace Xine
 {
 	class AudioEffect;
 	class AbstractAudioOutput;
-	class AbstractMediaProducer;
+	class MediaProducer;
 	class AudioOutput;
 class XineStream;
 
@@ -42,14 +42,14 @@ class XineStream;
 			AudioPath( QObject* parent );
 			~AudioPath();
 
-			void addMediaProducer( AbstractMediaProducer* mp );
-			void removeMediaProducer( AbstractMediaProducer* mp );
-			QList<AbstractMediaProducer*> producers() { return m_producers; }
+			void addMediaProducer( MediaProducer* mp );
+			void removeMediaProducer( MediaProducer* mp );
+			QList<MediaProducer*> producers() { return m_producers; }
 
 			bool hasOutput() const;
             AudioPostList audioPostList() const { return m_effects; }
             //AudioPort audioPort(XineStream *forStream) const;
-			void updateVolume( AbstractMediaProducer* mp ) const;
+			void updateVolume( MediaProducer* mp ) const;
 
 		public slots:
 			bool addOutput( QObject* audioOutput );
@@ -64,7 +64,7 @@ class XineStream;
 			AudioOutput *m_output;
             AudioPostList m_effects;
 			QList<AbstractAudioOutput*> m_outputs;
-			QList<AbstractMediaProducer*> m_producers;
+			QList<MediaProducer*> m_producers;
 	};
 }} //namespace Phonon::Xine
 

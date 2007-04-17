@@ -77,7 +77,7 @@ void ByteStream::setMrl()
     stream().setMrl(mrl());
     if (m_playRequested) {
         m_playRequested = false;
-        AbstractMediaProducer::play();
+        MediaProducer::play();
     }
 }
 
@@ -373,7 +373,7 @@ bool ByteStream::streamSeekable() const
 bool ByteStream::isSeekable() const
 {
     if (m_seekable) {
-        return AbstractMediaProducer::isSeekable();
+        return MediaProducer::isSeekable();
     }
     return false;
 }
@@ -438,7 +438,7 @@ void ByteStream::play()
         return;
     }
     setMrl();
-    AbstractMediaProducer::play(); // goes into Phonon::BufferingState/PlayingState
+    MediaProducer::play(); // goes into Phonon::BufferingState/PlayingState
 }
 
 void ByteStream::stop()
@@ -456,7 +456,7 @@ void ByteStream::stop()
     m_mutex.unlock();
 
     m_intstate &= AboutToOpenState;
-    AbstractMediaProducer::stop();
+    MediaProducer::stop();
 
     if (!m_seekable) {
         m_mrlSet = true;

@@ -18,7 +18,7 @@
 
 */
 
-#include "abstractmediaproducer.h"
+#include "mediaproducer.h"
 #include "videopath.h"
 #include "audiopath.h"
 #include <kdebug.h>
@@ -37,7 +37,7 @@ namespace Phonon
 {
 namespace Xine
 {
-AbstractMediaProducer::AbstractMediaProducer(QObject *parent)
+MediaProducer::MediaProducer(QObject *parent)
     : QObject( parent ),
     m_state(Phonon::LoadingState),
     m_stream(),
@@ -62,7 +62,7 @@ AbstractMediaProducer::AbstractMediaProducer(QObject *parent)
     connect(&m_stream, SIGNAL(chapterChanged(int)), SIGNAL(chapterChanged(int)));
 }
 
-void AbstractMediaProducer::seekDone()
+void MediaProducer::seekDone()
 {
     //kDebug(610) << k_funcinfo << endl;
     --m_seeking;
@@ -71,7 +71,7 @@ void AbstractMediaProducer::seekDone()
     }
 }
 
-AbstractMediaProducer::~AbstractMediaProducer()
+MediaProducer::~MediaProducer()
 {
     foreach (AudioPath *p, m_audioPaths) {
         m_stream.removeAudioPostList(p->audioPostList());
@@ -92,7 +92,7 @@ AbstractMediaProducer::~AbstractMediaProducer()
     }
 }
 
-bool AbstractMediaProducer::addVideoPath(QObject *videoPath)
+bool MediaProducer::addVideoPath(QObject *videoPath)
 {
     if (m_videoPath) {
         return false;
@@ -106,7 +106,7 @@ bool AbstractMediaProducer::addVideoPath(QObject *videoPath)
     return true;
 }
 
-bool AbstractMediaProducer::addAudioPath(QObject *audioPath)
+bool MediaProducer::addAudioPath(QObject *audioPath)
 {
     AudioPath *ap = qobject_cast<AudioPath*>(audioPath);
     Q_ASSERT(ap);
@@ -119,7 +119,7 @@ bool AbstractMediaProducer::addAudioPath(QObject *audioPath)
     return true;
 }
 
-void AbstractMediaProducer::removeVideoPath(QObject *videoPath)
+void MediaProducer::removeVideoPath(QObject *videoPath)
 {
     Q_ASSERT(videoPath);
     if (m_videoPath == qobject_cast<VideoPath*>(videoPath)) {
@@ -129,7 +129,7 @@ void AbstractMediaProducer::removeVideoPath(QObject *videoPath)
     }
 }
 
-void AbstractMediaProducer::removeAudioPath(QObject *audioPath)
+void MediaProducer::removeAudioPath(QObject *audioPath)
 {
     AudioPath *ap = qobject_cast<AudioPath*>(audioPath);
     Q_ASSERT(ap);
@@ -139,22 +139,22 @@ void AbstractMediaProducer::removeAudioPath(QObject *audioPath)
     ap->removeMediaProducer(this);
 }
 
-State AbstractMediaProducer::state() const
+State MediaProducer::state() const
 {
     return m_state;
 }
 
-bool AbstractMediaProducer::hasVideo() const
+bool MediaProducer::hasVideo() const
 {
     return m_stream.hasVideo();
 }
 
-bool AbstractMediaProducer::isSeekable() const
+bool MediaProducer::isSeekable() const
 {
     return m_stream.isSeekable();
 }
 
-qint64 AbstractMediaProducer::currentTime() const
+qint64 MediaProducer::currentTime() const
 {
     //kDebug(610) << k_funcinfo << kBacktrace() << endl;
     switch(m_stream.state()) {
@@ -171,14 +171,14 @@ qint64 AbstractMediaProducer::currentTime() const
     return -1;
 }
 
-qint64 AbstractMediaProducer::totalTime() const
+qint64 MediaProducer::totalTime() const
 {
     const qint64 ret = stream().totalTime();
     //kDebug(610) << k_funcinfo << "returning " << ret << endl;
     return ret;
 }
 
-qint64 AbstractMediaProducer::remainingTime() const
+qint64 MediaProducer::remainingTime() const
 {
     switch(m_stream.state()) {
         case Phonon::PausedState:
@@ -201,18 +201,18 @@ qint64 AbstractMediaProducer::remainingTime() const
     return -1;
 }
 
-qint32 AbstractMediaProducer::tickInterval() const
+qint32 MediaProducer::tickInterval() const
 {
     return m_tickInterval;
 }
 
-void AbstractMediaProducer::setTickInterval(qint32 newTickInterval)
+void MediaProducer::setTickInterval(qint32 newTickInterval)
 {
     m_tickInterval = newTickInterval;
     m_stream.setTickInterval(m_tickInterval);
 }
 
-QStringList AbstractMediaProducer::availableAudioStreams() const
+QStringList MediaProducer::availableAudioStreams() const
 {
 	// TODO
 	QStringList ret;
@@ -220,7 +220,7 @@ QStringList AbstractMediaProducer::availableAudioStreams() const
 	return ret;
 }
 
-QStringList AbstractMediaProducer::availableVideoStreams() const
+QStringList MediaProducer::availableVideoStreams() const
 {
 	// TODO
 	QStringList ret;
@@ -228,7 +228,7 @@ QStringList AbstractMediaProducer::availableVideoStreams() const
 	return ret;
 }
 
-QStringList AbstractMediaProducer::availableSubtitleStreams() const
+QStringList MediaProducer::availableSubtitleStreams() const
 {
 	// TODO
 	QStringList ret;
@@ -236,46 +236,46 @@ QStringList AbstractMediaProducer::availableSubtitleStreams() const
 	return ret;
 }
 
-QString AbstractMediaProducer::selectedAudioStream(const QObject* audioPath) const
+QString MediaProducer::currentAudioStream(const QObject* audioPath) const
 {
 	// TODO
-	return m_selectedAudioStream[ audioPath ];
+	return m_currentAudioStream[ audioPath ];
 }
 
-QString AbstractMediaProducer::selectedVideoStream(const QObject* videoPath) const
+QString MediaProducer::currentVideoStream(const QObject* videoPath) const
 {
 	// TODO
-	return m_selectedVideoStream[ videoPath ];
+	return m_currentVideoStream[ videoPath ];
 }
 
-QString AbstractMediaProducer::selectedSubtitleStream(const QObject* videoPath) const
+QString MediaProducer::currentSubtitleStream(const QObject* videoPath) const
 {
 	// TODO
-	return m_selectedSubtitleStream[ videoPath ];
+	return m_currentSubtitleStream[ videoPath ];
 }
 
-void AbstractMediaProducer::selectAudioStream(const QString& streamName, const QObject* audioPath)
+void MediaProducer::setCurrentAudioStream(const QString& streamName, const QObject* audioPath)
 {
 	// TODO
 	if(availableAudioStreams().contains(streamName))
-		m_selectedAudioStream[ audioPath ] = streamName;
+        m_currentAudioStream[audioPath] = streamName;
 }
 
-void AbstractMediaProducer::selectVideoStream(const QString& streamName, const QObject* videoPath)
+void MediaProducer::setCurrentVideoStream(const QString& streamName, const QObject* videoPath)
 {
 	// TODO
 	if(availableVideoStreams().contains(streamName))
-		m_selectedVideoStream[ videoPath ] = streamName;
+        m_currentVideoStream[videoPath] = streamName;
 }
 
-void AbstractMediaProducer::selectSubtitleStream(const QString& streamName, const QObject* videoPath)
+void MediaProducer::setCurrentSubtitleStream(const QString& streamName, const QObject* videoPath)
 {
 	// TODO
 	if(availableSubtitleStreams().contains(streamName))
-		m_selectedSubtitleStream[ videoPath ] = streamName;
+        m_currentSubtitleStream[videoPath] = streamName;
 }
 
-void AbstractMediaProducer::play()
+void MediaProducer::play()
 {
     if (m_state == Phonon::StoppedState || m_state == Phonon::LoadingState || m_state == Phonon::PausedState) {
         changeState(Phonon::BufferingState);
@@ -283,19 +283,19 @@ void AbstractMediaProducer::play()
     m_stream.play();
 }
 
-void AbstractMediaProducer::pause()
+void MediaProducer::pause()
 {
     m_stream.pause();
 }
 
-void AbstractMediaProducer::stop()
+void MediaProducer::stop()
 {
     //if (m_state == Phonon::PlayingState || m_state == Phonon::PausedState || m_state == Phonon::BufferingState) {
         m_stream.stop();
     //}
 }
 
-void AbstractMediaProducer::seek(qint64 time)
+void MediaProducer::seek(qint64 time)
 {
     //kDebug(610) << k_funcinfo << time << endl;
     if (!isSeekable()) {
@@ -306,17 +306,17 @@ void AbstractMediaProducer::seek(qint64 time)
     ++m_seeking;
 }
 
-QString AbstractMediaProducer::errorString() const
+QString MediaProducer::errorString() const
 {
     return m_stream.errorString();
 }
 
-Phonon::ErrorType AbstractMediaProducer::errorType() const
+Phonon::ErrorType MediaProducer::errorType() const
 {
     return m_stream.errorType();
 }
 
-void AbstractMediaProducer::changeState(Phonon::State newstate)
+void MediaProducer::changeState(Phonon::State newstate)
 {
     // this method is for "fake" state changes the following state changes are not "fakable":
     Q_ASSERT(newstate != Phonon::PlayingState);
@@ -341,7 +341,7 @@ void AbstractMediaProducer::changeState(Phonon::State newstate)
     emit stateChanged(newstate, oldstate);
 }
 
-void AbstractMediaProducer::handleStateChange(Phonon::State newstate, Phonon::State oldstate)
+void MediaProducer::handleStateChange(Phonon::State newstate, Phonon::State oldstate)
 {
     if (m_state == newstate) {
         return;
@@ -360,5 +360,5 @@ void AbstractMediaProducer::handleStateChange(Phonon::State newstate, Phonon::St
 }
 
 }}
-#include "abstractmediaproducer.moc"
+#include "mediaproducer.moc"
 // vim: sw=4 ts=4

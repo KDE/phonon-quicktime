@@ -19,7 +19,7 @@ install(TARGETS phononxineengine DESTINATION ${LIB_INSTALL_DIR})
 ADD_DEFINITIONS(-D_FILE_OFFSET_BITS=64)
 
 set(phonon_xine_PART_SRCS
-    abstractmediaproducer.cpp
+    mediaproducer.cpp
     abstractaudiooutput.cpp
     audiodataoutput.cpp
     audioeffect.cpp
@@ -40,6 +40,7 @@ set(phonon_xine_PART_SRCS
     bytestreamplugin.cpp
     net_buf_ctrl.c
     volumefader_plugin.cpp
+    mixer_plugin.cpp
     plugins.c
    )
 

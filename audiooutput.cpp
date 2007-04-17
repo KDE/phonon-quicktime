@@ -26,7 +26,7 @@
 #include <iostream>
 #include <QSet>
 #include "audiopath.h"
-#include "abstractmediaproducer.h"
+#include "mediaproducer.h"
 #include "backend.h"
 
 namespace Phonon
@@ -54,7 +54,7 @@ int AudioOutput::outputDevice() const
 	return m_device;
 }
 
-void AudioOutput::updateVolume( AbstractMediaProducer* mp ) const
+void AudioOutput::updateVolume( MediaProducer* mp ) const
 {
     int xinevolume = static_cast<int>(m_volume * 100);
     if (xinevolume > 200) {
@@ -80,7 +80,7 @@ void AudioOutput::setVolume( float newVolume )
     QSet<XineStream*> streams;
 	foreach( AudioPath* ap, m_paths )
 	{
-		foreach( AbstractMediaProducer* mp, ap->producers() )
+		foreach( MediaProducer* mp, ap->producers() )
 		{
             streams << &mp->stream();
 		}

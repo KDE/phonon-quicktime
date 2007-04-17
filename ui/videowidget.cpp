@@ -26,7 +26,7 @@
 
 #include <QX11Info>
 #include "../xineengine.h"
-#include "../abstractmediaproducer.h"
+#include "../mediaproducer.h"
 #include <QApplication>
 #include <QVBoxLayout>
 

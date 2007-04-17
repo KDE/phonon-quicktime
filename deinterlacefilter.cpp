@@ -19,7 +19,7 @@
 
 #include "deinterlacefilter.h"
 #include "videopath.h"
-#include "abstractmediaproducer.h"
+#include "mediaproducer.h"
 #include <kdebug.h>
 
 namespace Phonon
@@ -35,7 +35,7 @@ DeinterlaceFilter::DeinterlaceFilter(QObject *parent)
 DeinterlaceFilter::~DeinterlaceFilter()
 {
     if (path()) {
-        AbstractMediaProducer *p = path()->producer();
+        MediaProducer *p = path()->producer();
         if (p) {
             XineStream &xs = p->stream();
             xs.setParam(XINE_PARAM_VO_DEINTERLACE, false);
@@ -46,7 +46,7 @@ DeinterlaceFilter::~DeinterlaceFilter()
 void DeinterlaceFilter::setPath(VideoPath *_path)
 {
     if (path()) { // remove from old stream
-        AbstractMediaProducer *p = path()->producer();
+        MediaProducer *p = path()->producer();
         if (p) {
             XineStream &xs = p->stream();
             xs.setParam(XINE_PARAM_VO_DEINTERLACE, false);
@@ -54,7 +54,7 @@ void DeinterlaceFilter::setPath(VideoPath *_path)
     }
     VideoEffect::setPath(_path);
     if (path()) {
-        AbstractMediaProducer *p = path()->producer();
+        MediaProducer *p = path()->producer();
         if (p) {
             XineStream &xs = p->stream();
             xs.setParam(XINE_PARAM_VO_DEINTERLACE, true);

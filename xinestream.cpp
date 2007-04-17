@@ -26,7 +26,7 @@
 #include <kurl.h>
 #include "audioport.h"
 #include "videowidgetinterface.h"
-#include "abstractmediaproducer.h"
+#include "mediaproducer.h"
 #include <klocale.h>
 
 extern "C" {
