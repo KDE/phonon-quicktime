@@ -815,6 +815,7 @@ bool XineStream::event(QEvent *ev)
             if (m_stream) {
                 AudioRewireEvent *e = static_cast<AudioRewireEvent *>(ev);
                 e->postList->wireStream(xine_get_audio_source(m_stream));
+                xine_set_param(m_stream, XINE_PARAM_AUDIO_AMP_LEVEL, m_volume);
             }
             return true;
         case EventSend:
