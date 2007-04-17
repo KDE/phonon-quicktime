@@ -21,7 +21,7 @@
 #include "videoeffect.h"
 #include "abstractvideooutput.h"
 #include "videowidgetinterface.h"
-#include "abstractmediaproducer.h"
+#include "mediaproducer.h"
 #include "videodataoutput.h"
 #include <xine.h>
 
@@ -147,13 +147,13 @@ bool VideoPath::removeEffect( QObject* effect )
 	return false;
 }
 
-void VideoPath::setMediaProducer(AbstractMediaProducer *mp)
+void VideoPath::setMediaProducer(MediaProducer *mp)
 {
     Q_ASSERT(m_producer == 0);
     m_producer = mp;
 }
 
-void VideoPath::unsetMediaProducer( AbstractMediaProducer* mp )
+void VideoPath::unsetMediaProducer( MediaProducer* mp )
 {
     Q_ASSERT(m_producer == mp);
     m_producer = 0;

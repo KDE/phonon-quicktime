@@ -19,7 +19,7 @@
 
 #include "brightnesscontrol.h"
 #include "videopath.h"
-#include "abstractmediaproducer.h"
+#include "mediaproducer.h"
 #include <kdebug.h>
 
 namespace Phonon

@@ -30,7 +30,7 @@ namespace Phonon
 namespace Xine
 {
 MediaObjectBase::MediaObjectBase(QObject *parent)
-    : AbstractMediaProducer(parent)
+    : MediaProducer(parent)
 {
     connect(&stream(), SIGNAL(finished()), SLOT(handleFinished()), Qt::QueuedConnection);
     connect(&stream(), SIGNAL(length(qint64)), SIGNAL(length(qint64)), Qt::QueuedConnection);

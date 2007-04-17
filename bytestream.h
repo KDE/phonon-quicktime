@@ -47,8 +47,8 @@ namespace Xine
             ~ByteStream();
 
         public slots:
-            qint64 totalTime() const { return AbstractMediaProducer::totalTime(); }
-            qint64 remainingTime() const { return AbstractMediaProducer::remainingTime(); }
+            qint64 totalTime() const { return MediaProducer::totalTime(); }
+            qint64 remainingTime() const { return MediaProducer::remainingTime(); }
             virtual bool isSeekable() const;
 
             void writeData(const QByteArray &data);

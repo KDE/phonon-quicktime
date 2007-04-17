@@ -31,7 +31,7 @@ namespace Xine
 {
 	class VideoEffect;
 	class AbstractVideoOutput;
-	class AbstractMediaProducer;
+	class MediaProducer;
 	class VideoWidgetInterface;
 
 	class VideoPath : public QObject
@@ -41,9 +41,9 @@ namespace Xine
 			VideoPath( QObject* parent );
 			~VideoPath();
 
-			void setMediaProducer( AbstractMediaProducer* mp );
-			void unsetMediaProducer( AbstractMediaProducer* mp );
-			AbstractMediaProducer* producer() { return m_producer; }
+			void setMediaProducer( MediaProducer* mp );
+			void unsetMediaProducer( MediaProducer* mp );
+			MediaProducer* producer() { return m_producer; }
 
 			void streamFinished();
 			bool hasOutput() const;
@@ -62,7 +62,7 @@ namespace Xine
 			VideoWidgetInterface *m_output;
 			QList<VideoEffect*> m_effects;
 			QList<QObject*> m_outputs;
-			AbstractMediaProducer* m_producer;
+			MediaProducer* m_producer;
 	};
 }} //namespace Phonon::Xine
 

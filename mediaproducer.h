@@ -40,13 +40,13 @@ namespace Xine
 {
 	class SeekThread;
 
-	class AbstractMediaProducer : public QObject, public MediaProducerInterface, public AddonInterface
+	class MediaProducer : public QObject, public MediaProducerInterface, public AddonInterface
 	{
 		Q_OBJECT
         Q_INTERFACES(Phonon::MediaProducerInterface Phonon::AddonInterface)
 		public:
-			AbstractMediaProducer( QObject* parent );
-			virtual ~AbstractMediaProducer();
+			MediaProducer( QObject* parent );
+			virtual ~MediaProducer();
 
 			virtual bool addVideoPath( QObject* videoPath );
 			virtual bool addAudioPath( QObject* audioPath );
@@ -64,13 +64,13 @@ namespace Xine
 			virtual QStringList availableVideoStreams() const;
 			virtual QStringList availableSubtitleStreams() const;
 
-			virtual QString selectedAudioStream( const QObject* audioPath ) const;
-			virtual QString selectedVideoStream( const QObject* videoPath ) const;
-			virtual QString selectedSubtitleStream( const QObject* videoPath ) const;
+            virtual QString currentAudioStream(const QObject* audioPath) const;
+            virtual QString currentVideoStream(const QObject* videoPath) const;
+            virtual QString currentSubtitleStream(const QObject* videoPath) const;
 
-			virtual void selectAudioStream( const QString& streamName, const QObject* audioPath );
-			virtual void selectVideoStream( const QString& streamName, const QObject* videoPath );
-			virtual void selectSubtitleStream( const QString& streamName, const QObject* videoPath );
+            virtual void setCurrentAudioStream(const QString& streamName, const QObject* audioPath);
+            virtual void setCurrentVideoStream(const QString& streamName, const QObject* videoPath);
+            virtual void setCurrentSubtitleStream(const QString& streamName, const QObject* videoPath);
 
 			virtual void setTickInterval( qint32 newTickInterval );
 			virtual void play();
@@ -125,9 +125,9 @@ namespace Xine
             QList<AudioPath *> m_audioPaths;
             VideoPath *m_videoPath;
 
-			QHash<const QObject*, QString> m_selectedAudioStream;
-			QHash<const QObject*, QString> m_selectedVideoStream;
-			QHash<const QObject*, QString> m_selectedSubtitleStream;
+            QHash<const QObject *, QString> m_currentAudioStream;
+            QHash<const QObject *, QString> m_currentVideoStream;
+            QHash<const QObject *, QString> m_currentSubtitleStream;
 
             int m_seeking;
 			mutable int m_currentTimeOverride;
