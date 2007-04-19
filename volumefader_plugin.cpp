@@ -295,7 +295,7 @@ static void kvolumefader_port_close(xine_audio_port_t *port_gen, xine_stream_t *
 void KVolumeFaderPlugin::fadeBuffer(audio_buffer_t *buf)
 {
     const int num_channels = _x_ao_mode2channels(buf->format.mode);
-    int bufferLength = buf->num_frames * num_channels;
+    const int bufferLength = buf->num_frames * num_channels;
     if (buf->format.bits == 16) {
         //kDebug(610) << k_funcinfo
             //<< " bufferLength = " << bufferLength
