@@ -22,6 +22,9 @@
 #include <klocale.h>
 #include <kdebug.h>
 #include <cmath>
+#include <QVarLengthArray>
+#include <QList>
+#include <QQueue>
 
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
@@ -42,15 +45,63 @@ typedef struct
     xine_t *xine;
 } kmixer_class_t;
 
+struct Input
+{
+    Input()
+        : connected(false),
+        offset(0), size(0)
+    {
+    }
+    bool connected;
+
+    // the following two are not bytes, but frames (where a frame == one sample per channel and a
+    // sample typically has 16 bit)
+    int offset;
+    int size;
+
+    QQueue<audio_buffer_t *> buffers;
+};
+
 typedef struct KVolumeFaderPlugin
 {
     post_plugin_t post;
 
     /* private data */
     pthread_mutex_t    lock;
+
+    // the audio parameters from the first connection
+    uint32_t bits;
+    uint32_t rate;
+    int mode;
+
+    QVarLengthArray<Input> buffers; // buffers[i] gives the list of buffers from input i
     //xine_post_in_t params_input;
 
 } kmixer_plugin_t;
+
+/*********************************
+ * helper functions
+ ********************************/
+static int portNumber(const post_audio_port_t *port)
+{
+    const post_in_t *input = 0;
+    xine_list_t *input_list = port->post->input;
+    for (xine_list_iterator_t it = xine_list_front(input_list); it; it = xine_list_next(input_list, it)) {
+        input = reinterpret_cast<const post_in_t *>(it);
+        if (input->xine_in.data == port) {
+            break;
+        }
+        input = 0;
+    }
+    Q_ASSERT(input);
+//X     if (!input) {
+//X         kError(610) << k_funcinfo << "did not find the input for this port" << endl;
+//X         return -1;
+//X     }
+    const int _portNumber = input->xine_in.name[2] - '0';
+    Q_ASSERT(_portNumber >= 0 && _portNumber < 32);
+    return _portNumber;
+}
 
 //X /**************************************************************************
 //X  * parameters
@@ -192,18 +243,36 @@ static int kmixer_port_open(xine_audio_port_t *port_gen, xine_stream_t *stream,
 
     _x_post_rewire(&that->post);
     _x_post_inc_usage(port);
+    if (port->usage_count != 1) {
+        kDebug(610) << k_funcinfo << "bad usage count: " << port->usage_count << endl;
+    }
 
+    if (that->rate) {
+        if (bits != that->bits || mode != that->mode) {
+            return 0;
+        }
+    } else {
+        // take the audio parameters from the first connection
+        that->bits = bits;
+        that->rate = rate;
+        that->mode = mode;
+    }
     port->stream = stream;
     port->bits = bits;
-    port->rate = rate;
+    port->rate = that->rate;
     port->mode = mode;
 
-    return port->original_port->open(port->original_port, stream, bits, rate, mode);
+    that->buffers[portNumber(port)].connected = true;
+
+    return port->original_port->open(port->original_port, stream, bits, that->rate, mode);
 }
 
 static void kmixer_port_close(xine_audio_port_t *port_gen, xine_stream_t *stream)
 {
     post_audio_port_t *port = reinterpret_cast<post_audio_port_t *>(port_gen);
+    kmixer_plugin_t *that = reinterpret_cast<kmixer_plugin_t *>(port->post);
+
+    that->buffers[portNumber(port)].connected = false;
 
     port->stream = NULL;
     port->original_port->close(port->original_port, stream);
@@ -214,13 +283,69 @@ static void kmixer_port_put_buffer(xine_audio_port_t *port_gen,
         audio_buffer_t *buf, xine_stream_t *stream)
 {
     post_audio_port_t *port = reinterpret_cast<post_audio_port_t *>(port_gen);
-    //kmixer_plugin_t *that = reinterpret_cast<kmixer_plugin_t *>(port->post);
+    kmixer_plugin_t *that = reinterpret_cast<kmixer_plugin_t *>(port->post);
 
-    // modify the buffer data
-    //that->fadeBuffer(buf);
+    pthread_mutex_lock(&that->lock);
+    Input &input = that->buffers[portNumber(port)];
+    Q_ASSERT(input.connected);
+    input.buffers.push_back(buf);
+    {
+        const int bufferLength = buf->num_frames;
+        input.size += bufferLength;
+    }
 
-    // and send the modified buffer to the original port
-    port->original_port->put_buffer(port->original_port, buf, stream);
+    bool ready = true;
+    int maxSize = 1024 * 1024;
+    for (int i = 0; i < that->buffers.size(); ++i) {
+        const Input &input = that->buffers[i];
+        if (input.connected && input.buffers.isEmpty()) {
+            ready = false;
+            break;
+        }
+        if (!input.buffers.isEmpty()) {
+            maxSize = qMin(maxSize, input.size);
+        }
+    }
+
+    if (ready) {
+        Q_ASSERT(maxSize > 0);
+        audio_buffer_t *mixedBuffer = port->original_port->get_buffer(port->original_port);
+        memset(mixedBuffer->mem, 0, mixedBuffer->mem_size);
+        int16_t *mixedData = static_cast<int16_t *>(mixedBuffer->mem);
+        for (int i = 0; i < that->buffers.size(); ++i) {
+            Input &input = that->buffers[i];
+            if (!input.buffers.isEmpty()) {
+                audio_buffer_t *bufferToMix = input.buffers.head();
+                mixedBuffer->format = bufferToMix->format; //FIXME: copied too often
+
+                int16_t *dataToMix = static_cast<int16_t *>(bufferToMix->mem);
+                int bufferLength = bufferToMix->num_frames;
+                int pos1 = 0;
+                int pos2 = input.offset;
+                const int num_channels = _x_ao_mode2channels(bufferToMix->format.mode);
+                Q_ASSERT(num_channels > 0);
+                while (pos1 < maxSize) {
+                    if (pos2 >= bufferLength) {
+                        pos2 = 0;
+                        input.buffers.dequeue();
+                        Q_ASSERT(!input.buffers.isEmpty());
+                        bufferToMix = input.buffers.head();
+                        bufferLength = bufferToMix->num_frames;
+                        dataToMix = static_cast<int16_t *>(bufferToMix->mem);
+                    }
+                    for (int channel = 0; channel < num_channels; ++channel) {
+                        mixedData[pos1++] += dataToMix[pos2++]; // FIXME: overflows sound really bad
+                    }
+                }
+                input.offset = pos2;
+                input.size -= maxSize;
+            }
+        }
+        // and send the modified buffer to the original port
+        port->original_port->put_buffer(port->original_port, mixedBuffer, stream);
+    }
+
+    pthread_mutex_unlock(&that->lock);
     return;
 }
 
@@ -255,6 +380,10 @@ static post_plugin_t *kmixer_open_plugin(post_class_t *class_gen, int inputs,
 
     // init private data
     pthread_mutex_init (&that->lock, NULL);
+    that->bits = 0;
+    that->rate = 0;
+    that->mode = 0;
+    that->buffers.resize(inputs);
 
     // the following call wires our plugin in front of the given audio_target
     post_audio_port_t *port;
@@ -334,3 +463,4 @@ void *init_kmixer_plugin (xine_t *xine, void *)
 }
 
 } // extern "C"
+    //that->inputs = inputs;
