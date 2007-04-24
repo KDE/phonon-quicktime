@@ -1,5 +1,6 @@
 /*  This file is part of the KDE project
     Copyright (C) 2006 Tim Beaulen <tbscope@gmail.com>
+    Copyright (C) 2006-2007 Matthias Kretz <kretz@kde.org>
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -65,6 +66,27 @@ bool AudioEffect::isValid() const
     return m_pluginName != 0;
 }
 
+QList<EffectParameter> AudioEffect::allDescriptions()
+{
+    ensureParametersReady();
+    return m_parameterList;
+}
+
+EffectParameter AudioEffect::description(int parameterIndex)
+{
+    ensureParametersReady();
+    if (parameterIndex >= m_parameterList.size()) {
+        return EffectParameter();
+    }
+    return m_parameterList[parameterIndex];
+}
+
+int AudioEffect::parameterCount()
+{
+    ensureParametersReady();
+    return m_parameterList.size();
+}
+
 void AudioEffect::ensureParametersReady()
 {
     if (m_parameterList.isEmpty() && m_plugins.isEmpty()) {
@@ -75,6 +97,7 @@ void AudioEffect::ensureParametersReady()
         }
     }
 }
+
 xine_post_t *AudioEffect::newInstance(xine_audio_port_t *audioPort)
 {
     QMutexLocker lock(&m_mutex);
@@ -129,7 +152,7 @@ xine_post_t *AudioEffect::newInstance(xine_audio_port_t *audioPort)
     return 0;
 }
 
-QVariant AudioEffect::value(int parameterId) const
+QVariant AudioEffect::parameterValue(int parameterIndex) const
 {
     QMutexLocker lock(&m_mutex);
     if (m_plugins.isEmpty() || m_pluginApis.isEmpty()) {
@@ -146,8 +169,8 @@ QVariant AudioEffect::value(int parameterId) const
     Q_ASSERT(m_pluginParams);
     api->get_parameters(post, m_pluginParams);
     int i = 0;
-    for (; i < parameterId && desc->parameter[i].type != POST_PARAM_TYPE_LAST; ++i);
-    if (i == parameterId) {
+    for (; i < parameterIndex && desc->parameter[i].type != POST_PARAM_TYPE_LAST; ++i);
+    if (i == parameterIndex) {
         xine_post_api_parameter_t &p = desc->parameter[i];
         switch (p.type) {
             case POST_PARAM_TYPE_INT:          /* integer (or vector of integers)    */
@@ -167,11 +190,11 @@ QVariant AudioEffect::value(int parameterId) const
                 abort();
         }
     }
-    kError(610) << "invalid parameterId passed to AudioEffect::value" << endl;
+    kError(610) << "invalid parameterIndex passed to AudioEffect::value" << endl;
     return QVariant();
 }
 
-void AudioEffect::setValue( int parameterId, QVariant newValue )
+void AudioEffect::setParameterValue(int parameterIndex, const QVariant &newValue)
 {
     QMutexLocker lock(&m_mutex);
     if (m_plugins.isEmpty() || m_pluginApis.isEmpty()) {
@@ -187,8 +210,8 @@ void AudioEffect::setValue( int parameterId, QVariant newValue )
     xine_post_api_descr_t *desc = api->get_param_descr();
     Q_ASSERT(m_pluginParams);
     int i = 0;
-    for (; i < parameterId && desc->parameter[i].type != POST_PARAM_TYPE_LAST; ++i);
-    if (i == parameterId) {
+    for (; i < parameterIndex && desc->parameter[i].type != POST_PARAM_TYPE_LAST; ++i);
+    if (i == parameterIndex) {
         xine_post_api_parameter_t &p = desc->parameter[i];
         switch (p.type) {
             case POST_PARAM_TYPE_INT:          /* integer (or vector of integers)    */
@@ -215,14 +238,14 @@ void AudioEffect::setValue( int parameterId, QVariant newValue )
                 }
                 break;
             case POST_PARAM_TYPE_LAST:         /* terminator of parameter list       */
-                kError(610) << "invalid parameterId passed to AudioEffect::setValue" << endl;
+                kError(610) << "invalid parameterIndex passed to AudioEffect::setValue" << endl;
                 break;
             default:
                 abort();
         }
         api->set_parameters(post, m_pluginParams);
     } else {
-        kError(610) << "invalid parameterId passed to AudioEffect::setValue" << endl;
+        kError(610) << "invalid parameterIndex passed to AudioEffect::setValue" << endl;
     }
 }
 

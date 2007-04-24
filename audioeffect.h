@@ -1,5 +1,6 @@
 /*  This file is part of the KDE project
     Copyright (C) 2006 Tim Beaulen <tbscope@gmail.com>
+    Copyright (C) 2006-2007 Matthias Kretz <kretz@kde.org>
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -47,10 +48,13 @@ namespace Xine
              */
             virtual xine_post_t *newInstance(xine_audio_port_t *);
 
-		public slots:
-            QList<EffectParameter> parameterList() const { const_cast<AudioEffect *>(this)->ensureParametersReady(); return m_parameterList; }
-			QVariant value( int parameterId ) const;
-			void setValue( int parameterId, QVariant newValue );
+        public slots:
+            QList<EffectParameter> allDescriptions();
+            EffectParameter description(int parameterIndex);
+            int parameterCount();
+
+            QVariant parameterValue(int parameterIndex) const;
+            void setParameterValue(int parameterIndex, const QVariant &newValue);
 
         protected:
             virtual void ensureParametersReady();
