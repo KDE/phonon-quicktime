@@ -24,7 +24,7 @@ namespace Phonon
 namespace Xine
 {
 AvCapture::AvCapture( QObject* parent )
-	: MediaProducer( parent )
+	: MediaObject( parent )
 {
 }
 
