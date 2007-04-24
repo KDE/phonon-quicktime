@@ -21,7 +21,7 @@
 #include "videoeffect.h"
 #include "abstractvideooutput.h"
 #include "videowidgetinterface.h"
-#include "mediaproducer.h"
+#include "mediaobject.h"
 #include "videodataoutput.h"
 #include <xine.h>
 
@@ -31,9 +31,9 @@ namespace Xine
 {
 
 VideoPath::VideoPath( QObject* parent )
-	: QObject( parent )
-	, m_output( 0 )
-	, m_producer( 0 )
+    : QObject(parent),
+    m_output(0),
+    m_mediaObject(0)
 {
 }
 
@@ -64,8 +64,8 @@ VideoWidgetInterface *VideoPath::videoPort() const
 
 void VideoPath::videoPortChanged()
 {
-    if (m_producer) {
-        m_producer->setVideoPort(m_output);
+    if (m_mediaObject) {
+        m_mediaObject->setVideoPort(m_output);
     }
 }
 
@@ -78,8 +78,9 @@ bool VideoPath::addOutput( QObject* videoOutput )
 			return false;
 		m_output = vwi;
 		m_output->setPath( this );
-		if( m_producer && m_output->videoPort() != 0 )
-            m_producer->setVideoPort(m_output);
+        if (m_mediaObject && m_output->videoPort() != 0) {
+            m_mediaObject->setVideoPort(m_output);
+        }
         connect(videoOutput, SIGNAL(videoPortChanged()), SLOT(videoPortChanged()));
 		return true;
 	}
@@ -99,8 +100,9 @@ bool VideoPath::removeOutput( QObject* videoOutput )
 	{
 		m_output->unsetPath( this );
 		m_output = 0;
-		if( m_producer )
-            m_producer->setVideoPort(0);
+        if (m_mediaObject) {
+            m_mediaObject->setVideoPort(0);
+        }
         disconnect(videoOutput, SIGNAL(videoPortChanged()), this, SLOT(videoPortChanged()));
 		return true;
 	}
@@ -147,16 +149,16 @@ bool VideoPath::removeEffect( QObject* effect )
 	return false;
 }
 
-void VideoPath::setMediaProducer(MediaProducer *mp)
+void VideoPath::setMediaObject(MediaObject *mp)
 {
-    Q_ASSERT(m_producer == 0);
-    m_producer = mp;
+    Q_ASSERT(m_mediaObject == 0);
+    m_mediaObject = mp;
 }
 
-void VideoPath::unsetMediaProducer( MediaProducer* mp )
+void VideoPath::unsetMediaObject( MediaObject* mp )
 {
-    Q_ASSERT(m_producer == mp);
-    m_producer = 0;
+    Q_ASSERT(m_mediaObject == mp);
+    m_mediaObject = 0;
 }
 
 }}

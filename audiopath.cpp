@@ -22,7 +22,7 @@
 #include "abstractaudiooutput.h"
 #include "audiooutput.h"
 #include <QVector>
-#include "mediaproducer.h"
+#include "mediaobject.h"
 
 namespace Phonon
 {
@@ -137,20 +137,20 @@ bool AudioPath::removeEffect( QObject* effect )
 	return false;
 }
 
-void AudioPath::addMediaProducer( MediaProducer* mp )
+void AudioPath::addMediaObject(MediaObject *mp)
 {
-	m_producers.append( mp );
+    m_mediaObjects.append(mp);
     if (m_output) {
         m_output->updateVolume( mp );
     }
 }
 
-void AudioPath::removeMediaProducer( MediaProducer* mp )
+void AudioPath::removeMediaObject(MediaObject *mp)
 {
-	m_producers.removeAll( mp );
+    m_mediaObjects.removeAll(mp);
 }
 
-void AudioPath::updateVolume( MediaProducer* mp ) const
+void AudioPath::updateVolume(MediaObject *mp) const
 {
 	if( m_output )
 		m_output->updateVolume( mp );
