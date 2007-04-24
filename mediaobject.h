@@ -1,5 +1,6 @@
 /*  This file is part of the KDE project
     Copyright (C) 2006 Tim Beaulen <tbscope@gmail.com>
+    Copyright (C) 2006-2007 Matthias Kretz <kretz@kde.org>
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -19,15 +20,25 @@
 #ifndef Phonon_XINE_MEDIAOBJECT_H
 #define Phonon_XINE_MEDIAOBJECT_H
 
-#include "mediaproducer.h"
+#include <QObject>
+#include <phonon/mediaobjectinterface.h>
+#include <phonon/addoninterface.h>
+
+#include "xineengine.h"
+#include "xinestream.h"
+#include "audiopath.h"
+#include "videopath.h"
+
+#include <QByteArray>
+#include <QList>
+#include <QTime>
+#include <QList>
+#include <QHash>
+#include <QMultiMap>
+
 #include <kurl.h>
 
 #include <xine.h>
-
-#include "xineengine.h"
-#include <phonon/mediaobjectinterface.h>
-#include <QByteArray>
-#include <QList>
 
 class KUrl;
 
@@ -35,62 +46,115 @@ namespace Phonon
 {
 namespace Xine
 {
-    class MediaObjectBase : public MediaProducer
+
+    class MediaObject : public QObject, public MediaObjectInterface, public AddonInterface
     {
         Q_OBJECT
+        Q_INTERFACES(Phonon::MediaObjectInterface Phonon::AddonInterface)
         public:
-            MediaObjectBase(QObject* parent);
-            ~MediaObjectBase();
+            MediaObject(QObject *parent);
+            ~MediaObject();
 
-        public slots:
-            qint32 aboutToFinishTime() const;
-            void setAboutToFinishTime(qint32 newAboutToFinishTime);
+            bool addVideoPath(QObject* videoPath);
+            bool addAudioPath(QObject* audioPath);
+            void removeVideoPath(QObject* videoPath);
+            void removeAudioPath(QObject* audioPath);
+            State state() const;
+            bool hasVideo() const;
+            bool isSeekable() const;
+            qint64 currentTime() const;
+            qint64 totalTime() const;
+            qint64 remainingTime() const;
+            qint32 tickInterval() const;
 
-        signals:
-            void finished();
-            void aboutToFinish(qint32 msec);
-            void length(qint64 length);
+            QStringList availableAudioStreams() const;
+            QStringList availableVideoStreams() const;
+            QStringList availableSubtitleStreams() const;
 
-        private slots:
-            void handleFinished();
+            QString currentAudioStream(const QObject* audioPath) const;
+            QString currentVideoStream(const QObject* videoPath) const;
+            QString currentSubtitleStream(const QObject* videoPath) const;
 
-        private:
-            qint32 m_aboutToFinishTime;
-    };
+            void setCurrentAudioStream(const QString& streamName, const QObject* audioPath);
+            void setCurrentVideoStream(const QString& streamName, const QObject* videoPath);
+            void setCurrentSubtitleStream(const QString& streamName, const QObject* videoPath);
 
-    class MediaObject : public MediaObjectBase, public MediaObjectInterface
-	{
-		Q_OBJECT
-		Q_INTERFACES( Phonon::MediaObjectInterface )
-		public:
-			MediaObject( QObject* parent );
+            void setTickInterval(qint32 newTickInterval);
+            void play();
+            void pause();
+            void stop();
+            void seek(qint64 time);
 
-		public slots:
-			KUrl url() const;
-            qint64 totalTime() const { return MediaProducer::totalTime(); }
-            qint64 remainingTime() const { return MediaProducer::remainingTime(); }
-            void setAboutToFinishTime(qint32 newAboutToFinishTime) { MediaObjectBase::setAboutToFinishTime(newAboutToFinishTime); }
-            qint32 aboutToFinishTime() const { return MediaObjectBase::aboutToFinishTime(); }
-			void setUrl( const KUrl& url );
-            void openMedia(Phonon::MediaObject::Media m, const QString &mediaDevice);
+            QString errorString() const;
+            Phonon::ErrorType errorType() const;
+
+            XineStream& stream() { return m_stream; }
+            const XineStream& stream() const { return m_stream; }
+            //void setAudioPort(AudioPort port) { m_stream.setAudioPort(port); }
+            void setVideoPort(VideoWidgetInterface *port) { m_stream.setVideoPort(port); }
 
             bool hasInterface(AddonInterface::Interface i) const;
             QVariant interfaceCall(AddonInterface::Interface, int, const QList<QVariant> &);
 
-        private slots:
-            void nextTrack();
+            qint32 aboutToFinishTime() const;
+            void setAboutToFinishTime(qint32 newAboutToFinishTime);
+
+            MediaSource source() const;
+            void setSource(const MediaSource &source);
+
+        signals:
+            void finished();
+            void aboutToFinish(qint32 msec);
+            void totalTimeChanged(qint64 length);
+
+            void stateChanged(Phonon::State newstate, Phonon::State oldstate);
+            void tick(qint64 time);
+            void metaDataChanged(const QMultiMap<QString, QString>&);
+            void seekableChanged(bool);
+            void hasVideoChanged(bool);
+            void bufferStatus(int);
+            void asyncSeek(xine_stream_t*, qint64, bool);
+
+            // AddonInterface
             void availableTitlesChanged(int);
+            void titleChanged(int);
+            void availableChaptersChanged(int);
+            void chapterChanged(int);
 
-		protected:
-			KUrl m_url;
+        protected:
+            VideoPath* videoPath() const { return m_videoPath; }
 
-            QByteArray autoplayMrlsToTracks(const char *plugin, const char *defaultMrl);
+        protected slots:
+            void changeState(Phonon::State);
 
-            QList<QByteArray> m_tracks;
+        private slots:
+            void handleStateChange(Phonon::State newstate, Phonon::State oldstate);
+            void seekDone();
+            void nextTitle();
+            void handleAvailableTitlesChanged(int);
+            void handleFinished();
+
+        private:
+            QByteArray autoplayMrlsToTitles(const char *plugin, const char *defaultMrl);
+
+            Phonon::State m_state;
+            XineStream m_stream;
+            qint32 m_tickInterval;
+            QList<AudioPath *> m_audioPaths;
+            VideoPath *m_videoPath;
+
+            QHash<const QObject *, QString> m_currentAudioStream;
+            QHash<const QObject *, QString> m_currentVideoStream;
+            QHash<const QObject *, QString> m_currentSubtitleStream;
+
+            int m_seeking;
+            mutable int m_currentTimeOverride;
+            MediaSource m_mediaSource;
+            QList<QByteArray> m_titles;
             QByteArray m_mediaDevice;
-            Phonon::MediaObject::Media m_media;
-            int m_currentTrack;
-            bool m_autoplayTracks;
+            int m_currentTitle;
+            qint32 m_aboutToFinishTime;
+            bool m_autoplayTitles;
 	};
 }} //namespace Phonon::Xine
 

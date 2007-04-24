@@ -81,17 +81,11 @@ Backend::~Backend()
 	delete XineEngine::self();
 }
 
-QObject* Backend::createObject0(BackendInterface::Class0 c, QObject *parent)
+QObject *Backend::createObject(BackendInterface::Class c, QObject *parent, const QList<QVariant> &args)
 {
     switch (c) {
         case MediaObjectClass:
             return new MediaObject(parent);
-        case MediaQueueClass:
-            return new MediaQueue(parent);
-        case AvCaptureClass:
-            return new AvCapture(parent);
-        case ByteStreamClass:
-            return new ByteStream(parent);
         case AudioPathClass:
             return new AudioPath(parent);
         case VolumeFaderEffectClass:
@@ -110,17 +104,12 @@ QObject* Backend::createObject0(BackendInterface::Class0 c, QObject *parent)
             return new VideoDataOutput(parent);
         case DeinterlaceFilterClass:
             return new DeinterlaceFilter(parent);
-    }
-    return 0;
-}
-
-QObject* Backend::createObject1(BackendInterface::Class1 c, QObject *parent, QVariant arg1)
-{
-    switch (c) {
         case AudioEffectClass:
-            return new AudioEffect(arg1.toInt(), parent);
+            Q_ASSERT(args.size() == 1);
+            return new AudioEffect(args[0].toInt(), parent);
         case VideoEffectClass:
-            return new VideoEffect(arg1.toInt(), parent);
+            Q_ASSERT(args.size() == 1);
+            return new VideoEffect(args[0].toInt(), parent);
     }
     return 0;
 }

@@ -1,5 +1,6 @@
 /*  This file is part of the KDE project
     Copyright (C) 2006 Tim Beaulen <tbscope@gmail.com>
+    Copyright (C) 2006-2007 Matthias Kretz <kretz@kde.org>
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -47,15 +48,16 @@ namespace Phonon
 {
 namespace Xine
 {
-ByteStream::ByteStream(QObject* parent)
-    : MediaObjectBase(parent),
-    m_seekable(false),
-    m_mrlSet(false),
+ByteStream::ByteStream(const MediaSource &mediaSource, MediaObject* parent)
+    : QObject(parent),
+    StreamInterface(mediaSource),
+    m_mediaObject(parent),
     m_streamSize(0),
+    m_currentPosition(0),
     m_buffersize(0),
     m_offset(0),
-    m_currentPosition(0),
-    m_intstate(0),
+    m_seekable(false),
+    m_mrlSet(false),
     m_stopped(false),
     m_eod(false),
     m_buffering(false),
@@ -64,22 +66,22 @@ ByteStream::ByteStream(QObject* parent)
     // created in the main thread
     //m_mainThread = pthread_self();
 
-    connect(this, SIGNAL(needDataQueued()), this, SIGNAL(needData()), Qt::QueuedConnection);
+    connect(this, SIGNAL(needDataQueued()), this, SLOT(needData()), Qt::QueuedConnection);
     connect(this, SIGNAL(seekStreamQueued(qint64)), this, SLOT(syncSeekStream(qint64)), Qt::QueuedConnection);
 }
 
-void ByteStream::setMrl()
-{
-    if (m_mrlSet) {
-        return;
-    }
-    m_mrlSet = true;
-    stream().setMrl(mrl());
-    if (m_playRequested) {
-        m_playRequested = false;
-        MediaProducer::play();
-    }
-}
+//X void ByteStream::setMrl()
+//X {
+//X     if (m_mrlSet || m_streamSize <= 0 || m_preview.size() < MAX_PREVIEW_SIZE) {
+//X         return;
+//X     }
+//X     m_mrlSet = true;
+//X     stream().setMrl(mrl());
+//X //X     if (m_playRequested) {
+//X //X         m_playRequested = false;
+//X //X         MediaObject::play();
+//X //X     }
+//X }
 
 void ByteStream::pullBuffer(char *buf, int len)
 {
@@ -194,7 +196,7 @@ off_t ByteStream::seekBuffer(qint64 offset)
     }
 
     // impossible seek
-    if (offset > streamSize()) {
+    if (offset > m_streamSize) {
         kWarning(610) << "xine is asking to seek behind the end of the data stream" << endl;
         return m_currentPosition;
     }
@@ -240,7 +242,7 @@ off_t ByteStream::seekBuffer(qint64 offset)
     }
 
     // the ByteStream is not seekable: no chance to seek to the requested offset
-    if (!streamSeekable()) {
+    if (!m_seekable) {
         //kDebug(610) << "UNLOCKING m_mutex: " << k_funcinfo << endl;
         m_mutex.unlock();
         return m_currentPosition;
@@ -286,12 +288,12 @@ ByteStream::~ByteStream()
     m_stopped = true;
     // the other thread is now not between m_mutex.lock() and m_waitingForData.wait(&m_mutex), so it
     // won't get stuck in m_waitingForData.wait if it's not there right now
-    stream().setMrl(QByteArray());
+//X     stream().setMrl(QByteArray());
     m_seekWaitCondition.wakeAll();
     m_seekMutex.unlock();
     m_waitingForData.wakeAll();
     m_mutex.unlock();
-    stream().closeBlocking();
+//X     stream().closeBlocking();
 }
 
 QByteArray ByteStream::mrl() const
@@ -331,16 +333,19 @@ void ByteStream::setStreamSize(qint64 x)
 {
     PXINE_VDEBUG << k_funcinfo << x << endl;
     m_streamSize = x;
-    stateTransition(m_intstate | ByteStream::StreamSizeSetState);
+    if (m_streamSize > 0) {
+        emit needDataQueued();
+//X         setMrl();
+    }
 }
 
 void ByteStream::setPauseForBuffering(bool b)
 {
     if (b) {
-        QCoreApplication::postEvent(&stream(), new QEvent(static_cast<QEvent::Type>(2019)));
+        QCoreApplication::postEvent(&m_mediaObject->stream(), new QEvent(static_cast<QEvent::Type>(2019)));
         m_buffering = true;
     } else {
-        QCoreApplication::postEvent(&stream(), new QEvent(static_cast<QEvent::Type>(2020)));
+        QCoreApplication::postEvent(&m_mediaObject->stream(), new QEvent(static_cast<QEvent::Type>(2020)));
         m_buffering = false;
     }
 }
@@ -355,28 +360,18 @@ void ByteStream::endOfData()
     m_waitingForData.wakeAll();
 }
 
-qint64 ByteStream::streamSize() const
-{
-    return m_streamSize;
-}
-
 void ByteStream::setStreamSeekable(bool seekable)
 {
     m_seekable = seekable;
 }
 
-bool ByteStream::streamSeekable() const
-{
-    return m_seekable;
-}
-
-bool ByteStream::isSeekable() const
-{
-    if (m_seekable) {
-        return MediaProducer::isSeekable();
-    }
-    return false;
-}
+//X bool ByteStream::isSeekable() const
+//X {
+//X     if (m_seekable) {
+//X         return MediaObject::isSeekable();
+//X     }
+//X     return false;
+//X }
 
 void ByteStream::writeData(const QByteArray &data)
 {
@@ -385,7 +380,7 @@ void ByteStream::writeData(const QByteArray &data)
     }
 
     // first fill the preview buffer
-    if (!(m_intstate & PreviewReadyState)) {
+    if (!m_preview.size() == MAX_PREVIEW_SIZE) {
         PXINE_DEBUG << k_funcinfo << "fill preview" << endl;
         // more data than the preview buffer needs
         if (m_preview.size() + data.size() > MAX_PREVIEW_SIZE) {
@@ -396,24 +391,24 @@ void ByteStream::writeData(const QByteArray &data)
         }
 
         PXINE_VDEBUG << k_funcinfo << "filled preview buffer to " << m_preview.size() << endl;
-        if (m_preview.size() == MAX_PREVIEW_SIZE) { // preview buffer is full
-            stateTransition(m_intstate | PreviewReadyState);
-        }
+//X         if (m_preview.size() == MAX_PREVIEW_SIZE) { // preview buffer is full
+//X             setMrl();
+//X         }
     }
 
-    PXINE_VDEBUG << k_funcinfo << data.size() << " m_intstate = " << m_intstate << endl;
+    PXINE_VDEBUG << k_funcinfo << data.size() << " m_streamSize = " << m_streamSize << endl;
 
     QMutexLocker lock(&m_mutex);
     //kDebug(610) << "LOCKED m_mutex: " << k_funcinfo << endl;
     m_buffers.enqueue(data);
     m_buffersize += data.size();
     PXINE_VDEBUG << k_funcinfo << "m_buffersize = " << m_buffersize << endl;
-    switch (state()) {
+    switch (m_mediaObject->state()) {
     case Phonon::BufferingState: // if nbc is buffering we want more data
     case Phonon::LoadingState: // if the preview is not ready we want me more data
         break;
     default:
-        emit enoughData(); // else it's enough
+        enoughData(); // else it's enough
     }
     m_waitingForData.wakeAll();
     //kDebug(610) << "UNLOCKING m_mutex: " << k_funcinfo << endl;
@@ -423,67 +418,45 @@ void ByteStream::syncSeekStream(qint64 offset)
 {
     PXINE_VDEBUG << k_funcinfo << endl;
     m_seekMutex.lock();
-    emit seekStream( offset );
+    seekStream(offset);
     m_seekWaitCondition.wakeAll();
     m_seekMutex.unlock();
 }
 
-void ByteStream::play()
-{
-    PXINE_VDEBUG << k_funcinfo << endl;
-    m_stopped = false;
-    if (m_intstate != AboutToOpenState) {
-        m_playRequested = true; // not ready yet for playback, but keep it in mind so playback can
-        // start when ready
-        return;
-    }
-    setMrl();
-    MediaProducer::play(); // goes into Phonon::BufferingState/PlayingState
-}
-
-void ByteStream::stop()
-{
-    PXINE_VDEBUG << k_funcinfo << endl;
-
-    m_mutex.lock();
-    m_seekMutex.lock();
-    m_stopped = true;
-    // the other thread is now not between m_mutex.lock() and m_waitingForData.wait(&m_mutex), so it
-    // won't get stuck in m_waitingForData.wait if it's not there right now
-    m_seekWaitCondition.wakeAll();
-    m_seekMutex.unlock();
-    m_waitingForData.wakeAll();
-    m_mutex.unlock();
-
-    m_intstate &= AboutToOpenState;
-    MediaProducer::stop();
-
-    if (!m_seekable) {
-        m_mrlSet = true;
-        stream().setMrl(mrl());
-    }
-}
-
-void ByteStream::stateTransition( int newState )
-{
-	if( m_intstate == newState )
-		return;
-
-	PXINE_VDEBUG << k_funcinfo << newState << endl;
-    m_intstate = newState;
-	switch( newState )
-	{
-        case StreamSizeSetState:
-            // make Loading complete to reach StoppedState, all we need is the preview data
-            emit needDataQueued();
-            break;
-		case AboutToOpenState:
-            setMrl();
-			break;
-		default:
-			break;
-	}
-}
+//X void ByteStream::play()
+//X {
+//X     PXINE_VDEBUG << k_funcinfo << endl;
+//X     m_stopped = false;
+//X     if (m_streamSize <= 0 || m_preview.size() < MAX_PREVIEW_SIZE) {
+//X         m_playRequested = true; // not ready yet for playback, but keep it in mind so playback can
+//X         // start when ready
+//X         return;
+//X     }
+//X     setMrl();
+//X     MediaObject::play(); // goes into Phonon::BufferingState/PlayingState
+//X }
+//X 
+//X void ByteStream::stop()
+//X {
+//X     PXINE_VDEBUG << k_funcinfo << endl;
+//X 
+//X     m_mutex.lock();
+//X     m_seekMutex.lock();
+//X     m_stopped = true;
+//X     // the other thread is now not between m_mutex.lock() and m_waitingForData.wait(&m_mutex), so it
+//X     // won't get stuck in m_waitingForData.wait if it's not there right now
+//X     m_seekWaitCondition.wakeAll();
+//X     m_seekMutex.unlock();
+//X     m_waitingForData.wakeAll();
+//X     m_mutex.unlock();
+//X 
+//X     MediaObject::stop();
+//X 
+//X     if (!m_seekable) {
+//X         m_mrlSet = true;
+//X         stream().setMrl(mrl());
+//X     }
+//X }
 
 }} //namespace Phonon::Xine
 

@@ -21,13 +21,10 @@
 #include "xineengine.h"
 
 //#include <kdebug.h>
-#include "mediaproducer.h"
+#include "mediaobject.h"
 #include <QCoreApplication>
 #include <phonon/audiodeviceenumerator.h>
 #include <phonon/audiodevice.h>
-#include <solid/devicemanager.h>
-#include <solid/device.h>
-#include <solid/audiohw.h>
 #include <QList>
 #include <kconfiggroup.h>
 #include "videowidgetinterface.h"

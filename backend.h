@@ -48,8 +48,7 @@ namespace Xine
 			Backend( QObject* parent, const QStringList& args );
 			~Backend();
 
-            QObject* createObject0(BackendInterface::Class0, QObject *parent);
-            QObject* createObject1(BackendInterface::Class1, QObject *parent, QVariant arg1);
+            QObject *createObject(BackendInterface::Class, QObject *parent, const QList<QVariant> &args);
 
 			Q_INVOKABLE bool supportsVideo() const;
 			Q_INVOKABLE bool supportsOSD() const;
