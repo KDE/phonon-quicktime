@@ -21,6 +21,10 @@
 #define Phonon_XINE_VIDEOEFFECT_H
 
 #include <QObject>
+#include <phonon/effectparameter.h>
+#include <QList>
+#include <xine.h>
+#include <QMutex>
 
 namespace Phonon
 {
@@ -37,15 +41,31 @@ namespace Xine
 
 			virtual void setPath( VideoPath* );
 
-		protected:
-			VideoPath* path() const { return m_path; }
+            virtual xine_post_t *newInstance(xine_video_port_t *);
 
-		public slots:
-			QVariant value( int parameterId ) const;
-			void setValue( int parameterId, QVariant newValue );
+        public slots:
+            QList<EffectParameter> allDescriptions();
+            EffectParameter description(int parameterIndex);
+            int parameterCount();
 
-		private:
+            QVariant parameterValue(int parameterIndex) const;
+            void setParameterValue(int parameterIndex, const QVariant &newValue);
+
+        protected:
+            VideoPath *path() const { return m_path; }
+            virtual void ensureParametersReady();
+            VideoEffect(const char *name, QObject *parent);
+            void addParameter(const EffectParameter &p) { m_parameterList << p; }
+
+            QList<xine_post_t *> m_plugins;
+            QList<xine_post_api_t *> m_pluginApis;
+
+        private:
+            mutable QMutex m_mutex;
+            const char *m_pluginName;
+            char *m_pluginParams;
 			VideoPath* m_path;
+            QList<Phonon::EffectParameter> m_parameterList;
 	};
 }} //namespace Phonon::Xine
 
