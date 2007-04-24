@@ -19,16 +19,12 @@ install(TARGETS phononxineengine DESTINATION ${LIB_INSTALL_DIR})
 ADD_DEFINITIONS(-D_FILE_OFFSET_BITS=64)
 
 set(phonon_xine_PART_SRCS
-    mediaproducer.cpp
     abstractaudiooutput.cpp
     audiodataoutput.cpp
     audioeffect.cpp
     audiooutput.cpp
     audiopath.cpp
-    bytestream.cpp
     mediaobject.cpp
-    mediaqueue.cpp
-    avcapture.cpp
     videoeffect.cpp
     brightnesscontrol.cpp
     deinterlacefilter.cpp
@@ -37,6 +33,7 @@ set(phonon_xine_PART_SRCS
     visualization.cpp
     backend.cpp
     volumefadereffect.cpp
+    bytestream.cpp
     bytestreamplugin.cpp
     net_buf_ctrl.c
     volumefader_plugin.cpp
