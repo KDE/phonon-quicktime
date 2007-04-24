@@ -26,7 +26,7 @@
 
 #include <QX11Info>
 #include "../xineengine.h"
-#include "../mediaproducer.h"
+#include "../mediaobject.h"
 #include <QApplication>
 #include <QVBoxLayout>
 
@@ -141,10 +141,10 @@ VideoWidget::~VideoWidget()
         xine_video_port_t *vp = m_videoPort;
         m_videoPort = 0;
         // tell the xine stream to stop using this videoPort
-        //if( m_path && m_path->producer() )
+        //if( m_path && m_path->mediaObject() )
         //emit videoPortChanged();
-        if (m_path && m_path->producer()) {
-            XineStream &xs = m_path->producer()->stream();
+        if (m_path && m_path->mediaObject()) {
+            XineStream &xs = m_path->mediaObject()->stream();
             xs.aboutToDeleteVideoWidget();
         }
 
@@ -175,8 +175,8 @@ Phonon::VideoWidget::AspectRatio VideoWidget::aspectRatio() const
 void VideoWidget::setAspectRatio( Phonon::VideoWidget::AspectRatio aspectRatio )
 {
     m_aspectRatio = aspectRatio;
-    if (m_path && m_path->producer()) {
-        XineStream &xs = m_path->producer()->stream();
+    if (m_path && m_path->mediaObject()) {
+        XineStream &xs = m_path->mediaObject()->stream();
         switch (m_aspectRatio) {
             case Phonon::VideoWidget::AspectRatioWidget:
                 xs.setParam(XINE_PARAM_VO_ASPECT_RATIO, XINE_VO_ASPECT_SQUARE);
@@ -243,8 +243,8 @@ void VideoWidget::childEvent(QChildEvent *event)
 
 void VideoWidget::updateZoom()
 {
-    if (m_path && m_path->producer()) {
-        XineStream &xs = m_path->producer()->stream();
+    if (m_path && m_path->mediaObject()) {
+        XineStream &xs = m_path->mediaObject()->stream();
         if (m_aspectRatio == Phonon::VideoWidget::AspectRatioWidget) {
             const QSize s = size();
             QSize imageSize = m_sizeHint;
@@ -332,8 +332,8 @@ bool VideoWidget::event(QEvent *ev)
 
 void VideoWidget::mouseMoveEvent(QMouseEvent *mev)
 {
-    if (m_path && m_path->producer()) {
-        XineStream &xs = m_path->producer()->stream();
+    if (m_path && m_path->mediaObject()) {
+        XineStream &xs = m_path->mediaObject()->stream();
         if (cursor().shape() == Qt::BlankCursor) {
             setCursor(QCursor(Qt::ArrowCursor));
         }
@@ -362,8 +362,8 @@ void VideoWidget::mouseMoveEvent(QMouseEvent *mev)
 
 void VideoWidget::mousePressEvent(QMouseEvent *mev)
 {
-    if (mev->button() == Qt::LeftButton && m_path && m_path->producer()) {
-        XineStream &xs = m_path->producer()->stream();
+    if (mev->button() == Qt::LeftButton && m_path && m_path->mediaObject()) {
+        XineStream &xs = m_path->mediaObject()->stream();
         x11_rectangle_t   rect;
         xine_event_t      *event = new xine_event_t;
         xine_input_data_t *input = new xine_input_data_t;
@@ -389,7 +389,7 @@ void VideoWidget::mousePressEvent(QMouseEvent *mev)
 void VideoWidget::paintEvent(QPaintEvent *event)
 {
     //kDebug(610) << k_funcinfo << endl;
-    if (!m_path || !m_path->producer() || m_path->producer()->state() == Phonon::LoadingState) {
+    if (!m_path || !m_path->mediaObject() || m_path->mediaObject()->state() == Phonon::LoadingState) {
         QPainter p(this);
         p.fillRect(rect(), Qt::black);
     } else if (m_videoPort) {
