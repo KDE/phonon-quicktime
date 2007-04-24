@@ -1,5 +1,6 @@
 /*  This file is part of the KDE project
     Copyright (C) 2006 Tim Beaulen <tbscope@gmail.com>
+    Copyright (C) 2006-2007 Matthias Kretz <kretz@kde.org>
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -24,7 +25,7 @@
 #include <xine.h>
 
 #include "xineengine.h"
-#include <phonon/bytestreaminterface.h>
+#include <phonon/streaminterface.h>
 #include <QByteArray>
 #include <QQueue>
 #include <kdebug.h>
@@ -33,41 +34,31 @@
 #include <QWaitCondition>
 #include <pthread.h>
 #include <cstdlib>
+#include <QObject>
 
 namespace Phonon
 {
 namespace Xine
 {
-    class ByteStream : public MediaObjectBase, public ByteStreamInterface
+    class ByteStream : public QObject, public StreamInterface
     {
         Q_OBJECT
-        Q_INTERFACES( Phonon::ByteStreamInterface )
+        Q_INTERFACES(Phonon::StreamInterface)
         public:
-            ByteStream(QObject* parent);
+            ByteStream(const MediaSource &, MediaObject* parent);
             ~ByteStream();
 
+            QByteArray mrl() const;
+            bool streamSeekable() const { return m_seekable; }
+            qint64 streamSize() const { return m_streamSize; }
+
         public slots:
-            qint64 totalTime() const { return MediaProducer::totalTime(); }
-            qint64 remainingTime() const { return MediaProducer::remainingTime(); }
-            virtual bool isSeekable() const;
-
             void writeData(const QByteArray &data);
-
-			void play();
-			void stop();
-
-			void endOfData();
-
-			void setStreamSeekable( bool );
-			bool streamSeekable() const;
-
-			void setStreamSize( qint64 );
-			qint64 streamSize() const;
+            void endOfData();
+            void setStreamSeekable(bool);
+            void setStreamSize(qint64);
 
             void setPauseForBuffering(bool);
-
-            void setAboutToFinishTime(qint32 newAboutToFinishTime) { MediaObjectBase::setAboutToFinishTime(newAboutToFinishTime); }
-            qint32 aboutToFinishTime() const { return MediaObjectBase::aboutToFinishTime(); }
 
             // for the xine input plugin:
             int peekBuffer(void *buf);
@@ -76,53 +67,37 @@ namespace Xine
             off_t currentPosition() const;
 
         signals:
-            /* finished, aboutToFinish and length are emitted by MediaObjectBase already */
-            void needData();
             void needDataQueued();
-            void enoughData();
-            void seekStream(qint64);
             void seekStreamQueued(qint64);
-
-        protected:
-            virtual void stateTransition(int newState);
-
-            bool m_aboutToFinishNotEmitted;
 
         private slots:
             void syncSeekStream(qint64 offset);
+            void needData() { StreamInterface::needData(); }
 
         private:
-            QByteArray mrl() const;
-            void setMrl();
+//X             void setMrl();
             void pullBuffer(char *buf, int len);
-            enum State
-            {
-                PreviewReadyState = 1,
-                StreamSizeSetState = 2,
-                AboutToOpenState = PreviewReadyState | StreamSizeSetState
-            };
 
-            bool m_seekable;
-            bool m_mrlSet;
+            MediaObject *m_mediaObject;
+            QByteArray m_preview;
+            QMutex m_mutex;
+            QMutex m_seekMutex;
+            QWaitCondition m_waitingForData;
+            QWaitCondition m_seekWaitCondition;
+            QQueue<QByteArray> m_buffers;
+
+            //pthread_t m_mainThread;
             qint64 m_streamSize;
+            qint64 m_currentPosition;
+            size_t m_buffersize;
+            int m_offset;
 
-		QByteArray m_preview;
-		QMutex m_mutex;
-		QMutex m_seekMutex;
-		QWaitCondition m_waitingForData;
-		QWaitCondition m_seekWaitCondition;
-
-		size_t m_buffersize;
-		int m_offset;
-		QQueue<QByteArray> m_buffers;
-        //pthread_t m_mainThread;
-		qint64 m_currentPosition;
-
-        int m_intstate;
-        bool m_stopped : 1;
-        bool m_eod : 1;
-        bool m_buffering : 1;
-        bool m_playRequested : 1;
+            bool m_seekable : 1;
+            bool m_mrlSet : 1;
+            bool m_stopped : 1;
+            bool m_eod : 1;
+            bool m_buffering : 1;
+            bool m_playRequested : 1;
 	};
 }} //namespace Phonon::Xine
 

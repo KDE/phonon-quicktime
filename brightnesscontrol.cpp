@@ -19,7 +19,7 @@
 
 #include "brightnesscontrol.h"
 #include "videopath.h"
-#include "mediaproducer.h"
+#include "mediaobject.h"
 #include <kdebug.h>
 
 namespace Phonon
@@ -72,8 +72,8 @@ int BrightnessControl::lowerBound() const
 
 XineStream* BrightnessControl::stream()
 {
-    if (path() && path()->producer()) {
-        return &path()->producer()->stream();
+    if (path() && path()->mediaObject()) {
+        return &path()->mediaObject()->stream();
     }
     return 0;
 }
