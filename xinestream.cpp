@@ -26,7 +26,7 @@
 #include <kurl.h>
 #include "audioport.h"
 #include "videowidgetinterface.h"
-#include "mediaproducer.h"
+#include "mediaobject.h"
 #include <klocale.h>
 
 extern "C" {
@@ -400,7 +400,7 @@ bool XineStream::createStream()
     if (m_audioPostLists.size() == 1) {
         m_audioPostLists.first().wireStream(xine_get_audio_source(m_stream));
     } else if (m_audioPostLists.size() > 1) {
-        kWarning(610) << "multiple AudioPaths per MediaProducer is not supported. Trying anyway." << endl;
+        kWarning(610) << "multiple AudioPaths per MediaObject is not supported. Trying anyway." << endl;
         foreach (AudioPostList apl, m_audioPostLists) {
             apl.wireStream(xine_get_audio_source(m_stream));
         }
@@ -791,7 +791,7 @@ bool XineStream::event(QEvent *ev)
                     m_audioPostLists << e->postList;
                     if (m_stream) {
                         if (m_audioPostLists.size() > 1) {
-                            kWarning(610) << "attaching multiple AudioPaths to one MediaProducer is not supported yet." << endl;
+                            kWarning(610) << "attaching multiple AudioPaths to one MediaObject is not supported yet." << endl;
                         }
                         e->postList.wireStream(xine_get_audio_source(m_stream));
                     }

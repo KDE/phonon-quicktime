@@ -19,7 +19,7 @@
 #ifndef Phonon_XINE_AVCAPTURECAPTURE_H
 #define Phonon_XINE_AVCAPTURECAPTURE_H
 
-#include "mediaproducer.h"
+#include "mediaobject.h"
 
 #include "xineengine.h"
 
@@ -27,7 +27,7 @@ namespace Phonon
 {
 namespace Xine
 {
-	class AvCapture : public MediaProducer
+	class AvCapture : public MediaObject
 	{
 		Q_OBJECT
 		public:
