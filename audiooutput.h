@@ -33,7 +33,7 @@ namespace Phonon
 {
 namespace Xine
 {
-	class MediaProducer;
+    class MediaObject;
     class AudioOutput : public AbstractAudioOutput, public AudioOutputInterface
 	{
 		Q_OBJECT
@@ -43,27 +43,27 @@ namespace Xine
 			~AudioOutput();
 
             AudioPort audioPort() const;
-			void updateVolume( MediaProducer* mp ) const;
+            void updateVolume(MediaObject *mp) const;
 
 			// Attributes Getters:
-			float volume() const;
+            qreal volume() const;
 			int outputDevice() const;
 
 			// Attributes Setters:
-			void setVolume( float newVolume );
+            void setVolume(qreal newVolume);
             bool setOutputDevice(int newDevice);
 
         protected:
             bool event(QEvent *);
 
 		Q_SIGNALS:
-			void volumeChanged( float newVolume );
+            void volumeChanged(qreal newVolume);
             void audioDeviceFailed();
 
             void audioPortChanged(const AudioPort &);
 
 		private:
-			float m_volume;
+            qreal m_volume;
 			int m_device;
             AudioPort m_audioPort;
 	};

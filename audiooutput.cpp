@@ -44,7 +44,7 @@ AudioOutput::~AudioOutput()
     //kDebug(610) << k_funcinfo << endl;
 }
 
-float AudioOutput::volume() const
+qreal AudioOutput::volume() const
 {
 	return m_volume;
 }
@@ -66,7 +66,7 @@ void AudioOutput::updateVolume(MediaObject *mp) const
     mp->stream().setVolume(xinevolume);
 }
 
-void AudioOutput::setVolume( float newVolume )
+void AudioOutput::setVolume(qreal newVolume)
 {
 	m_volume = newVolume;
 
