@@ -61,7 +61,7 @@ namespace Xine
             QHash<QByteArray, QVariant> objectDescriptionProperties(ObjectDescriptionType, int) const;
 
 		public slots:
-            QStringList knownMimeTypes() const;
+            QStringList availableMimeTypes() const;
 			const char* uiLibrary() const;
 			//const char* uiSymbol() const;
 

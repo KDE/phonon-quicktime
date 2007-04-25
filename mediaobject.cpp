@@ -68,10 +68,13 @@ MediaObject::MediaObject(QObject *parent)
     connect(&m_stream, SIGNAL(tick(qint64)), SIGNAL(tick(qint64)));
     connect(&m_stream, SIGNAL(availableChaptersChanged(int)), SIGNAL(availableChaptersChanged(int)));
     connect(&m_stream, SIGNAL(chapterChanged(int)), SIGNAL(chapterChanged(int)));
+    connect(&m_stream, SIGNAL(availableAnglesChanged(int)), SIGNAL(availableAnglesChanged(int)));
+    connect(&m_stream, SIGNAL(angleChanged(int)), SIGNAL(angleChanged(int)));
     connect(&m_stream, SIGNAL(finished()), SLOT(handleFinished()), Qt::QueuedConnection);
     connect(&m_stream, SIGNAL(length(qint64)), SIGNAL(totalTimeChanged(qint64)), Qt::QueuedConnection);
-    connect(&m_stream, SIGNAL(aboutToFinish(qint32)), SIGNAL(aboutToFinish(qint32)), Qt::QueuedConnection);
+    connect(&m_stream, SIGNAL(prefinishMarkReached(qint32)), SIGNAL(prefinishMarkReached(qint32)), Qt::QueuedConnection);
     connect(&m_stream, SIGNAL(availableTitlesChanged(int)), SLOT(handleAvailableTitlesChanged(int)));
+    connect(&m_stream, SIGNAL(needNextUrl()), SLOT(needNextUrl()));
 }
 
 void MediaObject::seekDone()
@@ -388,14 +391,39 @@ MediaSource MediaObject::source() const
 	return m_mediaSource;
 }
 
-qint32 MediaObject::aboutToFinishTime() const
+qint32 MediaObject::prefinishMark() const
 {
 	//kDebug( 610 ) << k_funcinfo << endl;
-	return m_aboutToFinishTime;
+	return m_prefinishMark;
 }
 
+qint32 MediaObject::transitionTime() const
+{
+    return m_transitionTime;
+}
+
+void MediaObject::setTransitionTime(qint32 newTransitionTime)
+{
+    m_transitionTime = newTransitionTime;
+}
+
+void MediaObject::setNextSource(const MediaSource &source)
+{
+    abort(); // TODO
+    if (m_transitionTime < 0) {
+        kError(610) << "crossfades are not supported with the xine backend" << endl;
+    } else if (m_transitionTime > 0) {
+        kError(610) << "defined gaps are not supported with the xine backend" << endl;
+    }
+    setSourceInternal(source, GaplessSwitch);
+}
 
 void MediaObject::setSource(const MediaSource &source)
+{
+    setSourceInternal(source, HardSwitch);
+}
+
+void MediaObject::setSourceInternal(const MediaSource &source, HowToSetTheUrl how)
 {
 	//kDebug( 610 ) << k_funcinfo << endl;
     m_titles.clear();
@@ -414,7 +442,14 @@ void MediaObject::setSource(const MediaSource &source)
             stream().setError(Phonon::NormalError, i18n("Cannot open media data at '<i>%1</i>'", source.url().toString(QUrl::RemovePassword)));
             return;
         }
-        stream().setUrl(source.url());
+        switch (how) {
+        case GaplessSwitch:
+            m_stream.gaplessSwitchTo(source.url());
+            break;
+        case HardSwitch:
+            m_stream.setUrl(source.url());
+            break;
+        }
         break;
     case MediaSource::Disc:
         {
@@ -443,13 +478,27 @@ void MediaObject::setSource(const MediaSource &source)
                     kError(610) << "media " << source.discType() << " not implemented" << endl;
                     return;
             }
-            stream().setMrl(mrl);
+            switch (how) {
+            case GaplessSwitch:
+                m_stream.gaplessSwitchTo(mrl);
+                break;
+            case HardSwitch:
+                m_stream.setMrl(mrl);
+                break;
+            }
         }
         break;
     case MediaSource::Stream:
         {
             ByteStream *bs = new ByteStream(source, this);
-            stream().setMrl(bs->mrl());
+            switch (how) {
+            case GaplessSwitch:
+                m_stream.gaplessSwitchTo(bs->mrl());
+                break;
+            case HardSwitch:
+                m_stream.setMrl(bs->mrl());
+                break;
+            }
         }
         break;
     }
@@ -485,10 +534,8 @@ QByteArray MediaObject::autoplayMrlsToTitles(const char *plugin, const char *def
     m_currentTitle = 1;
     if (m_autoplayTitles) {
         stream().useGaplessPlayback(true);
-        connect(&stream(), SIGNAL(needNextUrl()), this, SLOT(nextTitle()));
     } else {
         stream().useGaplessPlayback(false);
-        disconnect(&stream(), SIGNAL(needNextUrl()), this, SLOT(nextTitle()));
     }
     return m_titles.first();
 }
@@ -601,11 +648,9 @@ QVariant MediaObject::interfaceCall(Interface interface, int command, const QLis
                 if (b) {
                     kDebug(610) << "setAutoplayTitles: enable autoplay" << endl;
                     stream().useGaplessPlayback(true);
-                    connect(&stream(), SIGNAL(needNextUrl()), this, SLOT(nextTitle()));
                 } else {
                     kDebug(610) << "setAutoplayTitles: disable autoplay" << endl;
                     stream().useGaplessPlayback(false);
-                    disconnect(&stream(), SIGNAL(needNextUrl()), this, SLOT(nextTitle()));
                 }
                 return true;
             }
@@ -614,21 +659,21 @@ QVariant MediaObject::interfaceCall(Interface interface, int command, const QLis
     return QVariant();
 }
 
-void MediaObject::nextTitle()
+void MediaObject::needNextUrl()
 {
-    if (m_titles.size() > m_currentTitle) {
+    if (m_mediaSource.type() == MediaSource::Disc && m_titles.size() > m_currentTitle) {
         stream().gaplessSwitchTo(m_titles[m_currentTitle]);
         ++m_currentTitle;
         emit titleChanged(m_currentTitle);
-    } else {
-        stream().gaplessSwitchTo(QByteArray());
+        return;
     }
+    emit aboutToFinish();
 }
 
-void MediaObject::setAboutToFinishTime( qint32 newAboutToFinishTime )
+void MediaObject::setPrefinishMark( qint32 newPrefinishMark )
 {
-    m_aboutToFinishTime = newAboutToFinishTime;
-    stream().setAboutToFinishTime(newAboutToFinishTime);
+    m_prefinishMark = newPrefinishMark;
+    stream().setPrefinishMark(newPrefinishMark);
 }
 
 }}

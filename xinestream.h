@@ -73,7 +73,7 @@ class PHONON_XINE_ENGINE_EXPORT XineStream : public QThread
 
         void setVideoPort(VideoWidgetInterface *vwi);
         void setTickInterval(qint32 interval);
-        void setAboutToFinishTime(qint32 time);
+        void setPrefinishMark(qint32 time);
 
         void needRewire(AudioPostList *postList);
         void setParam(int param, int value);
@@ -131,7 +131,7 @@ class PHONON_XINE_ENGINE_EXPORT XineStream : public QThread
         void seekDone();
         void needNextUrl();
         void tick(qint64);
-        void aboutToFinish(qint32);
+        void prefinishMarkReached(qint32);
         void seekableChanged(bool);
         void hasVideoChanged(bool);
         void bufferStatus(int);
@@ -190,14 +190,14 @@ class PHONON_XINE_ENGINE_EXPORT XineStream : public QThread
         QMultiMap<QString, QString> m_metaDataMap;
         QByteArray m_mrl;
         QTimer *m_tickTimer;
-        QTimer *m_aboutToFinishTimer;
+        QTimer *m_prefinishMark;
         struct timeval m_lastTimeUpdate;
 
         QString m_errorString;
         Phonon::ErrorType m_errorType;
 
         SeekCommandEvent *m_lastSeekCommand;
-        qint32 m_aboutToFinishTime;
+        qint32 m_prefinishMark;
         int m_volume;
         int m_startTime;
         int m_totalTime;
@@ -214,7 +214,7 @@ class PHONON_XINE_ENGINE_EXPORT XineStream : public QThread
         bool m_isSeekable : 1;
         bool m_rewireEventSent : 1;
         bool m_useGaplessPlayback : 1;
-        bool m_aboutToFinishNotEmitted : 1;
+        bool m_prefinishMarkReachedNotEmitted : 1;
         bool m_ticking : 1;
         bool m_closing : 1;
         bool m_eventLoopReady : 1;
