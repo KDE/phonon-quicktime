@@ -190,7 +190,7 @@ class PHONON_XINE_ENGINE_EXPORT XineStream : public QThread
         QMultiMap<QString, QString> m_metaDataMap;
         QByteArray m_mrl;
         QTimer *m_tickTimer;
-        QTimer *m_prefinishMark;
+        QTimer *m_prefinishMarkTimer;
         struct timeval m_lastTimeUpdate;
 
         QString m_errorString;
