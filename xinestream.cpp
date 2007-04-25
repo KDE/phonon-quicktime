@@ -55,7 +55,7 @@ enum {
     GaplessSwitch = 2010,
     UpdateTime = 2011,
     SetTickInterval = 2012,
-    SetAboutToFinishTime = 2013,
+    SetPrefinishMark = 2013,
     SetParam = 2014,
     EventSend = 2015,
     AudioRewire = 2016,
@@ -143,10 +143,10 @@ class SetTickIntervalEvent : public QEvent
         qint32 m_interval;
 };
 
-class SetAboutToFinishTimeEvent : public QEvent
+class SetPrefinishMarkEvent : public QEvent
 {
     public:
-        SetAboutToFinishTimeEvent(qint32 interval) : QEvent(static_cast<QEvent::Type>(SetAboutToFinishTime)), m_interval(interval) {}
+        SetPrefinishMarkEvent(qint32 interval) : QEvent(static_cast<QEvent::Type>(SetPrefinishMark)), m_interval(interval) {}
         qint32 time() const { return m_interval; }
     private:
         qint32 m_interval;
@@ -160,7 +160,7 @@ XineStream::XineStream()
     m_newVideoPort(0),
     m_state(Phonon::LoadingState),
     m_tickTimer(0),
-    m_aboutToFinishTimer(0),
+    m_prefinishMark(0),
     m_errorType(Phonon::NoError),
     m_lastSeekCommand(0),
     m_volume(100),
@@ -178,7 +178,7 @@ XineStream::XineStream()
     m_isSeekable(false),
     m_rewireEventSent(false),
     m_useGaplessPlayback(false),
-    m_aboutToFinishNotEmitted(true),
+    m_prefinishMarkReachedNotEmitted(true),
     m_ticking(false),
     m_closing(false),
     m_eventLoopReady(false),
@@ -489,9 +489,9 @@ void XineStream::setTickInterval(qint32 interval)
 }
 
 // called from main thread
-void XineStream::setAboutToFinishTime(qint32 time)
+void XineStream::setPrefinishMark(qint32 time)
 {
-    QCoreApplication::postEvent(this, new SetAboutToFinishTimeEvent(time));
+    QCoreApplication::postEvent(this, new SetPrefinishMarkEvent(time));
 }
 
 // called from main thread
@@ -560,15 +560,15 @@ void XineStream::changeState(Phonon::State newstate)
             m_tickTimer->start();
             //kDebug(610) << "tickTimer started." << endl;
         }
-        if (m_aboutToFinishTime > 0) {
+        if (m_prefinishMark > 0) {
             emitAboutToFinish();
         }
     } else if (oldstate == Phonon::PlayingState) {
         m_tickTimer->stop();
         //kDebug(610) << "tickTimer stopped." << endl;
-        m_aboutToFinishNotEmitted = true;
-        if (m_aboutToFinishTimer) {
-            m_aboutToFinishTimer->stop();
+        m_prefinishMarkReachedNotEmitted = true;
+        if (m_prefinishMark) {
+            m_prefinishMark->stop();
         }
     } else if (newstate == Phonon::ErrorState) {
         kDebug(610) << "reached error state from: " << kBacktrace() << endl;
@@ -615,14 +615,14 @@ void XineStream::playbackFinished()
 {
     {
         QMutexLocker locker(&m_mutex);
-        if (m_aboutToFinishNotEmitted && m_aboutToFinishTime > 0) {
-            emit aboutToFinish(0);
+        if (m_prefinishMarkReachedNotEmitted && m_prefinishMark > 0) {
+            emit prefinishMarkReached(0);
         }
         changeState(Phonon::StoppedState);
         emit finished();
         xine_close(m_stream); // TODO: is it necessary? should xine_close be called as late as possible?
         m_streamInfoReady = false;
-        m_aboutToFinishNotEmitted = true;
+        m_prefinishMarkReachedNotEmitted = true;
     }
     m_waitingForClose.wakeAll();
 }
@@ -668,8 +668,8 @@ const char* nameForEvent(int e)
             return "StopCommand";
         case SetTickInterval:
             return "SetTickInterval";
-        case SetAboutToFinishTime:
-            return "SetAboutToFinishTime";
+        case SetPrefinishMark:
+            return "SetPrefinishMark";
         case SeekCommand:
             return "SeekCommand";
         //case EventSend:
@@ -878,12 +878,11 @@ bool XineStream::event(QEvent *ev)
                 m_mutex.unlock();
                 xine_play(m_stream, 0, 0);
 
-                if (m_aboutToFinishNotEmitted && m_aboutToFinishTime > 0) {
-                    emit aboutToFinish(0);
+                if (m_prefinishMarkReachedNotEmitted && m_prefinishMark > 0) {
+                    emit prefinishMarkReached(0);
                 }
-                m_aboutToFinishNotEmitted = true;
+                m_prefinishMarkReachedNotEmitted = true;
                 getStreamInfo();
-                emit finished();
                 xine_get_pos_length(m_stream, 0, &m_currentTime, &m_totalTime);
                 emit length(m_totalTime);
                 updateMetaData();
@@ -950,7 +949,7 @@ bool XineStream::event(QEvent *ev)
                     m_mutex.lock();
                     xine_close(m_stream);
                     m_streamInfoReady = false;
-                    m_aboutToFinishNotEmitted = true;
+                    m_prefinishMarkReachedNotEmitted = true;
                     changeState(Phonon::LoadingState);
                     m_mutex.unlock();
                 }
@@ -1227,17 +1226,17 @@ bool XineStream::event(QEvent *ev)
                 }
             }
             return true;
-        case SetAboutToFinishTime:
+        case SetPrefinishMark:
             ev->accept();
             {
-                SetAboutToFinishTimeEvent *e = static_cast<SetAboutToFinishTimeEvent*>(ev);
-                m_aboutToFinishTime = e->time();
-                if (m_aboutToFinishTime > 0) {
+                SetPrefinishMarkEvent *e = static_cast<SetPrefinishMarkEvent*>(ev);
+                m_prefinishMark = e->time();
+                if (m_prefinishMark > 0) {
                     updateTime();
-                    if (m_currentTime < m_totalTime - m_aboutToFinishTime) { // not about to finish
-                        m_aboutToFinishNotEmitted = true;
+                    if (m_currentTime < m_totalTime - m_prefinishMark) { // not about to finish
+                        m_prefinishMarkReachedNotEmitted = true;
                         if (m_state == Phonon::PlayingState) {
-                            emitAboutToFinishIn(m_totalTime - m_aboutToFinishTime - m_currentTime);
+                            emitAboutToFinishIn(m_totalTime - m_prefinishMark - m_currentTime);
                         }
                     }
                 }
@@ -1277,15 +1276,15 @@ bool XineStream::event(QEvent *ev)
                         return true; // cannot seek
                 }
                 m_currentTime = e->time();
-                const int timeToSignal = m_totalTime - m_aboutToFinishTime - e->time();
-                if (m_aboutToFinishTime > 0) {
+                const int timeToSignal = m_totalTime - m_prefinishMark - e->time();
+                if (m_prefinishMark > 0) {
                     if (timeToSignal > 0 ) { // not about to finish
-                        m_aboutToFinishNotEmitted = true;
+                        m_prefinishMarkReachedNotEmitted = true;
                         emitAboutToFinishIn(timeToSignal);
-                    } else if (m_aboutToFinishNotEmitted) {
-                        m_aboutToFinishNotEmitted = false;
-                        kDebug(610) << "emitting aboutToFinish(" << timeToSignal + m_aboutToFinishTime << ")" << endl;
-                        emit aboutToFinish(timeToSignal + m_aboutToFinishTime);
+                    } else if (m_prefinishMarkReachedNotEmitted) {
+                        m_prefinishMarkReachedNotEmitted = false;
+                        kDebug(610) << "emitting prefinishMarkReached(" << timeToSignal + m_prefinishMark << ")" << endl;
+                        emit prefinishMarkReached(timeToSignal + m_prefinishMark);
                     }
                 }
             }
@@ -1437,13 +1436,13 @@ void XineStream::emitAboutToFinishIn(int timeToAboutToFinishSignal)
 {
     Q_ASSERT(QThread::currentThread() == this);
     kDebug(610) << k_funcinfo << timeToAboutToFinishSignal << endl;
-    Q_ASSERT(m_aboutToFinishTime > 0);
-    if (!m_aboutToFinishTimer) {
-        m_aboutToFinishTimer = new QTimer(this);
-        //m_aboutToFinishTimer->setObjectName("aboutToFinish timer");
-        Q_ASSERT(m_aboutToFinishTimer->thread() == this);
-        m_aboutToFinishTimer->setSingleShot(true);
-        connect(m_aboutToFinishTimer, SIGNAL(timeout()), SLOT(emitAboutToFinish()), Qt::DirectConnection);
+    Q_ASSERT(m_prefinishMark > 0);
+    if (!m_prefinishMark) {
+        m_prefinishMark = new QTimer(this);
+        //m_prefinishMark->setObjectName("prefinishMarkReached timer");
+        Q_ASSERT(m_prefinishMark->thread() == this);
+        m_prefinishMark->setSingleShot(true);
+        connect(m_prefinishMark, SIGNAL(timeout()), SLOT(emitAboutToFinish()), Qt::DirectConnection);
     }
     timeToAboutToFinishSignal -= 400; // xine is not very accurate wrt time info, so better look too
                                       // often than too late
@@ -1451,25 +1450,25 @@ void XineStream::emitAboutToFinishIn(int timeToAboutToFinishSignal)
         timeToAboutToFinishSignal = 0;
     }
     kDebug(610) << timeToAboutToFinishSignal << endl;
-    m_aboutToFinishTimer->start(timeToAboutToFinishSignal);
+    m_prefinishMark->start(timeToAboutToFinishSignal);
 }
 
 // xine thread
 void XineStream::emitAboutToFinish()
 {
     Q_ASSERT(QThread::currentThread() == this);
-    kDebug(610) << k_funcinfo << m_aboutToFinishNotEmitted << ", " << m_aboutToFinishTime << endl;
-    if (m_aboutToFinishNotEmitted && m_aboutToFinishTime > 0) {
+    kDebug(610) << k_funcinfo << m_prefinishMarkReachedNotEmitted << ", " << m_prefinishMark << endl;
+    if (m_prefinishMarkReachedNotEmitted && m_prefinishMark > 0) {
         updateTime();
         const int remainingTime = m_totalTime - m_currentTime;
 
         kDebug(610) << remainingTime << endl;
-        if (remainingTime <= m_aboutToFinishTime + 150) {
-            m_aboutToFinishNotEmitted = false;
-            kDebug(610) << "emitting aboutToFinish(" << remainingTime << ")" << endl;
-            emit aboutToFinish(remainingTime);
+        if (remainingTime <= m_prefinishMark + 150) {
+            m_prefinishMarkReachedNotEmitted = false;
+            kDebug(610) << "emitting prefinishMarkReached(" << remainingTime << ")" << endl;
+            emit prefinishMarkReached(remainingTime);
         } else {
-            emitAboutToFinishIn(remainingTime - m_aboutToFinishTime);
+            emitAboutToFinishIn(remainingTime - m_prefinishMark);
         }
     }
 }
@@ -1515,16 +1514,16 @@ void XineStream::emitTick()
         //kDebug(610) << k_funcinfo << m_currentTime << endl;
         emit tick(m_currentTime);
     }
-    if (m_aboutToFinishNotEmitted && m_aboutToFinishTime > 0) {
+    if (m_prefinishMarkReachedNotEmitted && m_prefinishMark > 0) {
         const int remainingTime = m_totalTime - m_currentTime;
-        const int timeToAboutToFinishSignal = remainingTime - m_aboutToFinishTime;
+        const int timeToAboutToFinishSignal = remainingTime - m_prefinishMark;
         if (timeToAboutToFinishSignal <= m_tickTimer->interval()) { // about to finish
             if (timeToAboutToFinishSignal > 100) {
                 emitAboutToFinishIn(timeToAboutToFinishSignal);
             } else {
-                m_aboutToFinishNotEmitted = false;
-                kDebug(610) << "emitting aboutToFinish(" << remainingTime << ")" << endl;
-                emit aboutToFinish(remainingTime);
+                m_prefinishMarkReachedNotEmitted = false;
+                kDebug(610) << "emitting prefinishMarkReached(" << remainingTime << ")" << endl;
+                emit prefinishMarkReached(remainingTime);
             }
         }
     }
@@ -1568,8 +1567,8 @@ void XineStream::run()
         xine_dispose(m_stream);
         m_stream = 0;
     }
-    delete m_aboutToFinishTimer;
-    m_aboutToFinishTimer = 0;
+    delete m_prefinishMark;
+    m_prefinishMark = 0;
     delete m_tickTimer;
     m_tickTimer = 0;
 }

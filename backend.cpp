@@ -140,7 +140,7 @@ bool Backend::supportsSubtitles() const
 	return true;
 }
 
-QStringList Backend::knownMimeTypes() const
+QStringList Backend::availableMimeTypes() const
 {
 	if( m_supportedMimeTypes.isEmpty() )
 	{

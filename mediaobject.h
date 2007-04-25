@@ -64,7 +64,7 @@ namespace Xine
             bool isSeekable() const;
             qint64 currentTime() const;
             qint64 totalTime() const;
-            qint64 remainingTime() const;
+            Q_INVOKABLE qint64 remainingTime() const;
             qint32 tickInterval() const;
 
             QStringList availableAudioStreams() const;
@@ -96,15 +96,20 @@ namespace Xine
             bool hasInterface(AddonInterface::Interface i) const;
             QVariant interfaceCall(AddonInterface::Interface, int, const QList<QVariant> &);
 
-            qint32 aboutToFinishTime() const;
-            void setAboutToFinishTime(qint32 newAboutToFinishTime);
+            Q_INVOKABLE qint32 prefinishMark() const;
+            Q_INVOKABLE void setPrefinishMark(qint32 newPrefinishMark);
+
+            Q_INVOKABLE qint32 transitionTime() const;
+            Q_INVOKABLE void setTransitionTime(qint32 newTransitionTime);
 
             MediaSource source() const;
             void setSource(const MediaSource &source);
+            void setNextSource(const MediaSource &source);
 
         signals:
+            void aboutToFinish();
             void finished();
-            void aboutToFinish(qint32 msec);
+            void prefinishMarkReached(qint32 msec);
             void totalTimeChanged(qint64 length);
 
             void stateChanged(Phonon::State newstate, Phonon::State oldstate);
@@ -120,6 +125,8 @@ namespace Xine
             void titleChanged(int);
             void availableChaptersChanged(int);
             void chapterChanged(int);
+            void availableAnglesChanged(int);
+            void angleChanged(int);
 
         protected:
             VideoPath* videoPath() const { return m_videoPath; }
@@ -130,11 +137,16 @@ namespace Xine
         private slots:
             void handleStateChange(Phonon::State newstate, Phonon::State oldstate);
             void seekDone();
-            void nextTitle();
+            void needNextUrl();
             void handleAvailableTitlesChanged(int);
             void handleFinished();
 
         private:
+            enum HowToSetTheUrl {
+                GaplessSwitch,
+                HardSwitch
+            };
+            void setSourceInternal(const MediaSource &, HowToSetTheUrl);
             QByteArray autoplayMrlsToTitles(const char *plugin, const char *defaultMrl);
 
             Phonon::State m_state;
@@ -153,7 +165,8 @@ namespace Xine
             QList<QByteArray> m_titles;
             QByteArray m_mediaDevice;
             int m_currentTitle;
-            qint32 m_aboutToFinishTime;
+            qint32 m_prefinishMark;
+            qint32 m_transitionTime;
             bool m_autoplayTitles;
 	};
 }} //namespace Phonon::Xine
