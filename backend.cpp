@@ -210,7 +210,7 @@ QSet<int> Backend::objectDescriptionIndexes( ObjectDescriptionType type ) const
 
 QHash<QByteArray, QVariant> Backend::objectDescriptionProperties(ObjectDescriptionType type, int index) const
 {
-    kDebug(610) << k_funcinfo << type << index << endl;
+    //kDebug(610) << k_funcinfo << type << index << endl;
     QHash<QByteArray, QVariant> ret;
     switch (type) {
         case Phonon::AudioOutputDeviceType:
@@ -254,7 +254,7 @@ QHash<QByteArray, QVariant> Backend::objectDescriptionProperties(ObjectDescripti
                     ret.insert("name", QLatin1String("DV"));
                     break;
             }
-            kDebug(610) << ret["name"] << endl;
+            //kDebug(610) << ret["name"] << endl;
             break;
         case Phonon::VideoOutputDeviceType:
             {
