@@ -160,7 +160,7 @@ XineStream::XineStream()
     m_newVideoPort(0),
     m_state(Phonon::LoadingState),
     m_tickTimer(0),
-    m_prefinishMark(0),
+    m_prefinishMarkTimer(0),
     m_errorType(Phonon::NoError),
     m_lastSeekCommand(0),
     m_volume(100),
@@ -567,8 +567,8 @@ void XineStream::changeState(Phonon::State newstate)
         m_tickTimer->stop();
         //kDebug(610) << "tickTimer stopped." << endl;
         m_prefinishMarkReachedNotEmitted = true;
-        if (m_prefinishMark) {
-            m_prefinishMark->stop();
+        if (m_prefinishMarkTimer) {
+            m_prefinishMarkTimer->stop();
         }
     } else if (newstate == Phonon::ErrorState) {
         kDebug(610) << "reached error state from: " << kBacktrace() << endl;
@@ -1437,12 +1437,12 @@ void XineStream::emitAboutToFinishIn(int timeToAboutToFinishSignal)
     Q_ASSERT(QThread::currentThread() == this);
     kDebug(610) << k_funcinfo << timeToAboutToFinishSignal << endl;
     Q_ASSERT(m_prefinishMark > 0);
-    if (!m_prefinishMark) {
-        m_prefinishMark = new QTimer(this);
-        //m_prefinishMark->setObjectName("prefinishMarkReached timer");
-        Q_ASSERT(m_prefinishMark->thread() == this);
-        m_prefinishMark->setSingleShot(true);
-        connect(m_prefinishMark, SIGNAL(timeout()), SLOT(emitAboutToFinish()), Qt::DirectConnection);
+    if (!m_prefinishMarkTimer) {
+        m_prefinishMarkTimer = new QTimer(this);
+        //m_prefinishMarkTimer->setObjectName("prefinishMarkReached timer");
+        Q_ASSERT(m_prefinishMarkTimer->thread() == this);
+        m_prefinishMarkTimer->setSingleShot(true);
+        connect(m_prefinishMarkTimer, SIGNAL(timeout()), SLOT(emitAboutToFinish()), Qt::DirectConnection);
     }
     timeToAboutToFinishSignal -= 400; // xine is not very accurate wrt time info, so better look too
                                       // often than too late
@@ -1450,7 +1450,7 @@ void XineStream::emitAboutToFinishIn(int timeToAboutToFinishSignal)
         timeToAboutToFinishSignal = 0;
     }
     kDebug(610) << timeToAboutToFinishSignal << endl;
-    m_prefinishMark->start(timeToAboutToFinishSignal);
+    m_prefinishMarkTimer->start(timeToAboutToFinishSignal);
 }
 
 // xine thread
@@ -1567,8 +1567,8 @@ void XineStream::run()
         xine_dispose(m_stream);
         m_stream = 0;
     }
-    delete m_prefinishMark;
-    m_prefinishMark = 0;
+    delete m_prefinishMarkTimer;
+    m_prefinishMarkTimer = 0;
     delete m_tickTimer;
     m_tickTimer = 0;
 }
