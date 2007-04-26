@@ -19,12 +19,16 @@ install(TARGETS phononxineengine DESTINATION ${LIB_INSTALL_DIR})
 ADD_DEFINITIONS(-D_FILE_OFFSET_BITS=64)
 
 set(phonon_xine_PART_SRCS
+    abstractmediaproducer.cpp
     abstractaudiooutput.cpp
     audiodataoutput.cpp
     audioeffect.cpp
     audiooutput.cpp
     audiopath.cpp
+    bytestream.cpp
     mediaobject.cpp
+    mediaqueue.cpp
+    avcapture.cpp
     videoeffect.cpp
     brightnesscontrol.cpp
     deinterlacefilter.cpp
@@ -33,11 +37,9 @@ set(phonon_xine_PART_SRCS
     visualization.cpp
     backend.cpp
     volumefadereffect.cpp
-    bytestream.cpp
     bytestreamplugin.cpp
     net_buf_ctrl.c
     volumefader_plugin.cpp
-    mixer_plugin.cpp
     plugins.c
    )
 
@@ -48,4 +50,4 @@ target_link_libraries(phonon_xine ${KDE4_KDECORE_LIBS} ${KDE4_PHONONCORE_LIBS} p
 
 install(TARGETS phonon_xine DESTINATION ${PLUGIN_INSTALL_DIR})
 install(FILES xine.desktop DESTINATION ${SERVICES_INSTALL_DIR}/phononbackends)
-kde4_install_icons( ${ICON_INSTALL_DIR} crystalsvg )
+kde4_install_icons( ${ICON_INSTALL_DIR} )
