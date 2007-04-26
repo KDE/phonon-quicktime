@@ -50,7 +50,6 @@ namespace Xine
 {
 ByteStream::ByteStream(const MediaSource &mediaSource, MediaObject* parent)
     : QObject(parent),
-    StreamInterface(mediaSource),
     m_mediaObject(parent),
     m_streamSize(0),
     m_currentPosition(0),
@@ -63,6 +62,8 @@ ByteStream::ByteStream(const MediaSource &mediaSource, MediaObject* parent)
     m_buffering(false),
     m_playRequested(false)
 {
+    connectToSource(mediaSource);
+
     // created in the main thread
     //m_mainThread = pthread_self();
 
