@@ -62,8 +62,6 @@ namespace Xine
 
 		public slots:
             QStringList availableMimeTypes() const;
-			const char* uiLibrary() const;
-			//const char* uiSymbol() const;
 
         signals:
             void objectDescriptionChanged(ObjectDescriptionType);

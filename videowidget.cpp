@@ -25,8 +25,8 @@
 #include <kdebug.h>
 
 #include <QX11Info>
-#include "../xineengine.h"
-#include "../mediaobject.h"
+#include "xineengine.h"
+#include "mediaobject.h"
 #include <QApplication>
 #include <QVBoxLayout>
 
@@ -258,7 +258,7 @@ void VideoWidget::updateZoom()
                 xs.setParam(XINE_PARAM_VO_ZOOM_X, 100);
                 xs.setParam(XINE_PARAM_VO_ZOOM_Y, zoom);
             }
-        } else if (m_scaleMode == Phonon::VideoWidget::ExpandMode) {
+        } else if (m_scaleMode == Phonon::VideoWidget::ScaleAndCrop) {
             const QSize s = size();
             QSize imageSize = m_sizeHint;
             // the image size is in square pixels

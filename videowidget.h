@@ -20,9 +20,9 @@
 #define PHONON_XINE_VIDEOWIDGET_H
 
 #include <QWidget>
-#include <phonon/ui/videowidget.h>
-#include "../abstractvideooutput.h"
-#include "../videowidgetinterface.h"
+#include <phonon/videowidget.h>
+#include "abstractvideooutput.h"
+#include "videowidgetinterface.h"
 #include <QPixmap>
 #include <xine.h>
 
