@@ -183,7 +183,7 @@ static void nbc_compute_fifo_length(nbc_t *this,
                                     fifo_buffer_t *fifo,
                                     buf_element_t *buf,
                                     int action) {
-  int fifo_free, fifo_fill;
+  int fifo_free, fifo_fill, fifo_div;
   int64_t video_br, audio_br, diff;
   int has_video, has_audio;
 
@@ -194,10 +194,13 @@ static void nbc_compute_fifo_length(nbc_t *this,
 
   fifo_free = fifo->buffer_pool_num_free;
   fifo_fill = fifo->fifo_size;
+  fifo_div = fifo_fill + fifo_free - 1;
+  if (fifo_div == 0)
+    fifo_div = 1; /* avoid a possible divide-by-zero */
 
   if (fifo == this->video_fifo) {
     this->video_fifo_free = fifo_free;
-    this->video_fifo_fill = (100 * fifo_fill) / (fifo_fill + fifo_free - 1);
+    this->video_fifo_fill = (100 * fifo_fill) / fifo_div;
     this->video_fifo_size = fifo->fifo_data_size;
     
     if (buf->pts && (this->video_in_disc == 0)) {
@@ -230,7 +233,7 @@ static void nbc_compute_fifo_length(nbc_t *this,
 
   } else {
     this->audio_fifo_free = fifo_free;
-    this->audio_fifo_fill = (100 * fifo_fill) / (fifo_fill + fifo_free - 1);
+    this->audio_fifo_fill = (100 * fifo_fill) / fifo_div;
     this->audio_fifo_size = fifo->fifo_data_size;
     
     if (buf->pts && (this->audio_in_disc == 0)) {
