@@ -51,4 +51,4 @@ endif(LIBXCB_FOUND AND XINE_XCB_FOUND)
 
 install(TARGETS phonon_xine DESTINATION ${PLUGIN_INSTALL_DIR})
 install(FILES xine.desktop DESTINATION ${SERVICES_INSTALL_DIR}/phononbackends)
-kde4_install_icons(${ICON_INSTALL_DIR} oxygen)
+kde4_install_icons(${ICON_INSTALL_DIR})
