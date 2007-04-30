@@ -35,6 +35,7 @@
 #include <QList>
 #include <QHash>
 #include <QMultiMap>
+#include <QPointer>
 
 #include <kurl.h>
 
@@ -46,6 +47,7 @@ namespace Phonon
 {
 namespace Xine
 {
+class ByteStream;
 
     class MediaObject : public QObject, public MediaObjectInterface, public AddonInterface
     {
@@ -154,6 +156,7 @@ namespace Xine
             qint32 m_tickInterval;
             QList<AudioPath *> m_audioPaths;
             VideoPath *m_videoPath;
+            QPointer<ByteStream> m_bytestream;
 
             QHash<const QObject *, QString> m_currentAudioStream;
             QHash<const QObject *, QString> m_currentVideoStream;

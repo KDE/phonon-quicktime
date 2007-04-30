@@ -52,6 +52,8 @@ namespace Xine
             bool streamSeekable() const { return m_seekable; }
             qint64 streamSize() const { return m_streamSize; }
 
+            void stop();
+
         public slots:
             void writeData(const QByteArray &data);
             void endOfData();

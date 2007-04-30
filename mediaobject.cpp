@@ -99,6 +99,10 @@ MediaObject::~MediaObject()
     // we have to be sure that the event loop of m_stream is already started at this point, else the
     // quit function will be ignored
     m_stream.waitForEventLoop();
+    if (m_bytestream) {
+        m_bytestream->stop();
+    }
+    m_stream.closeBlocking();
     m_stream.quit();
     if (!m_stream.wait(2000)) {
         kWarning(610) << "XineStream hangs and is terminated." << endl;
@@ -490,13 +494,15 @@ void MediaObject::setSourceInternal(const MediaSource &source, HowToSetTheUrl ho
         break;
     case MediaSource::Stream:
         {
-            ByteStream *bs = new ByteStream(source, this);
+            // m_bytestream may not be deleted, the xine input plugin takes ownership and will
+            // delete it when xine frees the input plugin
+            m_bytestream = new ByteStream(source, this);
             switch (how) {
             case GaplessSwitch:
-                m_stream.gaplessSwitchTo(bs->mrl());
+                m_stream.gaplessSwitchTo(m_bytestream->mrl());
                 break;
             case HardSwitch:
-                m_stream.setMrl(bs->mrl());
+                m_stream.setMrl(m_bytestream->mrl());
                 break;
             }
         }

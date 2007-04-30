@@ -86,6 +86,9 @@ ByteStream::ByteStream(const MediaSource &mediaSource, MediaObject* parent)
 
 void ByteStream::pullBuffer(char *buf, int len)
 {
+    if (m_stopped) {
+        return;
+    }
     // never called from main thread
     //Q_ASSERT(m_mainThread != pthread_self());
 
@@ -130,6 +133,9 @@ void ByteStream::pullBuffer(char *buf, int len)
 
 int ByteStream::peekBuffer(void *buf)
 {
+    if (m_stopped) {
+        return 0;
+    }
     // never called from main thread
     //Q_ASSERT(m_mainThread != pthread_self());
 
@@ -139,6 +145,9 @@ int ByteStream::peekBuffer(void *buf)
 
 qint64 ByteStream::readFromBuffer(void *buf, size_t count)
 {
+    if (m_stopped) {
+        return 0;
+    }
     // never called from main thread
     //Q_ASSERT(m_mainThread != pthread_self());
 
@@ -188,6 +197,9 @@ qint64 ByteStream::readFromBuffer(void *buf, size_t count)
 
 off_t ByteStream::seekBuffer(qint64 offset)
 {
+    if (m_stopped) {
+        return 0;
+    }
     // never called from main thread
     //Q_ASSERT(m_mainThread != pthread_self());
 
@@ -284,16 +296,16 @@ off_t ByteStream::currentPosition() const
 ByteStream::~ByteStream()
 {
     PXINE_DEBUG << k_funcinfo << endl;
-    m_mutex.lock();
-    m_seekMutex.lock();
-    m_stopped = true;
-    // the other thread is now not between m_mutex.lock() and m_waitingForData.wait(&m_mutex), so it
-    // won't get stuck in m_waitingForData.wait if it's not there right now
+//X     m_mutex.lock();
+//X     m_seekMutex.lock();
+//X     m_stopped = true;
+//X     // the other thread is now not between m_mutex.lock() and m_waitingForData.wait(&m_mutex), so it
+//X     // won't get stuck in m_waitingForData.wait if it's not there right now
 //X     stream().setMrl(QByteArray());
-    m_seekWaitCondition.wakeAll();
-    m_seekMutex.unlock();
-    m_waitingForData.wakeAll();
-    m_mutex.unlock();
+//X     m_seekWaitCondition.wakeAll();
+//X     m_seekMutex.unlock();
+//X     m_waitingForData.wakeAll();
+//X     m_mutex.unlock();
 //X     stream().closeBlocking();
 }
 
@@ -436,28 +448,21 @@ void ByteStream::syncSeekStream(qint64 offset)
 //X     setMrl();
 //X     MediaObject::play(); // goes into Phonon::BufferingState/PlayingState
 //X }
-//X 
-//X void ByteStream::stop()
-//X {
-//X     PXINE_VDEBUG << k_funcinfo << endl;
-//X 
-//X     m_mutex.lock();
-//X     m_seekMutex.lock();
-//X     m_stopped = true;
-//X     // the other thread is now not between m_mutex.lock() and m_waitingForData.wait(&m_mutex), so it
-//X     // won't get stuck in m_waitingForData.wait if it's not there right now
-//X     m_seekWaitCondition.wakeAll();
-//X     m_seekMutex.unlock();
-//X     m_waitingForData.wakeAll();
-//X     m_mutex.unlock();
-//X 
-//X     MediaObject::stop();
-//X 
-//X     if (!m_seekable) {
-//X         m_mrlSet = true;
-//X         stream().setMrl(mrl());
-//X     }
-//X }
+
+void ByteStream::stop()
+{
+    PXINE_VDEBUG << k_funcinfo << endl;
+
+    m_mutex.lock();
+    m_seekMutex.lock();
+    m_stopped = true;
+    // the other thread is now not between m_mutex.lock() and m_waitingForData.wait(&m_mutex), so it
+    // won't get stuck in m_waitingForData.wait if it's not there right now
+    m_seekWaitCondition.wakeAll();
+    m_seekMutex.unlock();
+    m_waitingForData.wakeAll();
+    m_mutex.unlock();
+}
 
 }} //namespace Phonon::Xine
 
