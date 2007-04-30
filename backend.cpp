@@ -34,6 +34,7 @@
 #include "brightnesscontrol.h"
 #include "deinterlacefilter.h"
 #include "videodataoutput.h"
+#include "videowidget.h"
 
 #include <kdebug.h>
 #include <kgenericfactory.h>
@@ -110,6 +111,12 @@ QObject *Backend::createObject(BackendInterface::Class c, QObject *parent, const
         case VideoEffectClass:
             Q_ASSERT(args.size() == 1);
             return new VideoEffect(args[0].toInt(), parent);
+    case VideoWidgetClass:
+#ifdef PHONON_XINE_NO_VIDEOWIDGET
+        return 0;
+#else
+        return new VideoWidget(qobject_cast<QWidget *>(parent));
+#endif // PHONON_XINE_NO_VIDEOWIDGET
     }
     return 0;
 }
@@ -316,11 +323,6 @@ QHash<QByteArray, QVariant> Backend::objectDescriptionProperties(ObjectDescripti
             break;
     }
     return ret;
-}
-
-const char* Backend::uiLibrary() const
-{
-	return "phonon_xineui";
 }
 
 void Backend::freeSoundcardDevices()
