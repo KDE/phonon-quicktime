@@ -39,7 +39,7 @@ if(LIBXCB_FOUND AND XINE_XCB_FOUND)
   set(phonon_xine_PART_SRCS ${phonon_xine_PART_SRCS} videowidget.cpp)
 else(LIBXCB_FOUND AND XINE_XCB_FOUND)
   add_definitions(-DPHONON_XINE_NO_VIDEOWIDGET)
-  message(STATUS "cannot compile VideoWidget for the xine backend ${LIBXCB_FOUND}, ${XINE_XCB_FOUND}")
+  message(STATUS "Cannot compile VideoWidget for the xine backend. Needs xine version 1.1.5 or later and libxcb.")
 endif(LIBXCB_FOUND AND XINE_XCB_FOUND)
 
 kde4_automoc(${phonon_xine_PART_SRCS})
