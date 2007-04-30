@@ -156,6 +156,7 @@ static void kbytestream_plugin_dispose (input_plugin_t *this_gen ) {
         nbc_close(that->nbc);
         that->nbc = NULL;
     }
+    delete that->bytestream;
     free (that->mrl);
     free (that);
 }
