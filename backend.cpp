@@ -238,13 +238,13 @@ QHash<QByteArray, QVariant> Backend::objectDescriptionProperties(ObjectDescripti
                     if (dev.index() == index) {
                         ret.insert("name", dev.cardName());
                         switch (dev.driver()) {
-                            case Solid::AudioHw::Alsa:
+                            case Solid::AudioInterface::Alsa:
                                 ret.insert("description", i18n("ALSA Capture Device"));
                                 break;
-                            case Solid::AudioHw::OpenSoundSystem:
+                            case Solid::AudioInterface::OpenSoundSystem:
                                 ret.insert("description", i18n("OSS Capture Device"));
                                 break;
-                            case Solid::AudioHw::UnknownAudioDriver:
+                            case Solid::AudioInterface::UnknownAudioDriver:
                                 break;
                         }
                         ret.insert("icon", dev.iconName());
