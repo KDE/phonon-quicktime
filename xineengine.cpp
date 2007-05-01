@@ -316,9 +316,9 @@ namespace Xine
     {
         QString postfix;
         if (m_useOss) {
-            if (dev.driver() == Solid::AudioHw::Alsa) {
+            if (dev.driver() == Solid::AudioInterface::Alsa) {
                 postfix = QLatin1String(" (ALSA)");
-            } else if (dev.driver() == Solid::AudioHw::OpenSoundSystem) {
+            } else if (dev.driver() == Solid::AudioInterface::OpenSoundSystem) {
                 postfix = QLatin1String(" (OSS)");
             }
         }
@@ -385,7 +385,7 @@ namespace Xine
                 if (0 == strcmp(outputPlugins[i], "alsa")) {
                     QList<AudioDevice> alsaDevices = AudioDeviceEnumerator::availablePlaybackDevices();
                     foreach (AudioDevice dev, alsaDevices) {
-                        if (dev.driver() == Solid::AudioHw::Alsa) {
+                        if (dev.driver() == Solid::AudioInterface::Alsa) {
                             addAudioOutput(dev, QLatin1String("alsa"));
                         }
                     }
@@ -395,7 +395,7 @@ namespace Xine
                     if (m_useOss) {
                         QList<AudioDevice> audioDevices = AudioDeviceEnumerator::availablePlaybackDevices();
                         foreach (AudioDevice dev, audioDevices) {
-                            if (dev.driver() == Solid::AudioHw::OpenSoundSystem) {
+                            if (dev.driver() == Solid::AudioInterface::OpenSoundSystem) {
                                 addAudioOutput(dev, QLatin1String("oss"));
                             }
                         }
@@ -436,7 +436,7 @@ namespace Xine
         }
         const char *const *outputPlugins = xine_list_audio_output_plugins(XineEngine::xine());
         switch (dev.driver()) {
-            case Solid::AudioHw::Alsa:
+            case Solid::AudioInterface::Alsa:
                 for (int i = 0; outputPlugins[i]; ++i) {
                     if (0 == strcmp(outputPlugins[i], "alsa")) {
                         s_instance->addAudioOutput(dev, QLatin1String("alsa"));
@@ -444,7 +444,7 @@ namespace Xine
                     }
                 }
                 break;
-            case Solid::AudioHw::OpenSoundSystem:
+            case Solid::AudioInterface::OpenSoundSystem:
                 if (s_instance->m_useOss) {
                     for (int i = 0; outputPlugins[i]; ++i) {
                         if (0 == strcmp(outputPlugins[i], "oss")) {
@@ -454,7 +454,7 @@ namespace Xine
                     }
                 }
                 break;
-            case Solid::AudioHw::UnknownAudioDriver:
+            case Solid::AudioInterface::UnknownAudioDriver:
                 break;
         }
     }
@@ -468,17 +468,17 @@ namespace Xine
         QString driver;
         QString postfix;
         switch (dev.driver()) {
-            case Solid::AudioHw::Alsa:
+            case Solid::AudioInterface::Alsa:
                 driver = "alsa";
                 if (s_instance->m_useOss) {
                     postfix = QLatin1String(" (ALSA)");
                 }
                 break;
-            case Solid::AudioHw::OpenSoundSystem:
+            case Solid::AudioInterface::OpenSoundSystem:
                 driver = "oss";
                 postfix = QLatin1String(" (OSS)");
                 break;
-            case Solid::AudioHw::UnknownAudioDriver:
+            case Solid::AudioInterface::UnknownAudioDriver:
                 break;
         }
         XineEngine::AudioOutputInfo info(dev.index(), dev.cardName() + postfix, QString(), dev.iconName(),
