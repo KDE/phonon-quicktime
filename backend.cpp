@@ -34,7 +34,9 @@
 #include "brightnesscontrol.h"
 #include "deinterlacefilter.h"
 #include "videodataoutput.h"
+#ifndef PHONON_XINE_NO_VIDEOWIDGET
 #include "videowidget.h"
+#endif
 
 #include <kdebug.h>
 #include <kgenericfactory.h>
