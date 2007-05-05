@@ -81,11 +81,12 @@ void VideoWidget::xineCallback( int &x, int &y, int &width, int &height, double 
 }
 
 VideoWidget::VideoWidget( QWidget* parent )
-	: QWidget( parent )
-	, overlay( 0 )
-	, m_videoPort( 0 )
-	, m_path( 0 )
-	, m_fullScreen( false )
+    : QWidget(parent),
+    overlay(0),
+    m_videoPort(0),
+    m_path(0),
+    m_fullScreen(false),
+    m_empty(true)
 {
 	// for some reason it can hang if the widget is 0x0
 	setMinimumSize( 1, 1 );
@@ -386,10 +387,18 @@ void VideoWidget::mousePressEvent(QMouseEvent *mev)
     QWidget::mousePressEvent(mev);
 }
 
+void VideoWidget::setVideoEmpty(bool b)
+{
+    m_empty = b;
+    if (b) {
+        update();
+    }
+}
+
 void VideoWidget::paintEvent(QPaintEvent *event)
 {
     //kDebug(610) << k_funcinfo << endl;
-    if (!m_path || !m_path->mediaObject() || m_path->mediaObject()->state() == Phonon::LoadingState) {
+    if (m_empty || !m_path || !m_path->mediaObject() || m_path->mediaObject()->state() == Phonon::LoadingState) {
         QPainter p(this);
         p.fillRect(rect(), Qt::black);
     } else if (m_videoPort) {

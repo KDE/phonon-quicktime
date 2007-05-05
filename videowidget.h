@@ -22,7 +22,7 @@
 #include <QWidget>
 #include <phonon/videowidget.h>
 #include "abstractvideooutput.h"
-#include "videowidgetinterface.h"
+#include "videowidget.h"
 #include <QPixmap>
 #include <xine.h>
 
@@ -35,10 +35,11 @@ namespace Phonon
 {
 namespace Xine
 {
-	class VideoWidget : public QWidget, public Phonon::Xine::AbstractVideoOutput, public Phonon::Xine::VideoWidgetInterface
+    class VideoPath;
+	class VideoWidget : public QWidget, public Phonon::Xine::AbstractVideoOutput
 	{
 		Q_OBJECT
-		Q_INTERFACES( Phonon::Xine::AbstractVideoOutput Phonon::Xine::VideoWidgetInterface )
+        Q_INTERFACES(Phonon::Xine::AbstractVideoOutput)
 		public:
 			VideoWidget( QWidget* parent = 0 );
 			~VideoWidget();
@@ -54,13 +55,15 @@ namespace Xine
 			Q_INVOKABLE bool createOverlay(QWidget *widget, int type);
 
 			xine_video_port_t* videoPort() const { return m_videoPort; }
-            QObject *qobject() { return this; }
 
 			void setPath( VideoPath* vp );
 			void unsetPath( VideoPath* vp );
 
 			void xineCallback( int &x, int &y, int &width, int &height,
 					double &ratio, int videoWidth, int videoHeight, double videoRatio, bool mayResize );
+
+            bool isValid() const { return videoPort() != 0; }
+            void setVideoEmpty(bool);
 
 		signals:
 			void videoPortChanged();
@@ -91,6 +94,10 @@ namespace Xine
 			int m_videoWidth;
 			int m_videoHeight;
 			bool m_fullScreen;
+            /**
+             * No video should be shown, all paint events should draw black
+             */
+            bool m_empty;
 	};
 }} //namespace Phonon::Xine
 

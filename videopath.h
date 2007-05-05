@@ -32,7 +32,7 @@ namespace Xine
 	class VideoEffect;
 	class AbstractVideoOutput;
     class MediaObject;
-	class VideoWidgetInterface;
+    class VideoWidget;
 
 	class VideoPath : public QObject
 	{
@@ -47,7 +47,7 @@ namespace Xine
 
 			void streamFinished();
 			bool hasOutput() const;
-            VideoWidgetInterface *videoPort() const;
+            VideoWidget *videoPort() const;
 
 		public slots:
 			bool addOutput( QObject* videoOutput );
@@ -59,7 +59,7 @@ namespace Xine
             void videoPortChanged();
 
 		private:
-			VideoWidgetInterface *m_output;
+            VideoWidget *m_output;
 			QList<VideoEffect*> m_effects;
 			QList<QObject*> m_outputs;
             MediaObject *m_mediaObject;

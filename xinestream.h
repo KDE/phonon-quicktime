@@ -39,7 +39,7 @@ namespace Phonon
 {
 namespace Xine
 {
-class VideoWidgetInterface;
+class VideoWidget;
 class SeekCommandEvent;
 class MediaObject;
 
@@ -71,7 +71,7 @@ class PHONON_XINE_ENGINE_EXPORT XineStream : public QThread
         void removeAudioPostList(const AudioPostList &);
         const QList<AudioPostList>& audioPostLists() { return m_audioPostLists; }
 
-        void setVideoPort(VideoWidgetInterface *vwi);
+        void setVideoPort(VideoWidget *vwi);
         void setTickInterval(qint32 interval);
         void setPrefinishMark(qint32 time);
 
@@ -84,7 +84,7 @@ class PHONON_XINE_ENGINE_EXPORT XineStream : public QThread
         void closeBlocking();
         void waitForEventLoop();
         void aboutToDeleteVideoWidget();
-        VideoWidgetInterface *videoWidget() const
+        VideoWidget *videoWidget() const
         {
             if (m_newVideoPort) {
                 return m_newVideoPort;
@@ -173,8 +173,8 @@ class PHONON_XINE_ENGINE_EXPORT XineStream : public QThread
 
         QList<AudioPostList> m_audioPostLists;
 
-        VideoWidgetInterface *m_videoPort;
-        VideoWidgetInterface *m_newVideoPort;
+        VideoWidget *m_videoPort;
+        VideoWidget *m_newVideoPort;
 
         Phonon::State m_state;
 
