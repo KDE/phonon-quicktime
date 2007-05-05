@@ -25,7 +25,7 @@
 #include <QTimer>
 #include <kurl.h>
 #include "audioport.h"
-#include "videowidgetinterface.h"
+#include "videowidget.h"
 #include "mediaobject.h"
 #include <klocale.h>
 
@@ -348,6 +348,9 @@ void XineStream::getStreamInfo()
         int availableChapters = xine_get_stream_info(m_stream, XINE_STREAM_INFO_DVD_CHAPTER_COUNT);
         int availableAngles   = xine_get_stream_info(m_stream, XINE_STREAM_INFO_DVD_ANGLE_COUNT);
         m_streamInfoReady = true;
+        if (m_videoPort) {
+            m_videoPort->setVideoEmpty(!hasVideo);
+        }
         if (m_hasVideo != hasVideo) {
             m_hasVideo = hasVideo;
             emit hasVideoChanged(m_hasVideo);
@@ -375,7 +378,7 @@ void XineStream::getStreamInfo()
             uint32_t width = xine_get_stream_info(m_stream, XINE_STREAM_INFO_VIDEO_WIDTH);
             uint32_t height = xine_get_stream_info(m_stream, XINE_STREAM_INFO_VIDEO_HEIGHT);
             if (m_videoPort) {
-                QCoreApplication::postEvent(m_videoPort->qobject(), new XineFrameFormatChangeEvent(width, height, 0, 0));
+                QCoreApplication::postEvent(m_videoPort, new XineFrameFormatChangeEvent(width, height, 0, 0));
             }
         }
     }
@@ -452,7 +455,7 @@ void XineStream::removeAudioPostList(const AudioPostList &postList)
 }
 
 //called from main thread
-void XineStream::setVideoPort(VideoWidgetInterface *port)
+void XineStream::setVideoPort(VideoWidget *port)
 {
     m_portMutex.lock();
     if (m_videoPort == m_newVideoPort && port == m_videoPort) {
@@ -1040,6 +1043,9 @@ bool XineStream::event(QEvent *ev)
                         xine_video_port_t *videoPort = (m_newVideoPort && m_newVideoPort->isValid()) ? m_newVideoPort->videoPort() : XineEngine::nullVideoPort();
                         xine_post_wire_video_port(videoSource, videoPort);
                         m_videoPort = m_newVideoPort;
+                        if (m_videoPort) {
+                            m_videoPort->setVideoEmpty(!m_hasVideo);
+                        }
                     }
                     m_portMutex.unlock();
                     m_waitingForRewire.wakeAll();

@@ -27,7 +27,7 @@
 #include <phonon/audiodevice.h>
 #include <QList>
 #include <kconfiggroup.h>
-#include "videowidgetinterface.h"
+#include "videowidget.h"
 #include <klocale.h>
 #include "xineengine_p.h"
 #include "backend.h"
@@ -143,13 +143,13 @@ namespace Xine
                 break;
             case XINE_EVENT_SPU_BUTTON: // the mouse pointer enter/leave a button, used to change the cursor
                 {
-                    VideoWidgetInterface *vw = xs->videoWidget();
+                    VideoWidget *vw = xs->videoWidget();
                     if (vw) {
                         xine_spu_button_t *button = static_cast<xine_spu_button_t *>(xineEvent->data);
                         if (button->direction == 1) { // enter a button
-                            QCoreApplication::postEvent(vw->qobject(), new QEvent(static_cast<QEvent::Type>(Xine::NavButtonInEvent)));
+                            QCoreApplication::postEvent(vw, new QEvent(static_cast<QEvent::Type>(Xine::NavButtonInEvent)));
                         } else {
-                            QCoreApplication::postEvent(vw->qobject(), new QEvent(static_cast<QEvent::Type>(Xine::NavButtonOutEvent)));
+                            QCoreApplication::postEvent(vw, new QEvent(static_cast<QEvent::Type>(Xine::NavButtonOutEvent)));
                         }
                     }
                 }
@@ -167,10 +167,10 @@ namespace Xine
             case XINE_EVENT_FRAME_FORMAT_CHANGE:    /* e.g. aspect ratio change during dvd playback */
                 kDebug(610) << "XINE_EVENT_FRAME_FORMAT_CHANGE" << endl;
                 {
-                    VideoWidgetInterface *vw = xs->videoWidget();
+                    VideoWidget *vw = xs->videoWidget();
                     if (vw) {
                         xine_format_change_data_t *data = static_cast<xine_format_change_data_t *>(xineEvent->data);
-                        QCoreApplication::postEvent(vw->qobject(), new XineFrameFormatChangeEvent(data->width, data->height, data->aspect, data->pan_scan));
+                        QCoreApplication::postEvent(vw, new XineFrameFormatChangeEvent(data->width, data->height, data->aspect, data->pan_scan));
                     }
                 }
                 break;

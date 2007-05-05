@@ -93,7 +93,7 @@ class ByteStream;
             XineStream& stream() { return m_stream; }
             const XineStream& stream() const { return m_stream; }
             //void setAudioPort(AudioPort port) { m_stream.setAudioPort(port); }
-            void setVideoPort(VideoWidgetInterface *port) { m_stream.setVideoPort(port); }
+            void setVideoPort(VideoWidget *port) { m_stream.setVideoPort(port); }
 
             bool hasInterface(AddonInterface::Interface i) const;
             QVariant interfaceCall(AddonInterface::Interface, int, const QList<QVariant> &);

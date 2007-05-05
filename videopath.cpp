@@ -20,7 +20,7 @@
 #include "videopath.h"
 #include "videoeffect.h"
 #include "abstractvideooutput.h"
-#include "videowidgetinterface.h"
+#include "videowidget.h"
 #include "mediaobject.h"
 #include "videodataoutput.h"
 #include <xine.h>
@@ -54,7 +54,7 @@ bool VideoPath::hasOutput() const
 	return ( m_output && m_output->videoPort() != 0 );
 }
 
-VideoWidgetInterface *VideoPath::videoPort() const
+VideoWidget *VideoPath::videoPort() const
 {
     if (m_output) {
         return m_output;
@@ -71,7 +71,7 @@ void VideoPath::videoPortChanged()
 
 bool VideoPath::addOutput( QObject* videoOutput )
 {
-	VideoWidgetInterface *vwi = qobject_cast<VideoWidgetInterface*>( videoOutput );
+    VideoWidget *vwi = qobject_cast<VideoWidget *>(videoOutput);
 	if( vwi )
 	{
 		if( m_output )
@@ -95,7 +95,7 @@ bool VideoPath::addOutput( QObject* videoOutput )
 
 bool VideoPath::removeOutput( QObject* videoOutput )
 {
-	VideoWidgetInterface *vwi = qobject_cast<VideoWidgetInterface*>( videoOutput );
+    VideoWidget *vwi = qobject_cast<VideoWidget *>(videoOutput);
 	if( vwi && m_output == vwi )
 	{
 		m_output->unsetPath( this );
