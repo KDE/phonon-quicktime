@@ -39,12 +39,10 @@ VideoPath::VideoPath( QObject* parent )
 
 VideoPath::~VideoPath()
 {
-#ifndef PHONON_XINE_NO_VIDEOWIDGET
 	foreach( VideoEffect* ve, m_effects )
 		ve->setPath( 0 );
 	if( m_output )
 		m_output->unsetPath( this );
-#endif
 }
 
 void VideoPath::streamFinished()
@@ -53,11 +51,7 @@ void VideoPath::streamFinished()
 
 bool VideoPath::hasOutput() const
 {
-#ifndef PHONON_XINE_NO_VIDEOWIDGET
 	return ( m_output && m_output->videoPort() != 0 );
-#else
-	return false;
-#endif
 }
 
 VideoWidget *VideoPath::videoPort() const
@@ -77,7 +71,6 @@ void VideoPath::videoPortChanged()
 
 bool VideoPath::addOutput( QObject* videoOutput )
 {
-#ifndef PHONON_XINE_NO_VIDEOWIDGET
     VideoWidget *vwi = qobject_cast<VideoWidget *>(videoOutput);
 	if( vwi )
 	{
@@ -98,14 +91,10 @@ bool VideoPath::addOutput( QObject* videoOutput )
 	m_outputs.append( vdo );
 	vdo->addPath( this );
 	return true;
-#else
-	return false;
-#endif
 }
 
 bool VideoPath::removeOutput( QObject* videoOutput )
 {
-#ifndef PHONON_XINE_NO_VIDEOWIDGET
     VideoWidget *vwi = qobject_cast<VideoWidget *>(videoOutput);
 	if( vwi && m_output == vwi )
 	{
@@ -124,9 +113,6 @@ bool VideoPath::removeOutput( QObject* videoOutput )
     Q_ASSERT(r == 1);
 	vdo->removePath( this );
 	return true;
-#else
-	return false;
-#endif
 }
 
 bool VideoPath::insertEffect( QObject* newEffect, QObject* insertBefore )
@@ -178,5 +164,4 @@ void VideoPath::unsetMediaObject( MediaObject* mp )
 }}
 
 #include "videopath.moc"
-
 // vim: sw=4 ts=4
