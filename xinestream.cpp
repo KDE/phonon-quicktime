@@ -348,9 +348,11 @@ void XineStream::getStreamInfo()
         int availableChapters = xine_get_stream_info(m_stream, XINE_STREAM_INFO_DVD_CHAPTER_COUNT);
         int availableAngles   = xine_get_stream_info(m_stream, XINE_STREAM_INFO_DVD_ANGLE_COUNT);
         m_streamInfoReady = true;
+#ifndef PHONON_XINE_NO_VIDEOWIDGET
         if (m_videoPort) {
             m_videoPort->setVideoEmpty(!hasVideo);
         }
+#endif
         if (m_hasVideo != hasVideo) {
             m_hasVideo = hasVideo;
             emit hasVideoChanged(m_hasVideo);
@@ -378,7 +380,9 @@ void XineStream::getStreamInfo()
             uint32_t width = xine_get_stream_info(m_stream, XINE_STREAM_INFO_VIDEO_WIDTH);
             uint32_t height = xine_get_stream_info(m_stream, XINE_STREAM_INFO_VIDEO_HEIGHT);
             if (m_videoPort) {
+#ifndef PHONON_XINE_NO_VIDEOWIDGET
                 QCoreApplication::postEvent(m_videoPort, new XineFrameFormatChangeEvent(width, height, 0, 0));
+#endif
             }
         }
     }
@@ -388,6 +392,7 @@ void XineStream::getStreamInfo()
 // xine thread
 bool XineStream::createStream()
 {
+#ifndef PHONON_XINE_NO_VIDEOWIDGET
     Q_ASSERT(QThread::currentThread() == this);
 
     if (m_stream || m_state == Phonon::ErrorState) {
@@ -431,6 +436,9 @@ bool XineStream::createStream()
     }
 
     return true;
+#else
+    return false;
+#endif
 }
 
 //called from main thread
@@ -1039,6 +1047,7 @@ bool XineStream::event(QEvent *ev)
                         }
                     }*/
                     if (m_videoPort != m_newVideoPort) {
+#ifndef PHONON_XINE_NO_VIDEOWIDGET
                         xine_post_out_t *videoSource = xine_get_video_source(m_stream);
                         xine_video_port_t *videoPort = (m_newVideoPort && m_newVideoPort->isValid()) ? m_newVideoPort->videoPort() : XineEngine::nullVideoPort();
                         xine_post_wire_video_port(videoSource, videoPort);
@@ -1046,6 +1055,7 @@ bool XineStream::event(QEvent *ev)
                         if (m_videoPort) {
                             m_videoPort->setVideoEmpty(!m_hasVideo);
                         }
+#endif
                     }
                     m_portMutex.unlock();
                     m_waitingForRewire.wakeAll();
