@@ -392,7 +392,6 @@ void XineStream::getStreamInfo()
 // xine thread
 bool XineStream::createStream()
 {
-#ifndef PHONON_XINE_NO_VIDEOWIDGET
     Q_ASSERT(QThread::currentThread() == this);
 
     if (m_stream || m_state == Phonon::ErrorState) {
@@ -402,7 +401,11 @@ bool XineStream::createStream()
     m_portMutex.lock();
     m_videoPort = m_newVideoPort;
     //kDebug(610) << k_funcinfo << "AudioPort.xinePort() = " << m_audioPort.xinePort() << endl;
+#ifndef PHONON_XINE_NO_VIDEOWIDGET
     xine_video_port_t *videoPort = m_videoPort ? m_videoPort->videoPort() : XineEngine::nullVideoPort();
+#else
+    xine_video_port_t *videoPort = NULL;
+#endif
     //m_stream = xine_stream_new(XineEngine::xine(), m_audioPort.xinePort(), videoPort);
     m_stream = xine_stream_new(XineEngine::xine(), XineEngine::nullPort(), videoPort);
     if (m_audioPostLists.size() == 1) {
@@ -436,9 +439,6 @@ bool XineStream::createStream()
     }
 
     return true;
-#else
-    return false;
-#endif
 }
 
 //called from main thread
