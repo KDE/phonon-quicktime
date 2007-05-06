@@ -19,8 +19,6 @@
 #ifndef PHONON_XINE_VIDEOWIDGET_H
 #define PHONON_XINE_VIDEOWIDGET_H
 
-#ifndef PHONON_XINE_NO_VIDEOWIDGET
-
 #include <QWidget>
 #include <phonon/videowidget.h>
 #include "abstractvideooutput.h"
@@ -102,8 +100,6 @@ namespace Xine
             bool m_empty;
 	};
 }} //namespace Phonon::Xine
-
-#endif // PHONON_XINE_NO_VIDEOWIDGET
 
 // vim: sw=4 ts=4 tw=80
 #endif // PHONON_XINE_VIDEOWIDGET_H

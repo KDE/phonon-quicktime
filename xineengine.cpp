@@ -143,7 +143,6 @@ namespace Xine
                 break;
             case XINE_EVENT_SPU_BUTTON: // the mouse pointer enter/leave a button, used to change the cursor
                 {
-#ifndef PHONON_XINE_NO_VIDEOWIDGET
                     VideoWidget *vw = xs->videoWidget();
                     if (vw) {
                         xine_spu_button_t *button = static_cast<xine_spu_button_t *>(xineEvent->data);
@@ -153,7 +152,6 @@ namespace Xine
                             QCoreApplication::postEvent(vw, new QEvent(static_cast<QEvent::Type>(Xine::NavButtonOutEvent)));
                         }
                     }
-#endif
                 }
                 break;
             case XINE_EVENT_UI_CHANNELS_CHANGED:    /* inform ui that new channel info is available */
@@ -169,13 +167,11 @@ namespace Xine
             case XINE_EVENT_FRAME_FORMAT_CHANGE:    /* e.g. aspect ratio change during dvd playback */
                 kDebug(610) << "XINE_EVENT_FRAME_FORMAT_CHANGE" << endl;
                 {
-#ifndef PHONON_XINE_NO_VIDEOWIDGET
                     VideoWidget *vw = xs->videoWidget();
                     if (vw) {
                         xine_format_change_data_t *data = static_cast<xine_format_change_data_t *>(xineEvent->data);
                         QCoreApplication::postEvent(vw, new XineFrameFormatChangeEvent(data->width, data->height, data->aspect, data->pan_scan));
                     }
-#endif
                 }
                 break;
             case XINE_EVENT_AUDIO_LEVEL:            /* report current audio level (l/r/mute) */
