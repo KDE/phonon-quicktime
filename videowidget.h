@@ -26,7 +26,9 @@
 #include <QPixmap>
 #include <xine.h>
 
+#ifndef PHONON_XINE_NO_VIDEOWIDGET
 #include <xcb/xcb.h>
+#endif // PHONON_XINE_NO_VIDEOWIDGET
 
 class QString;
 class QMouseEvent;
@@ -84,12 +86,14 @@ namespace Xine
 			QWidget *overlay;
             void updateZoom();
 			xine_video_port_t* m_videoPort;
+#ifndef PHONON_XINE_NO_VIDEOWIDGET
             xcb_visual_t m_visual;
+            xcb_connection_t *m_xcbConnection;
+#endif // PHONON_XINE_NO_VIDEOWIDGET
 			Phonon::VideoWidget::AspectRatio m_aspectRatio;
             Phonon::VideoWidget::ScaleMode m_scaleMode;
 			VideoPath* m_path;
 
-            xcb_connection_t *m_xcbConnection;
             QSize m_sizeHint;
 			int m_videoWidth;
 			int m_videoHeight;

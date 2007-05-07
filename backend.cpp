@@ -34,9 +34,7 @@
 #include "brightnesscontrol.h"
 #include "deinterlacefilter.h"
 #include "videodataoutput.h"
-#ifndef PHONON_XINE_NO_VIDEOWIDGET
 #include "videowidget.h"
-#endif
 
 #include <kdebug.h>
 #include <kgenericfactory.h>
@@ -114,11 +112,14 @@ QObject *Backend::createObject(BackendInterface::Class c, QObject *parent, const
             Q_ASSERT(args.size() == 1);
             return new VideoEffect(args[0].toInt(), parent);
     case VideoWidgetClass:
-#ifdef PHONON_XINE_NO_VIDEOWIDGET
-        return 0;
-#else
-        return new VideoWidget(qobject_cast<QWidget *>(parent));
-#endif // PHONON_XINE_NO_VIDEOWIDGET
+        {
+            VideoWidget *vw = new VideoWidget(qobject_cast<QWidget *>(parent));
+            if (vw->isValid()) {
+                return vw;
+            }
+            delete vw;
+            return 0;
+        }
     }
     return 0;
 }
