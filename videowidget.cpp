@@ -38,6 +38,7 @@ namespace Phonon
 namespace Xine
 {
 
+#ifndef PHONON_XINE_NO_VIDEOWIDGET
 static void dest_size_cb( void* user_data, int video_width, int video_height, double video_pixel_aspect,
 		int *dest_width, int *dest_height, double *dest_pixel_aspect )
 {
@@ -61,7 +62,7 @@ static void frame_output_cb( void* user_data, int video_width, int video_height,
 	*dest_x            = 0;
 	*dest_y            = 0;
 }
-
+#endif // PHONON_XINE_NO_VIDEOWIDGET
 
 void VideoWidget::xineCallback( int &x, int &y, int &width, int &height, double &ratio,
 		int videoWidth, int videoHeight, double videoRatio, bool mayResize )
@@ -104,6 +105,7 @@ VideoWidget::VideoWidget( QWidget* parent )
     // required for dvdnav
     setMouseTracking(true);
 
+#ifndef PHONON_XINE_NO_VIDEOWIDGET
 	// make a new X connection for xine
 	// ~QApplication hangs (or crashes) in XCloseDisplay called from Qt when XInitThreads is
 	// called. Without it everything is fine, except of course xine rendering onto the window from
@@ -129,9 +131,12 @@ VideoWidget::VideoWidget( QWidget* parent )
         Q_ASSERT(testAttribute(Qt::WA_WState_Created));
         m_videoPort = xine_open_video_driver(XineEngine::xine(), "auto", XINE_VISUAL_TYPE_XCB, static_cast<void*>(&m_visual));
         if (!m_videoPort) {
+#endif // PHONON_XINE_NO_VIDEOWIDGET
             kError(610) << "No xine video output plugin using libxcb for threadsafe access to the X server found. No video for you." << endl;
+#ifndef PHONON_XINE_NO_VIDEOWIDGET
         }
     }
+#endif // PHONON_XINE_NO_VIDEOWIDGET
 }
 
 VideoWidget::~VideoWidget()
@@ -152,8 +157,10 @@ VideoWidget::~VideoWidget()
         xine_close_video_driver(XineEngine::xine(), vp);
     }
 
+#ifndef PHONON_XINE_NO_VIDEOWIDGET
     xcb_disconnect(m_xcbConnection);
     m_xcbConnection = 0;
+#endif // PHONON_XINE_NO_VIDEOWIDGET
 }
 
 void VideoWidget::setPath( VideoPath* vp )
@@ -401,6 +408,7 @@ void VideoWidget::paintEvent(QPaintEvent *event)
     if (m_empty || !m_path || !m_path->mediaObject() || m_path->mediaObject()->state() == Phonon::LoadingState) {
         QPainter p(this);
         p.fillRect(rect(), Qt::black);
+#ifndef PHONON_XINE_NO_VIDEOWIDGET
     } else if (m_videoPort) {
         const QRect &rect = event->rect();
 
@@ -415,6 +423,7 @@ void VideoWidget::paintEvent(QPaintEvent *event)
         xcb_event.count = 0;
 
         xine_port_send_gui_data(m_videoPort, XINE_GUI_SEND_EXPOSE_EVENT, &xcb_event);
+#endif // PHONON_XINE_NO_VIDEOWIDGET
     } else {
         QPainter p(this);
         p.fillRect(rect(), Qt::black);
@@ -441,6 +450,7 @@ void VideoWidget::changeEvent( QEvent* event )
 	else if( event->type() == QEvent::ParentChange )
 	{
         kDebug(610) << k_funcinfo << "ParentChange" << winId() << endl;
+#ifndef PHONON_XINE_NO_VIDEOWIDGET
         if (m_visual.window != winId()) {
             m_visual.window = winId();
             if (m_videoPort) {
@@ -451,6 +461,7 @@ void VideoWidget::changeEvent( QEvent* event )
                 kDebug(610) << "XINE_GUI_SEND_DRAWABLE_CHANGED done." << endl;
             }
         }
+#endif // PHONON_XINE_NO_VIDEOWIDGET
     }
 }
 

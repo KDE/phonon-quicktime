@@ -30,13 +30,13 @@ set(phonon_xine_PART_SRCS
     volumefader_plugin.cpp
     mixer_plugin.cpp
     plugins.c
+    videowidget.cpp
    )
 
 macro_optional_find_package(XCB)
 if(LIBXCB_FOUND AND XINE_XCB_FOUND)
   include_directories(${LIBXCB_INCLUDE_DIR})
   add_definitions(${LIBXCB_DEFINITIONS})
-  set(phonon_xine_PART_SRCS ${phonon_xine_PART_SRCS} videowidget.cpp)
 else(LIBXCB_FOUND AND XINE_XCB_FOUND)
   add_definitions(-DPHONON_XINE_NO_VIDEOWIDGET)
   message(STATUS "Cannot compile VideoWidget for the xine backend. Needs xine version 1.1.5 or later and libxcb.")
