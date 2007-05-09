@@ -62,7 +62,7 @@ struct Input
     QQueue<audio_buffer_t *> buffers;
 };
 
-typedef struct KVolumeFaderPlugin
+typedef struct
 {
     post_plugin_t post;
 
@@ -87,7 +87,7 @@ static int portNumber(const post_audio_port_t *port)
     const post_in_t *input = 0;
     xine_list_t *input_list = port->post->input;
     for (xine_list_iterator_t it = xine_list_front(input_list); it; it = xine_list_next(input_list, it)) {
-        input = reinterpret_cast<const post_in_t *>(it);
+        input = reinterpret_cast<const post_in_t *>(xine_list_get_value(input_list, it));
         if (input->xine_in.data == port) {
             break;
         }
@@ -349,9 +349,18 @@ static void kmixer_port_put_buffer(xine_audio_port_t *port_gen,
     return;
 }
 
+static const char in0[] = "in0";
+
 static void kmixer_dispose(post_plugin_t *this_gen)
 {
     kmixer_plugin_t *that = reinterpret_cast<kmixer_plugin_t *>(this_gen);
+    xine_list_t *input_list = that->post.input;
+    for (xine_list_iterator_t it = xine_list_front(input_list); it; it = xine_list_next(input_list, it)) {
+        post_in_t *input = reinterpret_cast<post_in_t *>(xine_list_get_value(input_list, it));
+        if (input->xine_in.name != in0) {
+            delete[] input->xine_in.name;
+        }
+    }
 
     if (_x_post_dispose(this_gen)) {
         pthread_mutex_destroy(&that->lock);
@@ -375,7 +384,7 @@ static post_plugin_t *kmixer_open_plugin(post_class_t *class_gen, int inputs,
         return NULL;
     }
 
-    // creates 1 audio I/O, 0 video I/O
+    // creates <inputs> uninitialized audio inputs, 0 video inputs
     _x_post_init(&that->post, inputs, 0);
 
     // init private data
@@ -390,7 +399,7 @@ static post_plugin_t *kmixer_open_plugin(post_class_t *class_gen, int inputs,
     post_in_t *input;
     post_out_t *output;
     port = _x_post_intercept_audio_port(&that->post, audio_target[0], &input, &output);
-    input->xine_in.name = "in0";
+    input->xine_in.name = in0;
 
     // the methods of new_port are all forwarded to audio_target, overwrite a few of them here:
     port->new_port.open       = kmixer_port_open;
@@ -400,7 +409,7 @@ static post_plugin_t *kmixer_open_plugin(post_class_t *class_gen, int inputs,
     for (int i = 1; i < inputs; ++i) {
         // additional inputs
         port = _x_post_intercept_audio_port(&that->post, audio_target[0], &input, NULL);
-        char *name = strdup("in0");
+        char *name = qstrdup(in0);
         name[2] += i;
         input->xine_in.name = name;
 
