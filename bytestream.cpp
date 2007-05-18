@@ -49,7 +49,7 @@ namespace Phonon
 namespace Xine
 {
 ByteStream::ByteStream(const MediaSource &mediaSource, MediaObject* parent)
-    : QObject(parent),
+    : QObject(0), // don't let MediaObject's ~QObject delete us - the input plugin will delete us
     m_mediaObject(parent),
     m_streamSize(0),
     m_currentPosition(0),
@@ -296,17 +296,6 @@ off_t ByteStream::currentPosition() const
 ByteStream::~ByteStream()
 {
     PXINE_DEBUG << k_funcinfo << endl;
-//X     m_mutex.lock();
-//X     m_seekMutex.lock();
-//X     m_stopped = true;
-//X     // the other thread is now not between m_mutex.lock() and m_waitingForData.wait(&m_mutex), so it
-//X     // won't get stuck in m_waitingForData.wait if it's not there right now
-//X     stream().setMrl(QByteArray());
-//X     m_seekWaitCondition.wakeAll();
-//X     m_seekMutex.unlock();
-//X     m_waitingForData.wakeAll();
-//X     m_mutex.unlock();
-//X     stream().closeBlocking();
 }
 
 QByteArray ByteStream::mrl() const
