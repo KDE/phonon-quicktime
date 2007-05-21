@@ -32,6 +32,7 @@
 #include "audioport.h"
 #include "phononxineexport.h"
 #include "audiopostlist.h"
+#include <kurl.h>
 
 class QTimer;
 
