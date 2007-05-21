@@ -25,6 +25,7 @@
 #include <xine.h>
 #include <QSharedData>
 #include "audioeffect.h"
+#include <kdebug.h>
 
 namespace Phonon
 {
