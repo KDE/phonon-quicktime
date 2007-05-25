@@ -160,9 +160,8 @@ qint64 ByteStream::readFromBuffer(void *buf, size_t count)
     // get data while more is needed and while we're still receiving data
     if (m_buffersize < count && !m_eod) {
         // the thread needs to sleep until a wait condition is signalled from writeData
-        PXINE_VDEBUG << k_funcinfo << "xine waits for data: " << m_buffersize << ", " << m_eod << endl;
-
         while (!m_eod && !m_stopped && m_buffersize < count) {
+            PXINE_VDEBUG << k_funcinfo << "xine waits for data: " << m_buffersize << ", " << m_eod << endl;
             emit needDataQueued();
             m_waitingForData.wait(&m_mutex);
         }
@@ -382,7 +381,7 @@ void ByteStream::writeData(const QByteArray &data)
     }
 
     // first fill the preview buffer
-    if (!m_preview.size() == MAX_PREVIEW_SIZE) {
+    if (m_preview.size() != MAX_PREVIEW_SIZE) {
         PXINE_DEBUG << k_funcinfo << "fill preview" << endl;
         // more data than the preview buffer needs
         if (m_preview.size() + data.size() > MAX_PREVIEW_SIZE) {
