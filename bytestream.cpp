@@ -136,8 +136,24 @@ int ByteStream::peekBuffer(void *buf)
     if (m_stopped) {
         return 0;
     }
+
     // never called from main thread
     //Q_ASSERT(m_mainThread != pthread_self());
+
+    if (m_preview.size() < MAX_PREVIEW_SIZE && !m_eod) {
+        QMutexLocker lock(&m_mutex);
+        // the thread needs to sleep until a wait condition is signalled from writeData
+        while (!m_eod && !m_stopped && m_preview.size() < MAX_PREVIEW_SIZE) {
+            PXINE_VDEBUG << k_funcinfo << "xine waits for data: " << m_buffersize << ", " << m_eod << endl;
+            emit needDataQueued();
+            m_waitingForData.wait(&m_mutex);
+        }
+        if (m_stopped) {
+            PXINE_DEBUG << k_funcinfo << "returning 0, m_stopped = true" << endl;
+            //kDebug(610) << "UNLOCKING m_mutex: " << k_funcinfo << endl;
+            return 0;
+        }
+    }
 
     xine_fast_memcpy(buf, m_preview.constData(), m_preview.size());
     return m_preview.size();
