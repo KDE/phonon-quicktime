@@ -62,13 +62,13 @@ ByteStream::ByteStream(const MediaSource &mediaSource, MediaObject* parent)
     m_buffering(false),
     m_playRequested(false)
 {
+    connect(this, SIGNAL(needDataQueued()), this, SLOT(needData()), Qt::QueuedConnection);
+    connect(this, SIGNAL(seekStreamQueued(qint64)), this, SLOT(syncSeekStream(qint64)), Qt::QueuedConnection);
+
     connectToSource(mediaSource);
 
     // created in the main thread
     //m_mainThread = pthread_self();
-
-    connect(this, SIGNAL(needDataQueued()), this, SLOT(needData()), Qt::QueuedConnection);
-    connect(this, SIGNAL(seekStreamQueued(qint64)), this, SLOT(syncSeekStream(qint64)), Qt::QueuedConnection);
 }
 
 //X void ByteStream::setMrl()
