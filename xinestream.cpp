@@ -1167,7 +1167,7 @@ bool XineStream::event(QEvent *ev)
             return true;
         case PauseCommand:
             ev->accept();
-            if (m_state == Phonon::ErrorState) {
+            if (m_state == Phonon::ErrorState || m_state == Phonon::PausedState) {
                 return true;
             }
             Q_ASSERT(!m_mrl.isEmpty());
