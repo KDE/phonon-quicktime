@@ -349,9 +349,11 @@ QByteArray ByteStream::mrl() const
 void ByteStream::setStreamSize(qint64 x)
 {
     PXINE_VDEBUG << k_funcinfo << x << endl;
+    QMutexLocker lock(&m_streamSizeMutex);
     m_streamSize = x;
-    if (m_streamSize > 0) {
+    if (m_streamSize != 0) {
         emit needDataQueued();
+        m_waitForStreamSize.wakeAll();
 //X         setMrl();
     }
 }
@@ -453,12 +455,25 @@ void ByteStream::syncSeekStream(qint64 offset)
 //X     MediaObject::play(); // goes into Phonon::BufferingState/PlayingState
 //X }
 
+qint64 ByteStream::streamSize() const
+{
+    if (m_streamSize == 0) {
+        // stream size has not been set yet
+        QMutexLocker lock(&m_streamSizeMutex);
+        if (m_streamSize == 0) {
+            m_waitForStreamSize.wait(&m_streamSizeMutex);
+        }
+    }
+    return m_streamSize;
+}
+
 void ByteStream::stop()
 {
     PXINE_VDEBUG << k_funcinfo << endl;
 
     m_mutex.lock();
     m_seekMutex.lock();
+    m_streamSizeMutex.lock();
     m_stopped = true;
     // the other thread is now not between m_mutex.lock() and m_waitingForData.wait(&m_mutex), so it
     // won't get stuck in m_waitingForData.wait if it's not there right now
@@ -466,6 +481,8 @@ void ByteStream::stop()
     m_seekMutex.unlock();
     m_waitingForData.wakeAll();
     m_mutex.unlock();
+    m_waitForStreamSize.wakeAll();
+    m_streamSizeMutex.unlock();
 }
 
 }} //namespace Phonon::Xine
