@@ -47,8 +47,8 @@ namespace Xine
 			void setFadeCurve( Phonon::VolumeFaderEffect::FadeCurve curve );
 			void fadeTo( float volume, int fadeTime );
 
-            QVariant value(int parameterId) const;
-            void setValue(int parameterId, QVariant newValue);
+            QVariant parameterValue(int parameterId) const;
+            void setParameterValue(int parameterId, const QVariant &newValue);
 
 		private:
             void getParameters() const;
