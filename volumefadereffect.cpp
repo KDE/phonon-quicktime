@@ -56,7 +56,7 @@ VolumeFaderEffect::~VolumeFaderEffect()
 {
 }
 
-QVariant VolumeFaderEffect::value(int parameterId) const
+QVariant VolumeFaderEffect::parameterValue(int parameterId) const
 {
     kDebug(610) << k_funcinfo << parameterId << endl;
     switch (static_cast<ParameterIds>(parameterId)) {
@@ -75,7 +75,7 @@ QVariant VolumeFaderEffect::value(int parameterId) const
     return QVariant();
 }
 
-void VolumeFaderEffect::setValue(int parameterId, QVariant newValue)
+void VolumeFaderEffect::setParameterValue(int parameterId, const QVariant &newValue)
 {
     kDebug(610) << k_funcinfo << parameterId << newValue << endl;
     switch (static_cast<ParameterIds>(parameterId)) {
