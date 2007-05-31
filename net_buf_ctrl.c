@@ -43,6 +43,9 @@
 #define FIFO_PUT                   0
 #define FIFO_GET                   1
 
+/*#define streamClock(stream) stream->clock*/
+#define streamClock(stream) stream->xine->clock
+
 struct nbc_s {
 
   xine_stream_t   *stream;
@@ -103,14 +106,14 @@ static void nbc_set_speed_pause (void *data) {
   xine_stream_t *stream = (xine_stream_t *)data;
   xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "\nnet_buf_ctrl: nbc_set_speed_pause\n");
   _x_set_speed (stream, XINE_SPEED_PAUSE);
-  stream->xine->clock->set_option (stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 0);
+  streamClock(stream)->set_option (streamClock(stream), CLOCK_SCR_ADJUSTABLE, 0);
 }
 
 static void nbc_set_speed_normal (void *data) {
   xine_stream_t *stream = (xine_stream_t *)data;
   xprintf(stream->xine, XINE_VERBOSITY_DEBUG, "\nnet_buf_ctrl: nbc_set_speed_normal\n");
   _x_set_speed (stream, XINE_SPEED_NORMAL);
-  stream->xine->clock->set_option (stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 1);
+  streamClock(stream)->set_option (streamClock(stream), CLOCK_SCR_ADJUSTABLE, 1);
 }
 
 int report_bufferstatus (nbc_t *this)
@@ -608,7 +611,7 @@ void nbc_close (nbc_t *this) {
   audio_fifo->unregister_get_cb(audio_fifo, nbc_get_cb);
 
   /* now we are sure that nobody will call a callback */
-  this->stream->xine->clock->set_option (this->stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 1);
+  this->streamClock(stream)->set_option (this->streamClock(stream), CLOCK_SCR_ADJUSTABLE, 1);
 
   pthread_mutex_destroy(&this->mutex);
   free (this);
