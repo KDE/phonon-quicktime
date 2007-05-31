@@ -49,8 +49,12 @@ namespace Xine
             ~ByteStream();
 
             QByteArray mrl() const;
+
+            // does not block, but might change later
             bool streamSeekable() const { return m_seekable; }
-            qint64 streamSize() const { return m_streamSize; }
+
+            // blocks until the size is known
+            qint64 streamSize() const;
 
             void stop();
 
@@ -84,6 +88,8 @@ namespace Xine
             QByteArray m_preview;
             QMutex m_mutex;
             QMutex m_seekMutex;
+            mutable QMutex m_streamSizeMutex;
+            mutable QWaitCondition m_waitForStreamSize;
             QWaitCondition m_waitingForData;
             QWaitCondition m_seekWaitCondition;
             QQueue<QByteArray> m_buffers;
