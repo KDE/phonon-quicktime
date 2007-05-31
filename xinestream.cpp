@@ -37,6 +37,9 @@ extern "C" {
 
 //#define DISABLE_FILE_MRLS
 
+//#define streamClock(stream) stream->clock
+#define streamClock(stream) stream->xine->clock
+
 namespace Phonon
 {
 namespace Xine
@@ -772,14 +775,14 @@ bool XineStream::event(QEvent *ev)
     case PauseForBuffering:
         ev->accept();
         xine_set_param(m_stream, XINE_PARAM_SPEED, XINE_SPEED_PAUSE); //_x_set_speed (m_stream, XINE_SPEED_PAUSE);
-        m_stream->xine->clock->set_option (m_stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 0);
+        streamClock(m_stream)->set_option (streamClock(m_stream), CLOCK_SCR_ADJUSTABLE, 0);
         return true;
     case UnpauseForBuffering:
         ev->accept();
         if (Phonon::PausedState != m_state) {
             xine_set_param(m_stream, XINE_PARAM_SPEED, XINE_SPEED_NORMAL); //_x_set_speed (m_stream, XINE_SPEED_NORMAL);
         }
-        m_stream->xine->clock->set_option (m_stream->xine->clock, CLOCK_SCR_ADJUSTABLE, 1);
+        streamClock(m_stream)->set_option (streamClock(m_stream), CLOCK_SCR_ADJUSTABLE, 1);
         return true;
     case QuitEventLoop:
         ev->accept();
