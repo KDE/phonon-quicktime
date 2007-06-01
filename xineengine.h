@@ -27,7 +27,6 @@
 #include <QSet>
 #include <QStringList>
 #include <ksharedconfig.h>
-#include "phononxineexport.h"
 #include <QSize>
 
 namespace Phonon
@@ -49,7 +48,7 @@ namespace Xine
         UiChannelsChangedEvent = 5407
 	};
 
-	class PHONON_XINE_ENGINE_EXPORT XineProgressEvent : public QEvent
+    class XineProgressEvent : public QEvent
 	{
 		public:
 			XineProgressEvent( const QString& description, int percent );
@@ -61,7 +60,7 @@ namespace Xine
 			int m_percent;
 	};
 
-    class PHONON_XINE_ENGINE_EXPORT XineFrameFormatChangeEvent : public QEvent
+    class XineFrameFormatChangeEvent : public QEvent
     {
         public:
             XineFrameFormatChangeEvent(int w, int h, int aspect, bool panScan);
@@ -77,7 +76,7 @@ namespace Xine
 
     class XineEnginePrivate;
 
-	class PHONON_XINE_ENGINE_EXPORT XineEngine
+    class XineEngine
 	{
         friend class Phonon::Xine::Backend;
         friend class XineEnginePrivate;

@@ -30,7 +30,6 @@
 #include <sys/time.h>
 #include <time.h>
 #include "audioport.h"
-#include "phononxineexport.h"
 #include "audiopostlist.h"
 
 class QTimer;
@@ -52,7 +51,7 @@ class MediaObject;
  *
  * \author Matthias Kretz <kretz@kde.org>
  */
-class PHONON_XINE_ENGINE_EXPORT XineStream : public QThread
+class XineStream : public QThread
 {
     Q_OBJECT
     public:

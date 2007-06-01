@@ -23,7 +23,6 @@
 #include <QSharedDataPointer>
 #include <xine.h>
 #include <QSharedData>
-#include "phononxineexport.h"
 #include <QObject>
 
 class QByteArray;
@@ -36,7 +35,7 @@ namespace Xine
 
 class AudioPortData;
 
-class PHONON_XINE_ENGINE_EXPORT AudioPort
+class AudioPort
 {
     public:
         AudioPort();
