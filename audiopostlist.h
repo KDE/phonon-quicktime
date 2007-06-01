@@ -20,7 +20,6 @@
 #ifndef PHONON_AUDIOPOSTLIST_H
 #define PHONON_AUDIOPOSTLIST_H
 
-#include "phononxineexport.h"
 typedef struct xine_post_out_s xine_post_out_t;
 
 namespace Phonon
@@ -33,7 +32,7 @@ class AudioPostListData;
 class AudioEffect;
 class AudioPort;
 
-class PHONON_XINE_ENGINE_EXPORT AudioPostList
+class AudioPostList
 {
     public:
         AudioPostList();
