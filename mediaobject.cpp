@@ -50,13 +50,14 @@ MediaObject::MediaObject(QObject *parent)
     m_videoPath(0),
     m_seeking(0),
     m_currentTitle(1),
+    m_transitionTime(0),
     m_autoplayTitles(true)
 {
     m_stream.moveToThread(&m_stream);
     m_stream.start();
+    m_stream.useGaplessPlayback(true);
+
     qRegisterMetaType<QMultiMap<QString,QString> >("QMultiMap<QString,QString>");
-    //qRegisterMetaType<Phonon::State>("Phonon::State");
-    //qRegisterMetaType<qint64>("qint64");
     connect(&m_stream, SIGNAL(stateChanged(Phonon::State, Phonon::State)),
             SLOT(handleStateChange(Phonon::State, Phonon::State)));
     connect(&m_stream, SIGNAL(metaDataChanged(const QMultiMap<QString, QString> &)),
@@ -408,12 +409,22 @@ qint32 MediaObject::transitionTime() const
 
 void MediaObject::setTransitionTime(qint32 newTransitionTime)
 {
-    m_transitionTime = newTransitionTime;
+    if (m_transitionTime != newTransitionTime) {
+        m_transitionTime = newTransitionTime;
+        if (m_transitionTime == 0) {
+            stream().useGaplessPlayback(true);
+        } else if (m_transitionTime > 0) {
+            // TODO: a gap of m_transitionTime milliseconds
+            stream().useGaplessPlayback(true);
+        } else {
+            // TODO: a crossfade of milliseconds milliseconds
+            stream().useGaplessPlayback(true);
+        }
+    }
 }
 
 void MediaObject::setNextSource(const MediaSource &source)
 {
-    abort(); // TODO
     if (m_transitionTime < 0) {
         kError(610) << "crossfades are not supported with the xine backend" << endl;
     } else if (m_transitionTime > 0) {
