@@ -32,9 +32,10 @@ namespace Phonon
 namespace Xine
 {
 
-AudioPortDeleter::AudioPortDeleter(const AudioPort &port)
-    : m_port(port)
+AudioPortDeleter::AudioPortDeleter(AudioPortData *dd)
+    : d(dd)
 {
+    XineEngine::addCleanupObject(this);
     startTimer(2000);
 }
 
@@ -42,6 +43,11 @@ void AudioPortDeleter::timerEvent(QTimerEvent *e)
 {
     killTimer(e->timerId());
     deleteLater();
+}
+
+AudioPortDeleter::~AudioPortDeleter()
+{
+    XineEngine::removeCleanupObject(this);
 }
 
 class AudioPortData : public QSharedData
@@ -76,12 +82,14 @@ AudioPort::AudioPort(const AudioPort &rhs)
 
 AudioPort &AudioPort::operator=(const AudioPort &rhs)
 {
+    waitALittleWithDying(); // xine still accesses the port after a rewire :(
     d = rhs.d;
     return *this;
 }
 
 AudioPort::~AudioPort()
 {
+    waitALittleWithDying(); // xine still accesses the port after a rewire :(
 }
 
 AudioPort::AudioPort(int deviceIndex)
@@ -155,7 +163,11 @@ bool AudioPort::operator!=(const AudioPort& rhs) const
 
 void AudioPort::waitALittleWithDying()
 {
-    new AudioPortDeleter(*this);
+    if (d->ref == 1) {
+        // this is the last ref to the data, so it will get deleted in a few instructions unless
+        new AudioPortDeleter(d);
+        // AudioPortDeleter refs it once more
+    }
 }
 
 AudioPort::operator xine_audio_port_t*() const

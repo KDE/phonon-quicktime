@@ -97,6 +97,9 @@ namespace Xine
 
             static const QObject *sender();
 
+            static void addCleanupObject(QObject *o) { self()->m_cleanupObjects << o; }
+            static void removeCleanupObject(QObject *o) { self()->m_cleanupObjects.removeAll(o); }
+
         protected:
             XineEngine(const KSharedConfigPtr &cfg);
             ~XineEngine();
@@ -123,6 +126,7 @@ namespace Xine
                 bool operator==(const AudioOutputInfo& rhs) { return name == rhs.name && driver == rhs.driver; }
             };
             QList<AudioOutputInfo> m_audioOutputInfos;
+            QList<QObject *> m_cleanupObjects;
             KSharedConfigPtr m_config;
             bool m_useOss;
             const XineEnginePrivate *const d;
