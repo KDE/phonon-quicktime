@@ -138,7 +138,6 @@ class ByteStream;
 
         private slots:
             void handleStateChange(Phonon::State newstate, Phonon::State oldstate);
-            void seekDone();
             void needNextUrl();
             void handleAvailableTitlesChanged(int);
             void handleFinished();
@@ -162,7 +161,6 @@ class ByteStream;
             QHash<const QObject *, QString> m_currentVideoStream;
             QHash<const QObject *, QString> m_currentSubtitleStream;
 
-            int m_seeking;
             mutable int m_currentTimeOverride;
             MediaSource m_mediaSource;
             QList<QByteArray> m_titles;

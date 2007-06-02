@@ -48,7 +48,6 @@ MediaObject::MediaObject(QObject *parent)
     m_state(Phonon::LoadingState),
     m_stream(),
     m_videoPath(0),
-    m_seeking(0),
     m_currentTitle(1),
     m_transitionTime(0),
     m_autoplayTitles(true)
@@ -65,7 +64,6 @@ MediaObject::MediaObject(QObject *parent)
     connect(&m_stream, SIGNAL(seekableChanged(bool)), SIGNAL(seekableChanged(bool)));
     connect(&m_stream, SIGNAL(hasVideoChanged(bool)), SIGNAL(hasVideoChanged(bool)));
     connect(&m_stream, SIGNAL(bufferStatus(int)), SIGNAL(bufferStatus(int)));
-    connect(&m_stream, SIGNAL(seekDone()), SLOT(seekDone()));
     connect(&m_stream, SIGNAL(tick(qint64)), SIGNAL(tick(qint64)));
     connect(&m_stream, SIGNAL(availableChaptersChanged(int)), SIGNAL(availableChaptersChanged(int)));
     connect(&m_stream, SIGNAL(chapterChanged(int)), SIGNAL(chapterChanged(int)));
@@ -76,15 +74,6 @@ MediaObject::MediaObject(QObject *parent)
     connect(&m_stream, SIGNAL(prefinishMarkReached(qint32)), SIGNAL(prefinishMarkReached(qint32)), Qt::QueuedConnection);
     connect(&m_stream, SIGNAL(availableTitlesChanged(int)), SLOT(handleAvailableTitlesChanged(int)));
     connect(&m_stream, SIGNAL(needNextUrl()), SLOT(needNextUrl()));
-}
-
-void MediaObject::seekDone()
-{
-    //kDebug(610) << k_funcinfo << endl;
-    --m_seeking;
-    if (0 == m_seeking) {
-        emit tick(currentTime());
-    }
 }
 
 MediaObject::~MediaObject()
@@ -321,12 +310,7 @@ void MediaObject::stop()
 void MediaObject::seek(qint64 time)
 {
     //kDebug(610) << k_funcinfo << time << endl;
-    if (!isSeekable()) {
-        return;
-    }
-
     m_stream.seek(time);
-    ++m_seeking;
 }
 
 QString MediaObject::errorString() const
