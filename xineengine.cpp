@@ -90,6 +90,7 @@ namespace Xine
 
     XineEngine::~XineEngine()
     {
+        qDeleteAll(m_cleanupObjects);
         //kDebug(610) << k_funcinfo << endl;
         if (m_nullPort) {
             xine_close_audio_driver(m_xine, m_nullPort);
@@ -171,6 +172,7 @@ namespace Xine
                         QList<AudioPostList> posts = xs->audioPostLists();
                         foreach (AudioPostList post, posts) {
                             AudioPort ap = post.audioPort();
+                            kDebug(610) << "telling AudioPort " << ap << " valid = " << ap.isValid() << " output = " << ap.audioOutput() << endl;
                             if (ap.isValid()) {
                                 QCoreApplication::postEvent(ap.audioOutput(), new QEvent(static_cast<QEvent::Type>(Xine::AudioDeviceFailedEvent)));
                             }

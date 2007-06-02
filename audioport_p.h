@@ -31,13 +31,14 @@ class AudioPortDeleter : public QObject
 {
     Q_OBJECT
     public:
-        AudioPortDeleter(const AudioPort &);
+        AudioPortDeleter(AudioPortData *);
+        ~AudioPortDeleter();
 
     protected:
         void timerEvent(QTimerEvent *);
 
     private:
-        AudioPort m_port;
+        QExplicitlySharedDataPointer<AudioPortData> d;
 };
 } // namespace Xine
 } // namespace Phonon

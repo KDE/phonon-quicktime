@@ -61,7 +61,7 @@ class AudioPort
         ~AudioPort();
 
     private:
-        QSharedDataPointer<AudioPortData> d;
+        QExplicitlySharedDataPointer<AudioPortData> d;
 };
 
 } // namespace Xine

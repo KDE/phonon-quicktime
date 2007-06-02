@@ -151,7 +151,6 @@ void AudioPostList::wireStream(xine_post_out_t *audioSource)
             err = xine_post_wire_audio_port(audioSource, d->newOutput);
         }
         Q_ASSERT(err == 1);
-        d->output.waitALittleWithDying(); // xine still accesses the port after a rewire :(
         d->output = d->newOutput;
     } else {
         kDebug(610) << "no valid audio output given, no audio" << endl;
