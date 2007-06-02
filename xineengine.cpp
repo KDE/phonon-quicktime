@@ -161,8 +161,22 @@ namespace Xine
                 }
                 break;
             case XINE_EVENT_UI_MESSAGE:             /* message (dialog) for the ui to display */
-                //m_lastMessage = static_cast<xine_ui_message_data_t *>(xineEvent->data)
-                kDebug(610) << "XINE_EVENT_UI_MESSAGE" << endl;
+                {
+                    kDebug(610) << "XINE_EVENT_UI_MESSAGE" << endl;
+                    const xine_ui_message_data_t *message = static_cast<xine_ui_message_data_t *>(xineEvent->data);
+                    if (message->type == XINE_MSG_AUDIO_OUT_UNAVAILABLE) {
+                        kDebug(610) << "XINE_MSG_AUDIO_OUT_UNAVAILABLE" << endl;
+                        // we don't know for sure which AudioOutput failed. but the one without any
+                        // capabilities must be the guilty one
+                        QList<AudioPostList> posts = xs->audioPostLists();
+                        foreach (AudioPostList post, posts) {
+                            AudioPort ap = post.audioPort();
+                            if (ap.isValid()) {
+                                QCoreApplication::postEvent(ap.audioOutput(), new QEvent(static_cast<QEvent::Type>(Xine::AudioDeviceFailedEvent)));
+                            }
+                        }
+                    }
+                }
                 break;
             case XINE_EVENT_FRAME_FORMAT_CHANGE:    /* e.g. aspect ratio change during dvd playback */
                 kDebug(610) << "XINE_EVENT_FRAME_FORMAT_CHANGE" << endl;
@@ -189,22 +203,6 @@ namespace Xine
             case XINE_EVENT_MRL_REFERENCE_EXT:      /* demuxer->frontend: MRL reference(s) for the real stream */
                 kDebug(610) << "XINE_EVENT_MRL_REFERENCE_EXT" << endl;
                 break;
-#ifdef XINE_EVENT_AUDIO_DEVICE_FAILED
-            case XINE_EVENT_AUDIO_DEVICE_FAILED:    /* audio device is gone */
-                kDebug(610) << "XINE_EVENT_AUDIO_DEVICE_FAILED" << endl;
-                {
-                    // we don't know for sure which AudioOutput failed. but the one without any
-                    // capabilities must be the guilty one
-                    QList<AudioPostList> posts = xs->audioPostLists();
-                    foreach (AudioPostList post, posts) {
-                        AudioPort ap = post.audioPort();
-                        if (ap.isValid()) {
-                            QCoreApplication::postEvent(ap.audioOutput(), new QEvent(static_cast<QEvent::Type>(Xine::AudioDeviceFailedEvent)));
-                        }
-                    }
-                }
-                break;
-#endif
         }
     }
 
@@ -484,6 +482,7 @@ namespace Xine
         XineEngine::AudioOutputInfo info(dev.index(), dev.cardName() + postfix, QString(), dev.iconName(),
                 driver, dev.deviceIds());
         if (s_instance->m_audioOutputInfos.removeAll(info)) {
+            s_instance->m_audioOutputInfos << info; // now the device is listed as not available
             signalTimer.start();
         } else {
             kDebug(610) << k_funcinfo << "told to remove " << dev.cardName() + postfix <<
