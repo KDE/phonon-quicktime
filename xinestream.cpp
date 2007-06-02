@@ -229,6 +229,13 @@ bool XineStream::xineOpen()
         case XINE_ERROR_NO_INPUT_PLUGIN:
             error(Phonon::NormalError, i18n("cannot find input plugin for MRL [%1]", m_mrl.constData()));
             break;
+        case XINE_ERROR_NO_DEMUX_PLUGIN:
+            if (m_mrl.startsWith("kbytestream:/")) {
+                error(Phonon::FatalError, i18n("cannot find demultiplexer plugin for the given media data"));
+            } else {
+                error(Phonon::FatalError, i18n("cannot find demultiplexer plugin for MRL [%1]", m_mrl.constData()));
+            }
+            break;
         default:
             {
                 const char *const *logs = xine_get_log(XineEngine::xine(), XINE_LOG_MSG);
@@ -1254,7 +1261,7 @@ bool XineStream::event(QEvent *ev)
         case SeekCommand:
             m_lastSeekCommand = 0;
             ev->accept();
-            if (m_state == Phonon::ErrorState) {
+            if (m_state == Phonon::ErrorState || !m_isSeekable) {
                 return true;
             }
             {
@@ -1277,7 +1284,6 @@ bool XineStream::event(QEvent *ev)
                             gettimeofday(&m_lastTimeUpdate, 0);
                         }
                         //}
-                        emit seekDone();
                         break;
                     case Phonon::StoppedState:
                     case Phonon::ErrorState:

@@ -128,7 +128,6 @@ class XineStream : public QThread
         void stateChanged(Phonon::State newstate, Phonon::State oldstate);
         void metaDataChanged(const QMultiMap<QString, QString>&);
         void length(qint64);
-        void seekDone();
         void needNextUrl();
         void tick(qint64);
         void prefinishMarkReached(qint32);
