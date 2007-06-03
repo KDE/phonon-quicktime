@@ -430,7 +430,11 @@ void MediaObject::setSourceInternal(const MediaSource &source, HowToSetTheUrl ho
 
     switch (source.type()) {
     case MediaSource::Invalid:
-        stop();
+        if (how == GaplessSwitch) {
+            m_stream.gaplessSwitchTo(QByteArray());
+        } else {
+            stop();
+        }
         break;
     case MediaSource::LocalFile:
     case MediaSource::Url:
