@@ -99,11 +99,13 @@ AudioPort AudioOutput::audioPort() const
 bool AudioOutput::setOutputDevice(int newDevice)
 {
     m_device = newDevice;
+    m_audioPort.setAudioOutput(0);
     m_audioPort = AudioPort(m_device);
     if (!m_audioPort.isValid()) {
         kDebug(610) << "new audio port is invalid" << endl;
         return false;
     }
+    m_audioPort.setAudioOutput(this);
     emit audioPortChanged(m_audioPort);
     return true;
 }
