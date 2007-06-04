@@ -30,7 +30,6 @@
 #include <xcb/xcb.h>
 #endif // PHONON_XINE_NO_VIDEOWIDGET
 
-class QString;
 class QMouseEvent;
 
 namespace Phonon

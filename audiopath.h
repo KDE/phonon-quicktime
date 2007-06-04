@@ -29,8 +29,7 @@ namespace Phonon
 {
 namespace Xine
 {
-	class AudioEffect;
-	class AbstractAudioOutput;
+		class AbstractAudioOutput;
     class MediaObject;
 	class AudioOutput;
 class XineStream;

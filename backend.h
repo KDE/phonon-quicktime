@@ -32,14 +32,12 @@
 #include <phonon/objectdescription.h>
 #include <phonon/backendinterface.h>
 
-class KUrl;
 
 namespace Phonon
 {
 namespace Xine
 {
-	class AudioOutput;
-
+	
     class Backend : public QObject, public BackendInterface
 	{
 		Q_OBJECT
