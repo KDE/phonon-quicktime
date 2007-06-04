@@ -25,8 +25,6 @@
 #include <QSharedData>
 #include <QObject>
 
-class QByteArray;
-class QStringList;
 
 namespace Phonon
 {

@@ -30,8 +30,7 @@ namespace Phonon
 namespace Xine
 {
 	class VideoEffect;
-	class AbstractVideoOutput;
-    class MediaObject;
+	    class MediaObject;
     class VideoWidget;
 
 	class VideoPath : public QObject

@@ -41,7 +41,6 @@
 
 #include <xine.h>
 
-class KUrl;
 
 namespace Phonon
 {
