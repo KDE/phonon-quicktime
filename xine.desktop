@@ -14,6 +14,7 @@ Name=Xine
 Name[x-test]=xxXinexx
 
 Comment=Phonon Xine backend
+Comment[ca]=Dorsal Phonon Xine
 Comment[el]=Σύστημα υποστήριξης του Phonon Xine
 Comment[sv]=Phonon Xine-gränssnitt
 Comment[x-test]=xxPhonon Xine backendxx
