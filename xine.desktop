@@ -7,7 +7,7 @@ X-KDE-Library=phonon_xine
 X-KDE-PhononBackendInfo-InterfaceVersion=1
 X-KDE-PhononBackendInfo-Version=0.1
 X-KDE-PhononBackendInfo-Website=http://www.xinehq.de/
-icon=xinelogo
+Icon=xinelogo
 InitialPreference=15
 
 Name=Xine
