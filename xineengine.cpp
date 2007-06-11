@@ -408,16 +408,16 @@ namespace Xine
                                 "<p>JACK was designed from the ground up for professional audio "
                                 "work, and its design focuses on two key areas: synchronous "
                                 "execution of all clients, and low latency operation.</p>"),
-                            outputPlugins[i], outputPlugins[i], QStringList());
+                            /*icon name*/"jackd", outputPlugins[i], QStringList());
                 } else if (0 == strcmp(outputPlugins[i], "arts")) {
                     addAudioOutput(nextIndex++, i18n("aRts"),
                             i18n("<p>aRts is the old soundserver and media framework that was used "
                                 "in KDE2 and KDE3. Its use is discuraged.</p>"),
-                            outputPlugins[i], outputPlugins[i], QStringList());
+                            /*icon name*/"arts", outputPlugins[i], QStringList());
                 } else {
                     addAudioOutput(nextIndex++, outputPlugins[i],
                             xine_get_audio_driver_plugin_description(xine(), outputPlugins[i]),
-                            outputPlugins[i], outputPlugins[i], QStringList());
+                            /*icon name*/outputPlugins[i], outputPlugins[i], QStringList());
                 }
             }
 
