@@ -21,13 +21,18 @@
 #ifndef XINEENGINE_H
 #define XINEENGINE_H
 
+#include <QtCore/QEvent>
+#include <QtCore/QSet>
+#include <QtCore/QSize>
+#include <QtCore/QString>
+#include <QtCore/QStringList>
+
+#include <Phonon/Global>
+
+#include <KDebug>
+#include <KSharedConfig>
+
 #include <xine.h>
-#include <QEvent>
-#include <QString>
-#include <QSet>
-#include <QStringList>
-#include <ksharedconfig.h>
-#include <QSize>
 
 namespace Phonon
 {
@@ -134,6 +139,35 @@ namespace Xine
             xine_video_port_t *m_nullVideoPort;
 	};
 }
+}
+
+/**
+ * Implements needed operator to use Phonon::State with kDebug
+ */
+inline kdbgstream &operator<<(kdbgstream &stream, const Phonon::State state)
+{
+    switch(state)
+    {
+    case Phonon::ErrorState:
+        stream << "ErrorState";
+        break;
+    case Phonon::LoadingState:
+        stream << "LoadingState";
+        break;
+    case Phonon::StoppedState:
+        stream << "StoppedState";
+        break;
+    case Phonon::PlayingState:
+        stream << "PlayingState";
+        break;
+    case Phonon::BufferingState:
+        stream << "BufferingState";
+        break;
+    case Phonon::PausedState:
+        stream << "PausedState";
+        break;
+    }
+    return stream;
 }
 
 #endif // XINEENGINE_H
