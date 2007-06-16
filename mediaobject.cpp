@@ -409,6 +409,13 @@ void MediaObject::setTransitionTime(qint32 newTransitionTime)
 
 void MediaObject::setNextSource(const MediaSource &source)
 {
+    if (source.type() == MediaSource::Invalid) {
+        // the frontend is telling us that the play-queue is empty, so stop waiting for a new MRL
+        // for gapless playback
+        m_stream.gaplessSwitchTo(QByteArray());
+        setSourceInternal(m_mediaSource, HardSwitch);
+        return;
+    }
     if (m_transitionTime < 0) {
         kError(610) << "crossfades are not supported with the xine backend" << endl;
     } else if (m_transitionTime > 0) {
@@ -430,11 +437,7 @@ void MediaObject::setSourceInternal(const MediaSource &source, HowToSetTheUrl ho
 
     switch (source.type()) {
     case MediaSource::Invalid:
-        if (how == GaplessSwitch) {
-            m_stream.gaplessSwitchTo(QByteArray());
-        } else {
-            stop();
-        }
+        stop();
         break;
     case MediaSource::LocalFile:
     case MediaSource::Url:
