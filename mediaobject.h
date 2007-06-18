@@ -133,7 +133,7 @@ class ByteStream;
             VideoPath* videoPath() const { return m_videoPath; }
 
         protected slots:
-            void changeState(Phonon::State);
+            void startToFakeBuffering();
 
         private slots:
             void handleStateChange(Phonon::State newstate, Phonon::State oldstate);
@@ -167,7 +167,8 @@ class ByteStream;
             int m_currentTitle;
             qint32 m_prefinishMark;
             qint32 m_transitionTime;
-            bool m_autoplayTitles;
+            bool m_autoplayTitles : 1;
+            bool m_fakingBuffering : 1;
 	};
 }} //namespace Phonon::Xine
 

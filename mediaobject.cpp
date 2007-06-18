@@ -50,7 +50,8 @@ MediaObject::MediaObject(QObject *parent)
     m_videoPath(0),
     m_currentTitle(1),
     m_transitionTime(0),
-    m_autoplayTitles(true)
+    m_autoplayTitles(true),
+    m_fakingBuffering(false)
 {
     m_stream.moveToThread(&m_stream);
     m_stream.start();
@@ -290,7 +291,7 @@ void MediaObject::setCurrentSubtitleStream(const QString &streamName, const QObj
 void MediaObject::play()
 {
     if (m_state == Phonon::StoppedState || m_state == Phonon::LoadingState || m_state == Phonon::PausedState) {
-        changeState(Phonon::BufferingState);
+        startToFakeBuffering();
     }
     m_stream.play();
 }
@@ -323,46 +324,47 @@ Phonon::ErrorType MediaObject::errorType() const
     return m_stream.errorType();
 }
 
-void MediaObject::changeState(Phonon::State newstate)
+void MediaObject::startToFakeBuffering()
 {
-    // this method is for "fake" state changes the following state changes are not "fakable":
-    Q_ASSERT(newstate != Phonon::PlayingState);
-    Q_ASSERT(m_state != Phonon::PlayingState);
-
-    if (m_state == newstate) {
+    if (m_state == Phonon::BufferingState) {
         return;
     }
 
+    // this method is for "fake" state changes the following state changes are not "fakable":
+    Q_ASSERT(m_state != Phonon::PlayingState);
+    kDebug(610) << "fake state change: reached BufferingState after " << m_state << endl;
+
     Phonon::State oldstate = m_state;
-    m_state = newstate;
+    m_state = Phonon::BufferingState;
+    m_fakingBuffering = true;
 
-    /*
-    if (newstate == Phonon::PlayingState) {
-        reachedPlayingState();
-    } else if (oldstate == Phonon::PlayingState) {
-        leftPlayingState();
-    }
-    */
-
-    kDebug(610) << "fake state change: reached " << newstate << " after " << oldstate << endl;
-    emit stateChanged(newstate, oldstate);
+    emit stateChanged(Phonon::BufferingState, oldstate);
 }
 
 void MediaObject::handleStateChange(Phonon::State newstate, Phonon::State oldstate)
 {
     if (m_state == newstate) {
+        if (m_fakingBuffering) {
+            Q_ASSERT(m_state == BufferingState);
+            m_fakingBuffering = false;
+        }
+        // BufferingState -> BufferingState, nothing to do
         return;
     } else if (m_state != oldstate) {
-        oldstate = m_state;
+        Q_ASSERT(m_fakingBuffering);
+        Q_ASSERT(m_state == BufferingState);
+        if (newstate == PlayingState || newstate == ErrorState) {
+            m_fakingBuffering = false;
+            oldstate = m_state;
+        } else {
+            // we're faking BufferingState and stay there until we either reach BufferingState,
+            // PlayingState or ErrorState
+            return;
+        }
     }
     m_state = newstate;
 
     kDebug(610) << "reached " << newstate << " after " << oldstate << endl;
-//X     if (newstate == Phonon::PlayingState) {
-//X         reachedPlayingState();
-//X     } else if (oldstate == Phonon::PlayingState) {
-//X         leftPlayingState();
-//X     }
     emit stateChanged(newstate, oldstate);
 }
 void MediaObject::handleFinished()
