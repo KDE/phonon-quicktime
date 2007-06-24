@@ -50,8 +50,21 @@ namespace Xine
         NavButtonOutEvent = 5404,
         AudioDeviceFailedEvent = 5405,
         FrameFormatChangeEvent = 5406,
-        UiChannelsChangedEvent = 5407
+        UiChannelsChangedEvent = 5407,
+        ReferenceEvent = 5408
 	};
+
+    class XineReferenceEvent : public QEvent
+    {
+        public :
+            XineReferenceEvent(bool _alternative, const QByteArray &_mrl)
+                : QEvent(static_cast<QEvent::Type>(ReferenceEvent)),
+                alternative(_alternative), mrl(_mrl)
+            {}
+
+            const bool alternative;
+            const QByteArray mrl;
+    };
 
     class XineProgressEvent : public QEvent
 	{

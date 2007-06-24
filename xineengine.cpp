@@ -203,7 +203,16 @@ namespace Xine
                 kDebug(610) << "XINE_EVENT_DROPPED_FRAMES" << endl;
                 break;
             case XINE_EVENT_MRL_REFERENCE_EXT:      /* demuxer->frontend: MRL reference(s) for the real stream */
-                kDebug(610) << "XINE_EVENT_MRL_REFERENCE_EXT" << endl;
+                {
+                    xine_mrl_reference_data_ext_t *reference = static_cast<xine_mrl_reference_data_ext_t *>(xineEvent->data);
+                    kDebug(610) << "XINE_EVENT_MRL_REFERENCE_EXT: " << reference->alternative
+                        << ", " << reference->start_time
+                        << ", " << reference->duration
+                        << ", " << reference->mrl
+                        << ", " << (reference->mrl + strlen(reference->mrl) + 1)
+                        << endl;
+                    QCoreApplication::postEvent(xs, new XineReferenceEvent(reference->alternative, reference->mrl));
+                }
                 break;
         }
     }
