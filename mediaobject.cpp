@@ -39,6 +39,10 @@
 
 #include <cmath>
 
+static const char *const green  = "\033[1;40;32m";
+static const char *const blue   = "\033[1;40;34m";
+static const char *const normal = "\033[0m";
+
 namespace Phonon
 {
 namespace Xine
@@ -51,7 +55,8 @@ MediaObject::MediaObject(QObject *parent)
     m_currentTitle(1),
     m_transitionTime(0),
     m_autoplayTitles(true),
-    m_fakingBuffering(false)
+    m_fakingBuffering(false),
+    m_shouldFakeBufferingOnPlay(true)
 {
     m_stream.moveToThread(&m_stream);
     m_stream.start();
@@ -290,10 +295,12 @@ void MediaObject::setCurrentSubtitleStream(const QString &streamName, const QObj
 
 void MediaObject::play()
 {
-    if (m_state == Phonon::StoppedState || m_state == Phonon::LoadingState || m_state == Phonon::PausedState) {
+    kDebug(610) << green << "PLAY" << normal << endl;
+    m_stream.play();
+    if (m_shouldFakeBufferingOnPlay || m_state == Phonon::StoppedState || m_state == Phonon::LoadingState || m_state == Phonon::PausedState) {
+        m_shouldFakeBufferingOnPlay = false;
         startToFakeBuffering();
     }
-    m_stream.play();
 }
 
 void MediaObject::pause()
@@ -326,17 +333,19 @@ Phonon::ErrorType MediaObject::errorType() const
 
 void MediaObject::startToFakeBuffering()
 {
+    kDebug(610) << blue << "start faking" << normal << endl;
+    m_fakingBuffering = true;
     if (m_state == Phonon::BufferingState) {
+        return;
+    } else if (m_state == Phonon::PlayingState) {
+        // next time we reach StoppedState from LoadingState go right into BufferingState
         return;
     }
 
-    // this method is for "fake" state changes the following state changes are not "fakable":
-    Q_ASSERT(m_state != Phonon::PlayingState);
     kDebug(610) << "fake state change: reached BufferingState after " << m_state << endl;
 
     Phonon::State oldstate = m_state;
     m_state = Phonon::BufferingState;
-    m_fakingBuffering = true;
 
     emit stateChanged(Phonon::BufferingState, oldstate);
 }
@@ -347,6 +356,7 @@ void MediaObject::handleStateChange(Phonon::State newstate, Phonon::State oldsta
         if (m_fakingBuffering) {
             Q_ASSERT(m_state == BufferingState);
             m_fakingBuffering = false;
+            kDebug(610) << blue << "end faking" << normal << endl;
         }
         // BufferingState -> BufferingState, nothing to do
         return;
@@ -355,12 +365,15 @@ void MediaObject::handleStateChange(Phonon::State newstate, Phonon::State oldsta
         Q_ASSERT(m_state == BufferingState);
         if (newstate == PlayingState || newstate == ErrorState) {
             m_fakingBuffering = false;
+            kDebug(610) << blue << "end faking" << normal << endl;
             oldstate = m_state;
         } else {
             // we're faking BufferingState and stay there until we either reach BufferingState,
             // PlayingState or ErrorState
             return;
         }
+    } else if (oldstate == LoadingState && newstate == StoppedState && m_fakingBuffering) {
+        newstate = BufferingState;
     }
     m_state = newstate;
 
@@ -446,6 +459,7 @@ void MediaObject::setSourceInternal(const MediaSource &source, HowToSetTheUrl ho
         if (source.url().scheme() == QLatin1String("kbytestream")) {
             m_mediaSource = MediaSource();
             kError(610) << "do not ever use kbytestream:/ URLs with MediaObject!" << endl;
+            m_shouldFakeBufferingOnPlay = false;
             stream().setMrl(QByteArray());
             stream().setError(Phonon::NormalError, i18n("Cannot open media data at '<i>%1</i>'", source.url().toString(QUrl::RemovePassword)));
             return;
@@ -455,6 +469,7 @@ void MediaObject::setSourceInternal(const MediaSource &source, HowToSetTheUrl ho
             m_stream.gaplessSwitchTo(source.url());
             break;
         case HardSwitch:
+            m_shouldFakeBufferingOnPlay = true;
             m_stream.setUrl(source.url());
             break;
         }
@@ -491,6 +506,7 @@ void MediaObject::setSourceInternal(const MediaSource &source, HowToSetTheUrl ho
                 m_stream.gaplessSwitchTo(mrl);
                 break;
             case HardSwitch:
+                m_shouldFakeBufferingOnPlay = true;
                 m_stream.setMrl(mrl);
                 break;
             }
@@ -506,6 +522,7 @@ void MediaObject::setSourceInternal(const MediaSource &source, HowToSetTheUrl ho
                 m_stream.gaplessSwitchTo(m_bytestream->mrl());
                 break;
             case HardSwitch:
+                m_shouldFakeBufferingOnPlay = true;
                 m_stream.setMrl(m_bytestream->mrl());
                 break;
             }
