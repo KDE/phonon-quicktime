@@ -63,7 +63,11 @@ static uint32_t kbytestream_plugin_get_capabilities (input_plugin_t *this_gen) {
     return INPUT_CAP_PREVIEW | (that->bytestream->streamSeekable() ? INPUT_CAP_SEEKABLE : 0);
 }
 
+#if ((XINE_SUB_VERSION >= 90 && XINE_MINOR_VERSION == 1) || (XINE_MINOR_VERSION > 1) && XINE_MAJOR_VERSION == 1) || XINE_MAJOR_VERSION > 1
+static off_t kbytestream_plugin_read (input_plugin_t *this_gen, void *buf, off_t len) {
+#else
 static off_t kbytestream_plugin_read (input_plugin_t *this_gen, char *buf, off_t len) {
+#endif
     kbytestream_input_plugin_t *that = (kbytestream_input_plugin_t *) this_gen;
     off_t read = that->bytestream->readFromBuffer( buf, len );
     return read;
