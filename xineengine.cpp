@@ -331,8 +331,13 @@ namespace Xine
                 postfix = QLatin1String(" (OSS)");
             }
         }
+        const QString description = dev.deviceIds().isEmpty() ?
+            i18n("<html>This device is currently not available (either it is unplugged or the "
+                    "driver is not loaded).</html>") :
+            i18n("<html>This will try the following devices and use the first that works: "
+                    "<ol><li>%1</li></ol></html>", dev.deviceIds().join("</li><li>"));
         AudioOutputInfo info(dev.index(), dev.cardName() + postfix,
-                QString(), dev.iconName(), driver, dev.deviceIds());
+                description, dev.iconName(), driver, dev.deviceIds());
         info.available = dev.isAvailable();
         if (m_audioOutputInfos.contains(info)) {
             m_audioOutputInfos.removeAll(info); // the latest is more up to date wrt availability
@@ -411,17 +416,17 @@ namespace Xine
                     }
                 } else if (0 == strcmp(outputPlugins[i], "jack")) {
                     addAudioOutput(nextIndex++, i18n("Jack Audio Connection Kit"),
-                            i18n("<p>JACK is a low-latency audio server. It can connect a number "
+                            i18n("<html><p>JACK is a low-latency audio server. It can connect a number "
                                 "of different applications to an audio device, as well as allowing "
                                 "them to share audio between themselves.</p>"
                                 "<p>JACK was designed from the ground up for professional audio "
                                 "work, and its design focuses on two key areas: synchronous "
-                                "execution of all clients, and low latency operation.</p>"),
+                                "execution of all clients, and low latency operation.</p></html>"),
                             /*icon name*/"jackd", outputPlugins[i], QStringList());
                 } else if (0 == strcmp(outputPlugins[i], "arts")) {
                     addAudioOutput(nextIndex++, i18n("aRts"),
-                            i18n("<p>aRts is the old soundserver and media framework that was used "
-                                "in KDE2 and KDE3. Its use is discuraged.</p>"),
+                            i18n("<html><p>aRts is the old soundserver and media framework that was used "
+                                "in KDE2 and KDE3. Its use is discuraged.</p></html>"),
                             /*icon name*/"arts", outputPlugins[i], QStringList());
                 } else {
                     addAudioOutput(nextIndex++, outputPlugins[i],
