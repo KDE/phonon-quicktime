@@ -154,7 +154,7 @@ class XineStream : public QThread
 
     private:
         void getStreamInfo();
-        bool xineOpen();
+        bool xineOpen(Phonon::State);
         void updateMetaData();
         void rewireOutputPorts();
         bool createStream();
@@ -177,7 +177,6 @@ class XineStream : public QThread
         Phonon::State m_state;
 
         QMutex m_portMutex;
-        QMutex m_playMutex;
         mutable QMutex m_mutex;
         mutable QMutex m_streamInfoMutex;
         mutable QMutex m_updateTimeMutex;
@@ -216,7 +215,6 @@ class XineStream : public QThread
         bool m_ticking : 1;
         bool m_closing : 1;
         bool m_eventLoopReady : 1;
-        bool m_playCalled : 1;
 };
 
 } // namespace Xine

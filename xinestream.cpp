@@ -184,8 +184,7 @@ XineStream::XineStream()
     m_prefinishMarkReachedNotEmitted(true),
     m_ticking(false),
     m_closing(false),
-    m_eventLoopReady(false),
-    m_playCalled(false)
+    m_eventLoopReady(false)
 {
 }
 
@@ -200,7 +199,7 @@ XineStream::~XineStream()
 }
 
 // xine thread
-bool XineStream::xineOpen()
+bool XineStream::xineOpen(Phonon::State newstate)
 {
     Q_ASSERT(QThread::currentThread() == this);
     Q_ASSERT(m_stream);
@@ -255,11 +254,7 @@ bool XineStream::xineOpen()
     emit length(m_totalTime);
     updateMetaData();
     // if there's a PlayCommand in the event queue the state should not go to StoppedState
-    if (m_playCalled > 0) {
-        changeState(Phonon::BufferingState);
-    } else {
-        changeState(Phonon::StoppedState);
-    }
+    changeState(newstate);
     return true;
 }
 
@@ -347,7 +342,7 @@ void XineStream::getStreamInfo()
     if (m_stream && !m_mrl.isEmpty()) {
         if (xine_get_status(m_stream) == XINE_STATUS_IDLE) {
             kDebug(610) << "calling xineOpen from " << k_funcinfo << endl;
-            if (!xineOpen()) {
+            if (!xineOpen(Phonon::StoppedState)) {
                 return;
             }
         }
@@ -583,7 +578,8 @@ void XineStream::changeState(Phonon::State newstate)
         if (m_prefinishMarkTimer) {
             m_prefinishMarkTimer->stop();
         }
-    } else if (newstate == Phonon::ErrorState) {
+    }
+    if (newstate == Phonon::ErrorState) {
         kDebug(610) << "reached error state from: " << kBacktrace() << endl;
         if (m_event_queue) {
             xine_event_dispose_queue(m_event_queue);
@@ -651,6 +647,8 @@ inline void XineStream::error(Phonon::ErrorType type, const QString &string)
 const char* nameForEvent(int e)
 {
     switch (e) {
+        case Xine::ReferenceEvent:
+            return "Xine::ReferenceEvent";
         case Xine::UiChannelsChangedEvent:
             return "Xine::UiChannelsChangedEvent";
         case Xine::MediaFinishedEvent:
@@ -729,6 +727,22 @@ bool XineStream::event(QEvent *ev)
         }
     }
     switch (ev->type()) {
+    case Xine::ReferenceEvent:
+        ev->accept();
+        {
+            XineReferenceEvent *e = static_cast<XineReferenceEvent *>(ev);
+            m_mrl = e->mrl;
+            if (xine_get_status(m_stream) != XINE_STATUS_IDLE) {
+                m_mutex.lock();
+                xine_close(m_stream);
+                m_streamInfoReady = false;
+                m_prefinishMarkReachedNotEmitted = true;
+                m_mutex.unlock();
+            }
+            xineOpen(Phonon::BufferingState);
+            internalPlay();
+        }
+        return true;
     case Xine::UiChannelsChangedEvent:
         ev->accept();
         // check chapter, title, angle and substreams
@@ -896,8 +910,7 @@ bool XineStream::event(QEvent *ev)
                 }
                 m_prefinishMarkReachedNotEmitted = true;
                 getStreamInfo();
-                xine_get_pos_length(m_stream, 0, &m_currentTime, &m_totalTime);
-                emit length(m_totalTime);
+                updateTime();
                 updateMetaData();
             }
             return true;
@@ -971,7 +984,7 @@ bool XineStream::event(QEvent *ev)
                     m_waitingForClose.wakeAll();
                 } else {
                     kDebug(610) << "calling xineOpen from MrlChanged" << endl;
-                    xineOpen();
+                    xineOpen(Phonon::StoppedState);
                     switch (e->stateForNewMrl) {
                     case StoppedState:
                         break;
@@ -1134,9 +1147,6 @@ bool XineStream::event(QEvent *ev)
             if (m_state == Phonon::ErrorState || m_state == Phonon::PlayingState) {
                 return true;
             }
-            m_playMutex.lock();
-            m_playCalled = false;
-            m_playMutex.unlock();
             Q_ASSERT(!m_mrl.isEmpty());
             /*if (m_mrl.isEmpty()) {
                 kError(610) << "PlayCommand: m_mrl is empty. This should not happen." << endl;
@@ -1165,7 +1175,7 @@ bool XineStream::event(QEvent *ev)
                 //X                 }
                 if (xine_get_status(m_stream) == XINE_STATUS_IDLE) {
                     kDebug(610) << "calling xineOpen from PlayCommand" << endl;
-                    if (!xineOpen()) {
+                    if (!xineOpen(Phonon::BufferingState)) {
                         return true;
                     }
                 }
@@ -1193,8 +1203,8 @@ bool XineStream::event(QEvent *ev)
                 }
             }
             if (xine_get_status(m_stream) == XINE_STATUS_IDLE) {
-                kDebug(610) << "calling xineOpen from PlayCommand" << endl;
-                if (!xineOpen()) {
+                kDebug(610) << "calling xineOpen from PauseCommand" << endl;
+                if (!xineOpen(Phonon::StoppedState)) {
                     return true;
                 }
             }
@@ -1366,16 +1376,13 @@ void XineStream::setUrl(const KUrl &url)
 // called from main thread
 void XineStream::setMrl(const QByteArray &mrl, StateForNewMrl sfnm)
 {
-    kDebug(610) << k_funcinfo << mrl << endl;
+    kDebug(610) << k_funcinfo << mrl << ", " << sfnm << endl;
     QCoreApplication::postEvent(this, new MrlChangedEvent(mrl, sfnm));
 }
 
 // called from main thread
 void XineStream::play()
 {
-    m_playMutex.lock();
-    m_playCalled = true;
-    m_playMutex.unlock();
     QCoreApplication::postEvent(this, new QEvent(static_cast<QEvent::Type>(PlayCommand)));
 }
 
@@ -1413,7 +1420,7 @@ bool XineStream::updateTime()
 
     if (xine_get_status(m_stream) == XINE_STATUS_IDLE) {
         kDebug(610) << "calling xineOpen from " << k_funcinfo << endl;
-        if (!xineOpen()) {
+        if (!xineOpen(Phonon::StoppedState)) {
             return false;
         }
     }

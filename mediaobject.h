@@ -169,6 +169,7 @@ class ByteStream;
             qint32 m_transitionTime;
             bool m_autoplayTitles : 1;
             bool m_fakingBuffering : 1;
+            bool m_shouldFakeBufferingOnPlay : 1;
 	};
 }} //namespace Phonon::Xine
 
