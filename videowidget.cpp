@@ -24,7 +24,9 @@
 #include <QPainter>
 #include <kdebug.h>
 
+#ifndef PHONON_XINE_NO_VIDEOWIDGET
 #include <QX11Info>
+#endif
 #include "xineengine.h"
 #include "mediaobject.h"
 #include <QApplication>
