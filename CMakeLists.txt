@@ -42,7 +42,6 @@ else(LIBXCB_FOUND AND XINE_XCB_FOUND)
   message(STATUS "Cannot compile VideoWidget for the xine backend. Needs xine version 1.1.5 or later and libxcb.")
 endif(LIBXCB_FOUND AND XINE_XCB_FOUND)
 
-kde4_automoc(${phonon_xine_PART_SRCS})
 kde4_add_plugin(phonon_xine ${phonon_xine_PART_SRCS})
 target_link_libraries(phonon_xine ${QT_QTGUI_LIBRARY} ${KDE4_KDECORE_LIBS} ${KDE4_PHONON_LIBS} ${XINE_LIBRARY} ${KDE4_KAUDIODEVICELIST_LIBS})
 if(LIBXCB_FOUND AND XINE_XCB_FOUND)

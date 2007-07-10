@@ -1,6 +1,5 @@
 set(kcmphononxine_SRCS xineoptions.cpp)
 kde4_add_ui_files(kcmphononxine_SRCS xineoptions.ui)
-kde4_automoc(${kcmphononxine_SRCS})
 
 kde4_add_plugin(kcm_phononxine ${kcmphononxine_SRCS})
 target_link_libraries(kcm_phononxine ${KDE4_KDEUI_LIBS})
