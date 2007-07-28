@@ -15,6 +15,7 @@ Name[pt]=Xine com Phonon
 Name[pt_BR]=Xine com Phonon
 Name[x-test]=xxPhonon Xinexx
 Comment=Xine Backend Configuration
+Comment[bg]=Настройки на CDDB
 Comment[ca]=Configuració de dorsal pel Xine
 Comment[el]=Ρύθμιση του συστήματος υποστήριξης του Xine
 Comment[es]=Interfaz de configuración para Xine
