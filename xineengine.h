@@ -21,7 +21,6 @@
 #ifndef XINEENGINE_H
 #define XINEENGINE_H
 
-#include <QtCore/QEvent>
 #include <QtCore/QSet>
 #include <QtCore/QSize>
 #include <QtCore/QString>
@@ -37,61 +36,10 @@
 namespace Phonon
 {
     class AudioDevice;
+
 namespace Xine
 {
     class Backend;
-
-	enum EventType
-	{
-		NewMetaDataEvent = 5400,
-		MediaFinishedEvent = 5401,
-        ProgressEvent = 5402,
-        NavButtonInEvent = 5403,
-        NavButtonOutEvent = 5404,
-        AudioDeviceFailedEvent = 5405,
-        FrameFormatChangeEvent = 5406,
-        UiChannelsChangedEvent = 5407,
-        ReferenceEvent = 5408
-	};
-
-    class XineReferenceEvent : public QEvent
-    {
-        public :
-            XineReferenceEvent(bool _alternative, const QByteArray &_mrl)
-                : QEvent(static_cast<QEvent::Type>(ReferenceEvent)),
-                alternative(_alternative), mrl(_mrl)
-            {}
-
-            const bool alternative;
-            const QByteArray mrl;
-    };
-
-    class XineProgressEvent : public QEvent
-	{
-		public:
-			XineProgressEvent( const QString& description, int percent );
-			const QString& description();
-			int percent();
-
-		private:
-			QString m_description;
-			int m_percent;
-	};
-
-    class XineFrameFormatChangeEvent : public QEvent
-    {
-        public:
-            XineFrameFormatChangeEvent(int w, int h, int aspect, bool panScan);
-            const QSize &size() const { return m_size; }
-            int aspect() const { return m_aspect; }
-            bool panScan() const { return m_panScan; }
-
-        private:
-            QSize m_size;
-            int m_aspect;
-            bool m_panScan;
-    };
-
     class XineEnginePrivate;
 
     class XineEngine

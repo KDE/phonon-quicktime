@@ -330,8 +330,8 @@ bool VideoWidget::event(QEvent *ev)
             ev->accept();
             {
                 XineFrameFormatChangeEvent *e = static_cast<XineFrameFormatChangeEvent *>(ev);
-                kDebug(610) << k_funcinfo << "XineFrameFormatChangeEvent " << e->size() << endl;
-                m_sizeHint = e->size();
+                kDebug(610) << k_funcinfo << "XineFrameFormatChangeEvent " << e->size << endl;
+                m_sizeHint = e->size;
                 updateGeometry();
             }
             return true;

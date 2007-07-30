@@ -31,6 +31,7 @@
 #include <klocale.h>
 #include "xineengine_p.h"
 #include "backend.h"
+#include "events.h"
 
 namespace Phonon
 {
@@ -46,31 +47,6 @@ namespace Xine
     {
         kDebug(610) << k_funcinfo << endl;
         emit objectDescriptionChanged(AudioOutputDeviceType);
-    }
-
-	XineProgressEvent::XineProgressEvent( const QString& description, int percent )
-		: QEvent( static_cast<QEvent::Type>( Xine::ProgressEvent ) )
-		, m_description( description )
-		, m_percent( percent )
-	{
-	}
-
-	const QString& XineProgressEvent::description() 
-	{
-		return m_description;
-	}
-
-	int XineProgressEvent::percent()
-	{
-		return m_percent;
-	}
-
-    XineFrameFormatChangeEvent::XineFrameFormatChangeEvent(int w, int h, int aspect, bool panScan)
-        : QEvent(static_cast<QEvent::Type>(FrameFormatChangeEvent)),
-        m_size(w, h),
-        m_aspect(aspect),
-        m_panScan(panScan)
-    {
     }
 
     static XineEngine *s_instance = 0;
@@ -359,8 +335,14 @@ namespace Xine
             config.writeEntry("driver", driver);
             config.writeEntry("icon", icon);
         } else {
-            m_audioOutputInfos[listIndex].devices = deviceIds;
-            m_audioOutputInfos[listIndex].available = true;
+            AudioOutputInfo &infoInList = m_audioOutputInfos[listIndex];
+            if (infoInList.icon != icon) {
+                KConfigGroup config(m_config, QLatin1String("AudioOutputDevice_") + QString::number(index));
+                config.writeEntry("icon", icon);
+                infoInList.icon = icon;
+            }
+            infoInList.devices = deviceIds;
+            infoInList.available = true;
         }
     }
 
@@ -422,7 +404,7 @@ namespace Xine
                                 "<p>JACK was designed from the ground up for professional audio "
                                 "work, and its design focuses on two key areas: synchronous "
                                 "execution of all clients, and low latency operation.</p></html>"),
-                            /*icon name*/"jackd", outputPlugins[i], QStringList());
+                            /*icon name*/"audio-input-line", outputPlugins[i], QStringList());
                 } else if (0 == strcmp(outputPlugins[i], "arts")) {
                     addAudioOutput(nextIndex++, i18n("aRts"),
                             i18n("<html><p>aRts is the old soundserver and media framework that was used "

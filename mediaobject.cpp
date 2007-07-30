@@ -230,7 +230,7 @@ void MediaObject::setTickInterval(qint32 newTickInterval)
     m_stream.setTickInterval(m_tickInterval);
 }
 
-QStringList MediaObject::availableAudioStreams() const
+QList<AudioStreamDescription> MediaObject::availableAudioStreams() const
 {
     // TODO
     QStringList ret;
@@ -238,7 +238,7 @@ QStringList MediaObject::availableAudioStreams() const
     return ret;
 }
 
-QStringList MediaObject::availableVideoStreams() const
+QList<VideoStreamDescription> MediaObject::availableVideoStreams() const
 {
     // TODO
     QStringList ret;
@@ -246,7 +246,7 @@ QStringList MediaObject::availableVideoStreams() const
     return ret;
 }
 
-QStringList MediaObject::availableSubtitleStreams() const
+QList<SubtitleStreamDescription> MediaObject::availableSubtitleStreams() const
 {
     // TODO
     QStringList ret;
@@ -254,19 +254,19 @@ QStringList MediaObject::availableSubtitleStreams() const
     return ret;
 }
 
-QString MediaObject::currentAudioStream(const QObject *audioPath) const
+AudioStreamDescription MediaObject::currentAudioStream(const QObject *audioPath) const
 {
     // TODO
     return m_currentAudioStream[audioPath];
 }
 
-QString MediaObject::currentVideoStream(const QObject *videoPath) const
+VideoStreamDescription MediaObject::currentVideoStream(const QObject *videoPath) const
 {
     // TODO
     return m_currentVideoStream[videoPath];
 }
 
-QString MediaObject::currentSubtitleStream(const QObject *videoPath) const
+SubtitleStreamDescription MediaObject::currentSubtitleStream(const QObject *videoPath) const
 {
     // TODO
     return m_currentSubtitleStream[videoPath];

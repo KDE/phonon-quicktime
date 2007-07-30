@@ -45,116 +45,6 @@ namespace Phonon
 namespace Xine
 {
 
-enum {
-    GetStreamInfo = 2001,
-    UpdateVolume = 2002,
-    RewireStream = 2003,
-    PlayCommand = 2004,
-    PauseCommand = 2005,
-    StopCommand = 2006,
-    SeekCommand = 2007,
-    MrlChanged = 2008,
-    GaplessPlaybackChanged = 2009,
-    GaplessSwitch = 2010,
-    UpdateTime = 2011,
-    SetTickInterval = 2012,
-    SetPrefinishMark = 2013,
-    SetParam = 2014,
-    EventSend = 2015,
-    AudioRewire = 2016,
-    ChangeAudioPostList = 2017,
-    QuitEventLoop = 2018,
-    PauseForBuffering = 2019,  // XXX numerically used in bytestream.cpp
-    UnpauseForBuffering = 2020, // XXX numerically used in bytestream.cpp
-    Error = 2021
-};
-
-class ErrorEvent : public QEvent
-{
-    public:
-        ErrorEvent(Phonon::ErrorType t, const QString &r)
-            : QEvent(static_cast<QEvent::Type>(Error)), type(t), reason(r) {}
-        Phonon::ErrorType type;
-        QString reason;
-};
-
-class ChangeAudioPostListEvent : public QEvent
-{
-    public:
-        enum AddOrRemove { Add, Remove };
-        ChangeAudioPostListEvent(const AudioPostList &x, AddOrRemove y)
-            : QEvent(static_cast<QEvent::Type>(ChangeAudioPostList)), postList(x), what(y) {}
-
-        AudioPostList postList;
-        AddOrRemove what;
-};
-
-class AudioRewireEvent : public QEvent
-{
-    public:
-        AudioRewireEvent(AudioPostList *x) : QEvent(static_cast<QEvent::Type>(AudioRewire)), postList(x) {}
-        AudioPostList *postList;
-};
-
-class EventSendEvent : public QEvent
-{
-    public:
-        EventSendEvent(xine_event_t *e) : QEvent(static_cast<QEvent::Type>(EventSend)), event(e) {}
-        xine_event_t *event;
-};
-
-class SetParamEvent : public QEvent
-{
-    public:
-        SetParamEvent(int p, int v) : QEvent(static_cast<QEvent::Type>(SetParam)), param(p), value(v) {}
-        int param;
-        int value;
-};
-
-class MrlChangedEvent : public QEvent
-{
-    public:
-        MrlChangedEvent(const QByteArray &_mrl, XineStream::StateForNewMrl _s)
-            : QEvent(static_cast<QEvent::Type>(MrlChanged)), mrl(_mrl), stateForNewMrl(_s) {}
-        QByteArray mrl;
-        XineStream::StateForNewMrl stateForNewMrl;
-};
-
-class GaplessSwitchEvent : public QEvent
-{
-    public:
-        GaplessSwitchEvent(const QByteArray &_mrl) : QEvent(static_cast<QEvent::Type>(GaplessSwitch)), mrl(_mrl) {}
-        QByteArray mrl;
-};
-
-class SeekCommandEvent : public QEvent
-{
-    public:
-        SeekCommandEvent(qint64 time) : QEvent(static_cast<QEvent::Type>(SeekCommand)), valid(true), m_time(time) {}
-        qint64 time() const { return m_time; }
-        bool valid;
-    private:
-        qint64 m_time;
-};
-
-class SetTickIntervalEvent : public QEvent
-{
-    public:
-        SetTickIntervalEvent(qint32 interval) : QEvent(static_cast<QEvent::Type>(SetTickInterval)), m_interval(interval) {}
-        qint32 interval() const { return m_interval; }
-    private:
-        qint32 m_interval;
-};
-
-class SetPrefinishMarkEvent : public QEvent
-{
-    public:
-        SetPrefinishMarkEvent(qint32 interval) : QEvent(static_cast<QEvent::Type>(SetPrefinishMark)), m_interval(interval) {}
-        qint32 time() const { return m_interval; }
-    private:
-        qint32 m_interval;
-};
-
 // called from main thread
 XineStream::XineStream()
     : m_stream(0),
@@ -721,7 +611,7 @@ bool XineStream::event(QEvent *ev)
     if (eventName) {
         if (static_cast<int>(ev->type()) == Xine::ProgressEvent) {
             XineProgressEvent* e = static_cast<XineProgressEvent*>(ev);
-            kDebug(610) << "################################ Event: " << eventName << ": " << e->percent() << endl;
+            kDebug(610) << "################################ Event: " << eventName << ": " << e->percent << endl;
         } else {
             kDebug(610) << "################################ Event: " << eventName << endl;
         }
@@ -922,7 +812,7 @@ bool XineStream::event(QEvent *ev)
         case Xine::ProgressEvent:
             {
                 XineProgressEvent* e = static_cast<XineProgressEvent*>(ev);
-                if (e->percent() < 100) {
+                if (e->percent < 100) {
                     if (m_state == Phonon::PlayingState) {
                         changeState(Phonon::BufferingState);
                     }
@@ -932,8 +822,8 @@ bool XineStream::event(QEvent *ev)
                     }
                     //QTimer::singleShot(20, this, SLOT(getStartTime()));
                 }
-                kDebug(610) << "emit bufferStatus(" << e->percent() << ")" << endl;
-                emit bufferStatus(e->percent());
+                kDebug(610) << "emit bufferStatus(" << e->percent << ")" << endl;
+                emit bufferStatus(e->percent);
             }
             ev->accept();
             return true;
@@ -1237,13 +1127,13 @@ bool XineStream::event(QEvent *ev)
             ev->accept();
             {
                 SetTickIntervalEvent *e = static_cast<SetTickIntervalEvent*>(ev);
-                if (e->interval() <= 0) {
+                if (e->interval <= 0) {
                     // disable ticks
                     m_ticking = false;
                     m_tickTimer->stop();
                     //kDebug(610) << "tickTimer stopped." << endl;
                 } else {
-                    m_tickTimer->setInterval(e->interval());
+                    m_tickTimer->setInterval(e->interval);
                     if (m_ticking == false && m_state == Phonon::PlayingState) {
                         m_tickTimer->start();
                         //kDebug(610) << "tickTimer started." << endl;
@@ -1256,7 +1146,7 @@ bool XineStream::event(QEvent *ev)
             ev->accept();
             {
                 SetPrefinishMarkEvent *e = static_cast<SetPrefinishMarkEvent*>(ev);
-                m_prefinishMark = e->time();
+                m_prefinishMark = e->time;
                 if (m_prefinishMark > 0) {
                     updateTime();
                     if (m_currentTime < m_totalTime - m_prefinishMark) { // not about to finish
@@ -1283,10 +1173,10 @@ bool XineStream::event(QEvent *ev)
                     case Phonon::PausedState:
                     case Phonon::BufferingState:
                     case Phonon::PlayingState:
-                        kDebug(610) << "seeking xine stream to " << e->time() << "ms" << endl;
+                        kDebug(610) << "seeking xine stream to " << e->time << "ms" << endl;
                         // xine_trick_mode aborts :(
                         //if (0 == xine_trick_mode(m_stream, XINE_TRICK_MODE_SEEK_TO_TIME, time)) {
-                        xine_play(m_stream, 0, e->time());
+                        xine_play(m_stream, 0, e->time);
                         if (Phonon::PausedState == m_state) {
                             // go back to paused speed after seek
                             xine_set_param(m_stream, XINE_PARAM_SPEED, XINE_SPEED_PAUSE);
@@ -1300,8 +1190,8 @@ bool XineStream::event(QEvent *ev)
                     case Phonon::LoadingState:
                         return true; // cannot seek
                 }
-                m_currentTime = e->time();
-                const int timeToSignal = m_totalTime - m_prefinishMark - e->time();
+                m_currentTime = e->time;
+                const int timeToSignal = m_totalTime - m_prefinishMark - e->time;
                 if (m_prefinishMark > 0) {
                     if (timeToSignal > 0 ) { // not about to finish
                         m_prefinishMarkReachedNotEmitted = true;
