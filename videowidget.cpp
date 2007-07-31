@@ -309,15 +309,15 @@ void VideoWidget::resizeEvent(QResizeEvent *ev)
 bool VideoWidget::event(QEvent *ev)
 {
     switch (ev->type()) {
-        case Xine::NavButtonInEvent:
+        case Events::NavButtonIn:
             setCursor(QCursor(Qt::PointingHandCursor));
             ev->accept();
             return true;
-        case Xine::NavButtonOutEvent:
+        case Events::NavButtonOut:
             unsetCursor();
             ev->accept();
             return true;
-        case Xine::FrameFormatChangeEvent:
+        case Events::FrameFormatChange:
             ev->accept();
             {
                 XineFrameFormatChangeEvent *e = static_cast<XineFrameFormatChangeEvent *>(ev);

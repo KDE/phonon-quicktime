@@ -23,53 +23,71 @@
 #include "audiopostlist.h"
 #include "xinestream.h"
 #include <QtCore/QEvent>
+#include <QtCore/QPair>
+#include <QtCore/QList>
 
 namespace Phonon
 {
 namespace Xine
 {
 
-enum {
-    GetStreamInfo = 2001,
-    UpdateVolume = 2002,
-    RewireStream = 2003,
-    PlayCommand = 2004,
-    PauseCommand = 2005,
-    StopCommand = 2006,
-    SeekCommand = 2007,
-    MrlChanged = 2008,
-    GaplessPlaybackChanged = 2009,
-    GaplessSwitch = 2010,
-    UpdateTime = 2011,
-    SetTickInterval = 2012,
-    SetPrefinishMark = 2013,
-    SetParam = 2014,
-    EventSend = 2015,
-    AudioRewire = 2016,
-    ChangeAudioPostList = 2017,
-    QuitEventLoop = 2018,
-    PauseForBuffering = 2019,  // XXX numerically used in bytestream.cpp
-    UnpauseForBuffering = 2020, // XXX numerically used in bytestream.cpp
-    Error = 2021,
+namespace Events
+{
+    enum {
+        GetStreamInfo = 2001,
+        UpdateVolume = 2002,
+        RewireStream = 2003,
+        PlayCommand = 2004,
+        PauseCommand = 2005,
+        StopCommand = 2006,
+        SeekCommand = 2007,
+        MrlChanged = 2008,
+        GaplessPlaybackChanged = 2009,
+        GaplessSwitch = 2010,
+        UpdateTime = 2011,
+        SetTickInterval = 2012,
+        SetPrefinishMark = 2013,
+        SetParam = 2014,
+        EventSend = 2015,
+        AudioRewire = 2016,
+        ChangeAudioPostList = 2017,
+        QuitLoop = 2018,
+        PauseForBuffering = 2019,  // XXX numerically used in bytestream.cpp
+        UnpauseForBuffering = 2020, // XXX numerically used in bytestream.cpp
+        Error = 2021,
 
-    NeedRewire = 4800,
-    NewStream = 4801,
+        NeedRewire = 4800,
+        NewStream = 4801,
 
-    NewMetaDataEvent = 5400,
-    MediaFinishedEvent = 5401,
-    ProgressEvent = 5402,
-    NavButtonInEvent = 5403,
-    NavButtonOutEvent = 5404,
-    AudioDeviceFailedEvent = 5405,
-    FrameFormatChangeEvent = 5406,
-    UiChannelsChangedEvent = 5407,
-    ReferenceEvent = 5408
+        NewMetaData = 5400,
+        MediaFinished = 5401,
+        Progress = 5402,
+        NavButtonIn = 5403,
+        NavButtonOut = 5404,
+        AudioDeviceFailed = 5405,
+        FrameFormatChange = 5406,
+        UiChannelsChanged = 5407,
+        Reference = 5408,
+
+        Rewire = 5409
+    };
+} // namespace Events
+
+class SourceNode;
+class SinkNode;
+
+class RewireEvent : public QEvent
+{
+    public:
+        RewireEvent(QList<QPair<SourceNode *, SinkNode *> > _wireCalls)
+            : QEvent(static_cast<QEvent::Type>(Events::Rewire)), wireCalls(_wireCalls) {}
+        const QList<QPair<SourceNode *, SinkNode *> > wireCalls;
 };
 
 class NeedRewireEvent : public QEvent
 {
     public:
-        NeedRewireEvent(AudioPostList *a) : QEvent(static_cast<QEvent::Type>(NeedRewire)), audioPostList(a) {}
+        NeedRewireEvent(AudioPostList *a) : QEvent(static_cast<QEvent::Type>(Events::NeedRewire)), audioPostList(a) {}
         AudioPostList *const audioPostList;
 };
 
@@ -77,7 +95,7 @@ class XineReferenceEvent : public QEvent
 {
     public :
         XineReferenceEvent(bool _alternative, const QByteArray &_mrl)
-            : QEvent(static_cast<QEvent::Type>(ReferenceEvent)),
+            : QEvent(static_cast<QEvent::Type>(Events::Reference)),
             alternative(_alternative), mrl(_mrl) {}
 
         const bool alternative;
@@ -88,7 +106,7 @@ class XineProgressEvent : public QEvent
 {
     public:
         XineProgressEvent(const QString &d, int p)
-            : QEvent(static_cast<QEvent::Type>(Xine::ProgressEvent)),
+            : QEvent(static_cast<QEvent::Type>(Xine::Events::Progress)),
             description(d), percent(p) {}
 
         const QString description;
@@ -99,7 +117,7 @@ class XineFrameFormatChangeEvent : public QEvent
 {
     public:
         XineFrameFormatChangeEvent(int w, int h, int a, bool ps)
-            : QEvent(static_cast<QEvent::Type>(FrameFormatChangeEvent)),
+            : QEvent(static_cast<QEvent::Type>(Events::FrameFormatChange)),
             size(w, h), aspect(a), panScan(ps) {}
 
         const QSize size;
@@ -111,7 +129,7 @@ class ErrorEvent : public QEvent
 {
     public:
         ErrorEvent(Phonon::ErrorType t, const QString &r)
-            : QEvent(static_cast<QEvent::Type>(Error)), type(t), reason(r) {}
+            : QEvent(static_cast<QEvent::Type>(Events::Error)), type(t), reason(r) {}
         const Phonon::ErrorType type;
         const QString reason;
 };
@@ -121,7 +139,7 @@ class ChangeAudioPostListEvent : public QEvent
     public:
         enum AddOrRemove { Add, Remove };
         ChangeAudioPostListEvent(const AudioPostList &x, AddOrRemove y)
-            : QEvent(static_cast<QEvent::Type>(ChangeAudioPostList)), postList(x), what(y) {}
+            : QEvent(static_cast<QEvent::Type>(Events::ChangeAudioPostList)), postList(x), what(y) {}
 
         AudioPostList postList;
         const AddOrRemove what;
@@ -130,21 +148,21 @@ class ChangeAudioPostListEvent : public QEvent
 class AudioRewireEvent : public QEvent
 {
     public:
-        AudioRewireEvent(AudioPostList *x) : QEvent(static_cast<QEvent::Type>(AudioRewire)), postList(x) {}
+        AudioRewireEvent(AudioPostList *x) : QEvent(static_cast<QEvent::Type>(Events::AudioRewire)), postList(x) {}
         AudioPostList *const postList;
 };
 
 class EventSendEvent : public QEvent
 {
     public:
-        EventSendEvent(xine_event_t *e) : QEvent(static_cast<QEvent::Type>(EventSend)), event(e) {}
+        EventSendEvent(xine_event_t *e) : QEvent(static_cast<QEvent::Type>(Events::EventSend)), event(e) {}
         const xine_event_t *const event;
 };
 
 class SetParamEvent : public QEvent
 {
     public:
-        SetParamEvent(int p, int v) : QEvent(static_cast<QEvent::Type>(SetParam)), param(p), value(v) {}
+        SetParamEvent(int p, int v) : QEvent(static_cast<QEvent::Type>(Events::SetParam)), param(p), value(v) {}
         const int param;
         const int value;
 };
@@ -153,7 +171,7 @@ class MrlChangedEvent : public QEvent
 {
     public:
         MrlChangedEvent(const QByteArray &_mrl, XineStream::StateForNewMrl _s)
-            : QEvent(static_cast<QEvent::Type>(MrlChanged)), mrl(_mrl), stateForNewMrl(_s) {}
+            : QEvent(static_cast<QEvent::Type>(Events::MrlChanged)), mrl(_mrl), stateForNewMrl(_s) {}
         const QByteArray mrl;
         const XineStream::StateForNewMrl stateForNewMrl;
 };
@@ -161,14 +179,14 @@ class MrlChangedEvent : public QEvent
 class GaplessSwitchEvent : public QEvent
 {
     public:
-        GaplessSwitchEvent(const QByteArray &_mrl) : QEvent(static_cast<QEvent::Type>(GaplessSwitch)), mrl(_mrl) {}
+        GaplessSwitchEvent(const QByteArray &_mrl) : QEvent(static_cast<QEvent::Type>(Events::GaplessSwitch)), mrl(_mrl) {}
         const QByteArray mrl;
 };
 
 class SeekCommandEvent : public QEvent
 {
     public:
-        SeekCommandEvent(qint64 t) : QEvent(static_cast<QEvent::Type>(SeekCommand)), valid(true), time(t) {}
+        SeekCommandEvent(qint64 t) : QEvent(static_cast<QEvent::Type>(Events::SeekCommand)), valid(true), time(t) {}
         bool valid;
         const qint64 time;
 };
@@ -176,14 +194,14 @@ class SeekCommandEvent : public QEvent
 class SetTickIntervalEvent : public QEvent
 {
     public:
-        SetTickIntervalEvent(qint32 i) : QEvent(static_cast<QEvent::Type>(SetTickInterval)), interval(i) {}
+        SetTickIntervalEvent(qint32 i) : QEvent(static_cast<QEvent::Type>(Events::SetTickInterval)), interval(i) {}
         const qint32 interval;
 };
 
 class SetPrefinishMarkEvent : public QEvent
 {
     public:
-        SetPrefinishMarkEvent(qint32 i) : QEvent(static_cast<QEvent::Type>(SetPrefinishMark)), time(i) {}
+        SetPrefinishMarkEvent(qint32 i) : QEvent(static_cast<QEvent::Type>(Events::SetPrefinishMark)), time(i) {}
         const qint32 time;
 };
 
