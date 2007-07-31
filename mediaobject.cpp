@@ -51,7 +51,6 @@ MediaObject::MediaObject(QObject *parent)
     : QObject(parent),
     m_state(Phonon::LoadingState),
     m_stream(),
-    m_videoPath(0),
     m_currentTitle(1),
     m_transitionTime(0),
     m_autoplayTitles(true),
@@ -84,13 +83,14 @@ MediaObject::MediaObject(QObject *parent)
 
 MediaObject::~MediaObject()
 {
-    foreach (AudioPath *p, m_audioPaths) {
-        m_stream.removeAudioPostList(p->audioPostList());
-        p->removeMediaObject(this);
-    }
-    if (m_videoPath) {
-        m_videoPath->unsetMediaObject(this);
-    }
+//X     FIXME
+//X     foreach (AudioPath *p, m_audioPaths) {
+//X         m_stream.removeAudioPostList(p->audioPostList());
+//X         p->removeMediaObject(this);
+//X     }
+//X     if (m_videoPath) {
+//X         m_videoPath->unsetMediaObject(this);
+//X     }
 
     // we have to be sure that the event loop of m_stream is already started at this point, else the
     // quit function will be ignored
@@ -110,53 +110,6 @@ MediaObject::~MediaObject()
     //stop();
 }
 
-bool MediaObject::addVideoPath(QObject *videoPath)
-{
-    if (m_videoPath) {
-        return false;
-    }
-
-    m_videoPath = qobject_cast<VideoPath *>(videoPath);
-    Q_ASSERT(m_videoPath);
-    m_videoPath->setMediaObject(this);
-    m_stream.setVideoPort(m_videoPath->videoPort());
-
-    return true;
-}
-
-bool MediaObject::addAudioPath(QObject *audioPath)
-{
-    AudioPath *ap = qobject_cast<AudioPath *>(audioPath);
-    Q_ASSERT(ap);
-    Q_ASSERT(!m_audioPaths.contains(ap));
-    m_audioPaths << ap;
-    ap->addMediaObject(this);
-    m_stream.addAudioPostList(ap->audioPostList());
-    //m_stream.setAudioPort(m_audioPath->audioPort(&m_stream));
-
-    return true;
-}
-
-void MediaObject::removeVideoPath(QObject *videoPath)
-{
-    Q_ASSERT(videoPath);
-    if (m_videoPath == qobject_cast<VideoPath *>(videoPath)) {
-        m_stream.setVideoPort(0);
-        m_videoPath->unsetMediaObject(this);
-        m_videoPath = 0;
-    }
-}
-
-void MediaObject::removeAudioPath(QObject *audioPath)
-{
-    AudioPath *ap = qobject_cast<AudioPath *>(audioPath);
-    Q_ASSERT(ap);
-    const int count = m_audioPaths.removeAll(ap);
-    Q_ASSERT(1 == count);
-    m_stream.removeAudioPostList(ap->audioPostList());
-    ap->removeMediaObject(this);
-}
-
 State MediaObject::state() const
 {
     return m_state;
@@ -165,6 +118,14 @@ State MediaObject::state() const
 bool MediaObject::hasVideo() const
 {
     return m_stream.hasVideo();
+}
+
+MediaStreamTypes MediaObject::outputMediaStreamTypes() const
+{
+    if (hasVideo()) {
+        return Phonon::Audio | Phonon::Video;
+    }
+    return Phonon::Audio;
 }
 
 bool MediaObject::isSeekable() const
@@ -230,6 +191,7 @@ void MediaObject::setTickInterval(qint32 newTickInterval)
     m_stream.setTickInterval(m_tickInterval);
 }
 
+/*
 QList<AudioStreamDescription> MediaObject::availableAudioStreams() const
 {
     // TODO
@@ -292,6 +254,7 @@ void MediaObject::setCurrentSubtitleStream(const QString &streamName, const QObj
     if(availableSubtitleStreams().contains(streamName))
         m_currentSubtitleStream[videoPath] = streamName;
 }
+*/
 
 void MediaObject::play()
 {
@@ -382,9 +345,10 @@ void MediaObject::handleStateChange(Phonon::State newstate, Phonon::State oldsta
 }
 void MediaObject::handleFinished()
 {
-    if (videoPath()) {
-        videoPath()->streamFinished();
-    }
+//X     FIXME
+//X     if (videoPath()) {
+//X         videoPath()->streamFinished();
+//X     }
     kDebug(610) << "emit finished()" << endl;
     emit finished();
 }

@@ -25,9 +25,9 @@
 #include <sys/ioctl.h>
 #include <iostream>
 #include <QSet>
-#include "audiopath.h"
 #include "mediaobject.h"
 #include "backend.h"
+#include "events.h"
 
 namespace Phonon
 {
@@ -77,18 +77,8 @@ void AudioOutput::setVolume(qreal newVolume)
         xinevolume = 0;
     }
 
-    QSet<XineStream*> streams;
-	foreach( AudioPath* ap, m_paths )
-	{
-        foreach(MediaObject *mp, ap->mediaObjects()) {
-            streams << &mp->stream();
-		}
-	}
-    foreach (XineStream *stream, streams) {
-        stream->setVolume(xinevolume);
-	}
-
-	emit volumeChanged( m_volume );
+    emit updateVolume(xinevolume);
+    emit volumeChanged(m_volume);
 }
 
 AudioPort AudioOutput::audioPort() const

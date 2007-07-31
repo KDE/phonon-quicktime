@@ -58,6 +58,11 @@ namespace Xine
             QSet<int> objectDescriptionIndexes(ObjectDescriptionType) const;
             QHash<QByteArray, QVariant> objectDescriptionProperties(ObjectDescriptionType, int) const;
 
+            bool startConnectionChange(QSet<QObject *>);
+            bool connectNodes(QObject *, QObject *);
+            bool disconnectNodes(QObject *, QObject *);
+            bool endConnectionChange(QSet<QObject *>);
+
 		public slots:
             QStringList availableMimeTypes() const;
 

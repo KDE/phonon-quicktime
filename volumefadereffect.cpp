@@ -36,7 +36,7 @@ enum ParameterIds {
 };
 
 VolumeFaderEffect::VolumeFaderEffect( QObject* parent )
-    : AudioEffect("KVolumeFader", parent),
+    : Effect("KVolumeFader", parent),
     m_parameters(Phonon::VolumeFaderEffect::Fade3Decibel, 1.0f, 1.0f, 0)
 {
     const QVariant one = 1.0;

@@ -28,6 +28,7 @@
 #include "videowidget.h"
 #include "mediaobject.h"
 #include <klocale.h>
+#include "events.h"
 
 extern "C" {
 #define this _this_xine_
@@ -83,8 +84,8 @@ XineStream::~XineStream()
     QList<AudioPostList>::Iterator it = m_audioPostLists.begin();
     const QList<AudioPostList>::Iterator end = m_audioPostLists.end();
     for (; it != end; ++it) {
-        kDebug(610) << k_funcinfo << "removeXineStream" << endl;
-        it->removeXineStream(this);
+        kDebug(610) << k_funcinfo << "unsetXineStream" << endl;
+        it->unsetXineStream(this);
     }
 }
 
@@ -712,9 +713,9 @@ bool XineStream::event(QEvent *ev)
                         }
                         e->postList.wireStream(xine_get_audio_source(m_stream));
                     }
-                    e->postList.addXineStream(this);
+                    e->postList.setXineStream(this);
                 } else { // Remove
-                    e->postList.removeXineStream(this);
+                    e->postList.unsetXineStream(this);
                     const int r = m_audioPostLists.removeAll(e->postList);
                     Q_ASSERT(1 == r);
                     if (m_stream) {

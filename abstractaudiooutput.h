@@ -1,5 +1,6 @@
 /*  This file is part of the KDE project
     Copyright (C) 2006 Tim Beaulen <tbscope@gmail.com>
+    Copyright (C) 2006-2007 Matthias Kretz <kretz@kde.org>
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -21,24 +22,21 @@
 
 #include <QObject>
 #include <QList>
+#include "sinknode.h"
 
 namespace Phonon
 {
 namespace Xine
 {
-	class AudioPath;
-	class AbstractAudioOutput : public QObject
+    class AbstractAudioOutput : public QObject, public SinkNode
 	{
 		Q_OBJECT
+        Q_INTERFACES(Phonon::Xine::SinkNode)
 		public:
 			AbstractAudioOutput( QObject* parent );
 			virtual ~AbstractAudioOutput();
 
-			void addPath( AudioPath* ap ) { m_paths << ap; }
-			void removePath( AudioPath* ap ) { m_paths.removeAll( ap ); }
-
-		protected:
-			QList<AudioPath*> m_paths;
+            MediaStreamTypes inputMediaStreamTypes() const { return Phonon::Audio; }
 	};
 }} //namespace Phonon::Xine
 

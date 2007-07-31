@@ -21,7 +21,7 @@
 #define Phonon_XINE_VOLUMEFADEREFFECT_H
 
 #include <QTime>
-#include "audioeffect.h"
+#include "effect.h"
 #include <phonon/volumefadereffect.h>
 #include <QList>
 
@@ -31,7 +31,7 @@ namespace Phonon
 {
 namespace Xine
 {
-	class VolumeFaderEffect : public AudioEffect
+	class VolumeFaderEffect : public Effect
 	{
 		Q_OBJECT
 		public:

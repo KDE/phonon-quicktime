@@ -1,10 +1,9 @@
 /*  This file is part of the KDE project
     Copyright (C) 2007 Matthias Kretz <kretz@kde.org>
 
-    This program is free software; you can redistribute it and/or
+    This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
-    License as published by the Free Software Foundation; either
-    version 2 of the License, or (at your option) any later version.
+    License version 2 as published by the Free Software Foundation.
 
     This library is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -22,57 +21,22 @@
 #define SOURCENODE_H
 
 #include <Phonon/Global>
-#include <QtCore/QExplicitlySharedDataPointer>
 #include <QtCore/QSet>
-#include <xine.h>
-#include "backend.h"
-#include "shareddata.h"
 
 namespace Phonon
 {
 namespace Xine
 {
 class SinkNode;
-class Event;
-class SinkNodeXT;
-
-class SourceNodeXT : virtual public SharedData
-{
-    public:
-        SourceNodeXT(const char *name = "SourceNode");
-        virtual ~SourceNodeXT();
-        virtual xine_post_out_t *audioOutputPort() const;
-        virtual xine_post_out_t *videoOutputPort() const;
-        void assert() { Q_ASSERT(!deleted); }
-
-        const char *const className;
-
-    private:
-        bool deleted;
-
-        friend class XineThread;
-        QExplicitlySharedDataPointer<SinkNodeXT> m_xtSink;
-};
 
 class SourceNode
 {
-    friend class WireCall;
     public:
-        SourceNode(SourceNodeXT *_xt);
-        virtual ~SourceNode();
+        virtual ~SourceNode() {}
         virtual MediaStreamTypes outputMediaStreamTypes() const = 0;
-        void addSink(SinkNode *s);
-        void removeSink(SinkNode *s);
-        QSet<SinkNode *> sinks() const;
-        virtual SinkNode *sinkInterface();
-
-        virtual void upstreamEvent(Event *);
-        virtual void downstreamEvent(Event *);
-
-        QExplicitlySharedDataPointer<SourceNodeXT> threadSafeObject() const { return m_threadSafeObject; }
-
-    protected:
-        QExplicitlySharedDataPointer<SourceNodeXT> m_threadSafeObject;
+        void addSink(SinkNode *s) { Q_ASSERT(!m_sinks.contains(s)); m_sinks << s; }
+        void removeSink(SinkNode *s) { Q_ASSERT(m_sinks.contains(s)); m_sinks.remove(s); }
+        QSet<SinkNode *> sinks() const { return m_sinks; }
     private:
         QSet<SinkNode *> m_sinks;
 };
@@ -80,15 +44,5 @@ class SourceNode
 } // namespace Phonon
 
 Q_DECLARE_INTERFACE(Phonon::Xine::SourceNode, "XineSourceNode.phonon.kde.org")
-
-inline QDebug operator<<(QDebug &s, const Phonon::Xine::SourceNodeXT *const node)
-{
-    if (node->className) {
-        s.nospace() << node->className << '(' << static_cast<const void *>(node) << ')';
-    } else {
-        s.nospace() << static_cast<const void *>(node);
-    }
-    return s.space();
-}
 
 #endif // SOURCENODE_H

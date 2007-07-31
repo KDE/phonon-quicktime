@@ -18,7 +18,7 @@
 */
 
 #include "videowidget.h"
-#include <phonon/experimental/overlayapi.h>
+#include "events.h"
 #include <QPalette>
 #include <QImage>
 #include <QPainter>
@@ -85,9 +85,7 @@ void VideoWidget::xineCallback( int &x, int &y, int &width, int &height, double 
 
 VideoWidget::VideoWidget( QWidget* parent )
     : QWidget(parent),
-    overlay(0),
     m_videoPort(0),
-    m_path(0),
     m_fullScreen(false),
     m_empty(true)
 {
@@ -151,10 +149,11 @@ VideoWidget::~VideoWidget()
         // tell the xine stream to stop using this videoPort
         //if( m_path && m_path->mediaObject() )
         //emit videoPortChanged();
-        if (m_path && m_path->mediaObject()) {
-            XineStream &xs = m_path->mediaObject()->stream();
-            xs.aboutToDeleteVideoWidget();
-        }
+//X         FIXME:
+//X         if (m_path && m_path->mediaObject()) {
+//X             XineStream &xs = m_path->mediaObject()->stream();
+//X             xs.aboutToDeleteVideoWidget();
+//X         }
 
         xine_close_video_driver(XineEngine::xine(), vp);
     }
@@ -165,18 +164,6 @@ VideoWidget::~VideoWidget()
 #endif // PHONON_XINE_NO_VIDEOWIDGET
 }
 
-void VideoWidget::setPath( VideoPath* vp )
-{
-    Q_ASSERT(m_path == 0);
-    m_path = vp;
-}
-
-void VideoWidget::unsetPath( VideoPath* vp )
-{
-	Q_ASSERT( m_path == vp );
-	m_path = 0;
-}
-
 Phonon::VideoWidget::AspectRatio VideoWidget::aspectRatio() const
 {
 	return m_aspectRatio;
@@ -185,30 +172,31 @@ Phonon::VideoWidget::AspectRatio VideoWidget::aspectRatio() const
 void VideoWidget::setAspectRatio( Phonon::VideoWidget::AspectRatio aspectRatio )
 {
     m_aspectRatio = aspectRatio;
-    if (m_path && m_path->mediaObject()) {
-        XineStream &xs = m_path->mediaObject()->stream();
-        switch (m_aspectRatio) {
-            case Phonon::VideoWidget::AspectRatioWidget:
-                xs.setParam(XINE_PARAM_VO_ASPECT_RATIO, XINE_VO_ASPECT_SQUARE);
-                break;
-            case Phonon::VideoWidget::AspectRatioAuto:
-                xs.setParam(XINE_PARAM_VO_ASPECT_RATIO, XINE_VO_ASPECT_AUTO);
-                break;
-//X             case Phonon::VideoWidget::AspectRatioSquare:
+//X     FIXME
+//X     if (m_path && m_path->mediaObject()) {
+//X         XineStream &xs = m_path->mediaObject()->stream();
+//X         switch (m_aspectRatio) {
+//X             case Phonon::VideoWidget::AspectRatioWidget:
 //X                 xs.setParam(XINE_PARAM_VO_ASPECT_RATIO, XINE_VO_ASPECT_SQUARE);
 //X                 break;
-            case Phonon::VideoWidget::AspectRatio4_3:
-                xs.setParam(XINE_PARAM_VO_ASPECT_RATIO, XINE_VO_ASPECT_4_3);
-                break;
-            case Phonon::VideoWidget::AspectRatio16_9:
-                xs.setParam(XINE_PARAM_VO_ASPECT_RATIO, XINE_VO_ASPECT_ANAMORPHIC);
-                break;
-//X             case Phonon::VideoWidget::AspectRatioDvb:
-//X                 xs.setParam(XINE_PARAM_VO_ASPECT_RATIO, XINE_VO_ASPECT_DVB);
+//X             case Phonon::VideoWidget::AspectRatioAuto:
+//X                 xs.setParam(XINE_PARAM_VO_ASPECT_RATIO, XINE_VO_ASPECT_AUTO);
 //X                 break;
-        }
-        updateZoom();
-    }
+//X //X             case Phonon::VideoWidget::AspectRatioSquare:
+//X //X                 xs.setParam(XINE_PARAM_VO_ASPECT_RATIO, XINE_VO_ASPECT_SQUARE);
+//X //X                 break;
+//X             case Phonon::VideoWidget::AspectRatio4_3:
+//X                 xs.setParam(XINE_PARAM_VO_ASPECT_RATIO, XINE_VO_ASPECT_4_3);
+//X                 break;
+//X             case Phonon::VideoWidget::AspectRatio16_9:
+//X                 xs.setParam(XINE_PARAM_VO_ASPECT_RATIO, XINE_VO_ASPECT_ANAMORPHIC);
+//X                 break;
+//X //X             case Phonon::VideoWidget::AspectRatioDvb:
+//X //X                 xs.setParam(XINE_PARAM_VO_ASPECT_RATIO, XINE_VO_ASPECT_DVB);
+//X //X                 break;
+//X         }
+//X         updateZoom();
+//X     }
 }
 
 Phonon::VideoWidget::ScaleMode VideoWidget::scaleMode() const
@@ -222,6 +210,7 @@ void VideoWidget::setScaleMode(Phonon::VideoWidget::ScaleMode mode)
     updateZoom();
 }
 
+/*
 int VideoWidget::overlayCapabilities() const
 {
 	return Phonon::Experimental::OverlayApi::OverlayOpaque;
@@ -250,63 +239,65 @@ void VideoWidget::childEvent(QChildEvent *event)
 		overlay = 0;
 	QWidget::childEvent(event);
 }
+*/
 
 void VideoWidget::updateZoom()
 {
-    if (m_path && m_path->mediaObject()) {
-        XineStream &xs = m_path->mediaObject()->stream();
-        if (m_aspectRatio == Phonon::VideoWidget::AspectRatioWidget) {
-            const QSize s = size();
-            QSize imageSize = m_sizeHint;
-            imageSize.scale(s, Qt::KeepAspectRatio);
-            if (imageSize.width() < s.width()) {
-                const int zoom = s.width() * 100 / imageSize.width();
-                xs.setParam(XINE_PARAM_VO_ZOOM_X, zoom);
-                xs.setParam(XINE_PARAM_VO_ZOOM_Y, 100);
-            } else {
-                const int zoom = s.height() * 100 / imageSize.height();
-                xs.setParam(XINE_PARAM_VO_ZOOM_X, 100);
-                xs.setParam(XINE_PARAM_VO_ZOOM_Y, zoom);
-            }
-        } else if (m_scaleMode == Phonon::VideoWidget::ScaleAndCrop) {
-            const QSize s = size();
-            QSize imageSize = m_sizeHint;
-            // the image size is in square pixels
-            // first transform it to the current aspect ratio
-            kDebug(610) << imageSize << endl;
-            switch (m_aspectRatio) {
-                case Phonon::VideoWidget::AspectRatioAuto:
-                    // FIXME: how can we find out the ratio xine decided on? the event?
-                    break;
-                case Phonon::VideoWidget::AspectRatio4_3:
-                    imageSize.setWidth(imageSize.height() * 4 / 3);
-                    break;
-                case Phonon::VideoWidget::AspectRatio16_9:
-                    imageSize.setWidth(imageSize.height() * 16 / 9);
-                    break;
-//X                 case Phonon::VideoWidget::AspectRatioDvb:
-//X                     imageSize.setWidth(imageSize.height() * 2);
+//X     FIXME
+//X     if (m_path && m_path->mediaObject()) {
+//X         XineStream &xs = m_path->mediaObject()->stream();
+//X         if (m_aspectRatio == Phonon::VideoWidget::AspectRatioWidget) {
+//X             const QSize s = size();
+//X             QSize imageSize = m_sizeHint;
+//X             imageSize.scale(s, Qt::KeepAspectRatio);
+//X             if (imageSize.width() < s.width()) {
+//X                 const int zoom = s.width() * 100 / imageSize.width();
+//X                 xs.setParam(XINE_PARAM_VO_ZOOM_X, zoom);
+//X                 xs.setParam(XINE_PARAM_VO_ZOOM_Y, 100);
+//X             } else {
+//X                 const int zoom = s.height() * 100 / imageSize.height();
+//X                 xs.setParam(XINE_PARAM_VO_ZOOM_X, 100);
+//X                 xs.setParam(XINE_PARAM_VO_ZOOM_Y, zoom);
+//X             }
+//X         } else if (m_scaleMode == Phonon::VideoWidget::ScaleAndCrop) {
+//X             const QSize s = size();
+//X             QSize imageSize = m_sizeHint;
+//X             // the image size is in square pixels
+//X             // first transform it to the current aspect ratio
+//X             kDebug(610) << imageSize << endl;
+//X             switch (m_aspectRatio) {
+//X                 case Phonon::VideoWidget::AspectRatioAuto:
+//X                     // FIXME: how can we find out the ratio xine decided on? the event?
 //X                     break;
-                default:
-                    // correct ratio already
-                    break;
-            }
-            kDebug(610) << imageSize << endl;
-            imageSize.scale(s, Qt::KeepAspectRatioByExpanding);
-            kDebug(610) << imageSize << s << endl;
-            int zoom;
-            if (imageSize.width() > s.width()) {
-                zoom = imageSize.width() * 100 / s.width();
-            } else {
-                zoom = imageSize.height() * 100 / s.height();
-            }
-            xs.setParam(XINE_PARAM_VO_ZOOM_X, zoom);
-            xs.setParam(XINE_PARAM_VO_ZOOM_Y, zoom);
-        } else {
-            xs.setParam(XINE_PARAM_VO_ZOOM_X, 100);
-            xs.setParam(XINE_PARAM_VO_ZOOM_Y, 100);
-        }
-    }
+//X                 case Phonon::VideoWidget::AspectRatio4_3:
+//X                     imageSize.setWidth(imageSize.height() * 4 / 3);
+//X                     break;
+//X                 case Phonon::VideoWidget::AspectRatio16_9:
+//X                     imageSize.setWidth(imageSize.height() * 16 / 9);
+//X                     break;
+//X //X                 case Phonon::VideoWidget::AspectRatioDvb:
+//X //X                     imageSize.setWidth(imageSize.height() * 2);
+//X //X                     break;
+//X                 default:
+//X                     // correct ratio already
+//X                     break;
+//X             }
+//X             kDebug(610) << imageSize << endl;
+//X             imageSize.scale(s, Qt::KeepAspectRatioByExpanding);
+//X             kDebug(610) << imageSize << s << endl;
+//X             int zoom;
+//X             if (imageSize.width() > s.width()) {
+//X                 zoom = imageSize.width() * 100 / s.width();
+//X             } else {
+//X                 zoom = imageSize.height() * 100 / s.height();
+//X             }
+//X             xs.setParam(XINE_PARAM_VO_ZOOM_X, zoom);
+//X             xs.setParam(XINE_PARAM_VO_ZOOM_Y, zoom);
+//X         } else {
+//X             xs.setParam(XINE_PARAM_VO_ZOOM_X, 100);
+//X             xs.setParam(XINE_PARAM_VO_ZOOM_Y, 100);
+//X         }
+//X     }
 }
 
 void VideoWidget::resizeEvent(QResizeEvent *ev)
@@ -342,57 +333,59 @@ bool VideoWidget::event(QEvent *ev)
 
 void VideoWidget::mouseMoveEvent(QMouseEvent *mev)
 {
-    if (m_path && m_path->mediaObject()) {
-        XineStream &xs = m_path->mediaObject()->stream();
-        if (cursor().shape() == Qt::BlankCursor) {
-            setCursor(QCursor(Qt::ArrowCursor));
-        }
-
-        x11_rectangle_t   rect;
-        xine_event_t      *event = new xine_event_t;
-        xine_input_data_t *input = new xine_input_data_t;
-
-        rect.x = mev->x();
-        rect.y = mev->y();
-        rect.w = 0;
-        rect.h = 0;
-
-        xine_port_send_gui_data(m_videoPort, XINE_GUI_SEND_TRANSLATE_GUI_TO_VIDEO, (void*)&rect);
-
-        event->type        = XINE_EVENT_INPUT_MOUSE_MOVE;
-        event->data        = input;
-        event->data_length = sizeof(*input);
-        input->button      = 0;
-        input->x           = rect.x;
-        input->y           = rect.y;
-        xs.eventSend(event);
-    }
+//X     FIXME
+//X     if (m_path && m_path->mediaObject()) {
+//X         XineStream &xs = m_path->mediaObject()->stream();
+//X         if (cursor().shape() == Qt::BlankCursor) {
+//X             setCursor(QCursor(Qt::ArrowCursor));
+//X         }
+//X 
+//X         x11_rectangle_t   rect;
+//X         xine_event_t      *event = new xine_event_t;
+//X         xine_input_data_t *input = new xine_input_data_t;
+//X 
+//X         rect.x = mev->x();
+//X         rect.y = mev->y();
+//X         rect.w = 0;
+//X         rect.h = 0;
+//X 
+//X         xine_port_send_gui_data(m_videoPort, XINE_GUI_SEND_TRANSLATE_GUI_TO_VIDEO, (void*)&rect);
+//X 
+//X         event->type        = XINE_EVENT_INPUT_MOUSE_MOVE;
+//X         event->data        = input;
+//X         event->data_length = sizeof(*input);
+//X         input->button      = 0;
+//X         input->x           = rect.x;
+//X         input->y           = rect.y;
+//X         xs.eventSend(event);
+//X     }
     QWidget::mouseMoveEvent(mev);
 }
 
 void VideoWidget::mousePressEvent(QMouseEvent *mev)
 {
-    if (mev->button() == Qt::LeftButton && m_path && m_path->mediaObject()) {
-        XineStream &xs = m_path->mediaObject()->stream();
-        x11_rectangle_t   rect;
-        xine_event_t      *event = new xine_event_t;
-        xine_input_data_t *input = new xine_input_data_t;
-
-        rect.x = mev->x();
-        rect.y = mev->y();
-        rect.w = 0;
-        rect.h = 0;
-
-        xine_port_send_gui_data(m_videoPort, XINE_GUI_SEND_TRANSLATE_GUI_TO_VIDEO, (void*)&rect);
-
-        event->type        = XINE_EVENT_INPUT_MOUSE_BUTTON;
-        event->data        = input;
-        event->data_length = sizeof(*input);
-        input->button      = 1;
-        input->x           = rect.x;
-        input->y           = rect.y;
-        xs.eventSend(event);
-    }
+//X     FIXME
+//X     if (mev->button() == Qt::LeftButton && m_path && m_path->mediaObject()) {
+//X         XineStream &xs = m_path->mediaObject()->stream();
+//X         x11_rectangle_t   rect;
+//X         xine_event_t      *event = new xine_event_t;
+//X         xine_input_data_t *input = new xine_input_data_t;
+//X 
+//X         rect.x = mev->x();
+//X         rect.y = mev->y();
+//X         rect.w = 0;
+//X         rect.h = 0;
+//X 
+//X         xine_port_send_gui_data(m_videoPort, XINE_GUI_SEND_TRANSLATE_GUI_TO_VIDEO, (void*)&rect);
+//X 
+//X         event->type        = XINE_EVENT_INPUT_MOUSE_BUTTON;
+//X         event->data        = input;
+//X         event->data_length = sizeof(*input);
+//X         input->button      = 1;
+//X         input->x           = rect.x;
+//X         input->y           = rect.y;
+//X         xs.eventSend(event);
+//X     }
     QWidget::mousePressEvent(mev);
 }
 
@@ -407,29 +400,30 @@ void VideoWidget::setVideoEmpty(bool b)
 void VideoWidget::paintEvent(QPaintEvent *event)
 {
     //kDebug(610) << k_funcinfo << endl;
-    if (m_empty || !m_path || !m_path->mediaObject() || m_path->mediaObject()->state() == Phonon::LoadingState) {
-        QPainter p(this);
-        p.fillRect(rect(), Qt::black);
-#ifndef PHONON_XINE_NO_VIDEOWIDGET
-    } else if (m_videoPort) {
-        const QRect &rect = event->rect();
-
-        xcb_expose_event_t xcb_event;
-        memset(&xcb_event, 0, sizeof(xcb_event));
-
-        xcb_event.window = winId();
-        xcb_event.x = rect.x();
-        xcb_event.y = rect.y();
-        xcb_event.width = rect.width();
-        xcb_event.height = rect.height();
-        xcb_event.count = 0;
-
-        xine_port_send_gui_data(m_videoPort, XINE_GUI_SEND_EXPOSE_EVENT, &xcb_event);
-#endif // PHONON_XINE_NO_VIDEOWIDGET
-    } else {
-        QPainter p(this);
-        p.fillRect(rect(), Qt::black);
-    }
+//X     FIXME
+//X     if (m_empty || !m_path || !m_path->mediaObject() || m_path->mediaObject()->state() == Phonon::LoadingState) {
+//X         QPainter p(this);
+//X         p.fillRect(rect(), Qt::black);
+//X #ifndef PHONON_XINE_NO_VIDEOWIDGET
+//X     } else if (m_videoPort) {
+//X         const QRect &rect = event->rect();
+//X 
+//X         xcb_expose_event_t xcb_event;
+//X         memset(&xcb_event, 0, sizeof(xcb_event));
+//X 
+//X         xcb_event.window = winId();
+//X         xcb_event.x = rect.x();
+//X         xcb_event.y = rect.y();
+//X         xcb_event.width = rect.width();
+//X         xcb_event.height = rect.height();
+//X         xcb_event.count = 0;
+//X 
+//X         xine_port_send_gui_data(m_videoPort, XINE_GUI_SEND_EXPOSE_EVENT, &xcb_event);
+//X #endif // PHONON_XINE_NO_VIDEOWIDGET
+//X     } else {
+//X         QPainter p(this);
+//X         p.fillRect(rect(), Qt::black);
+//X     }
     QWidget::paintEvent(event);
 }
 

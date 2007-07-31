@@ -19,7 +19,6 @@
 
 #include "videopath.h"
 #include "videoeffect.h"
-#include "abstractvideooutput.h"
 #include "videowidget.h"
 #include "mediaobject.h"
 #include "videodataoutput.h"

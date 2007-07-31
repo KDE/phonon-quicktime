@@ -19,14 +19,13 @@
 #ifndef Phonon_XINE_VIDEODATAOUTPUT_H
 #define Phonon_XINE_VIDEODATAOUTPUT_H
 
-#include "abstractvideooutput.h"
 #include <phonon/experimental/videoframe.h>
 #include <QVector>
 #include <QByteArray>
 #include <QObject>
 #include <QSize>
-#include "videopath.h"
 #include <QList>
+#include "sinknode.h"
 
 namespace Phonon
 {
@@ -35,16 +34,15 @@ namespace Xine
 	/**
 	 * \author Matthias Kretz <kretz@kde.org>
 	 */
-	class VideoDataOutput : public QObject, public Phonon::Xine::AbstractVideoOutput
+    class VideoDataOutput : public QObject, public Phonon::Xine::SinkNode
 	{
 		Q_OBJECT
-		Q_INTERFACES( Phonon::Xine::AbstractVideoOutput )
+        Q_INTERFACES(Phonon::Xine::SinkNode)
 		public:
 			VideoDataOutput( QObject* parent );
 			~VideoDataOutput();
 
-			void addPath( VideoPath* vp ) { m_paths << vp; }
-			void removePath( VideoPath* vp ) { m_paths.removeAll( vp ); }
+            MediaStreamTypes inputMediaStreamTypes() const { return Phonon::Video; }
 
 		public slots:
 			int frameRate() const;
@@ -65,7 +63,6 @@ namespace Xine
 			quint32 m_fourcc;
 			int m_frameRate;
 			QSize m_frameSize;
-			QList<VideoPath*> m_paths;
 	};
 }} //namespace Phonon::Xine
 

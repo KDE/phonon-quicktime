@@ -17,6 +17,8 @@
 
 */
 
+#include <QtCore/QExplicitlySharedDataPointer>
+
 #ifndef PHONON_AUDIOPOSTLIST_H
 #define PHONON_AUDIOPOSTLIST_H
 
@@ -29,7 +31,7 @@ namespace Xine
 
 class XineStream;
 class AudioPostListData;
-class AudioEffect;
+class Effect;
 class AudioPort;
 
 class AudioPostList
@@ -41,15 +43,15 @@ class AudioPostList
         ~AudioPostList();
         bool operator==(const AudioPostList &rhs) const { return d == rhs.d; }
 
-        void addXineStream(XineStream *);
-        void removeXineStream(XineStream *);
+        void setXineStream(XineStream *);
+        void unsetXineStream(XineStream *);
 
         // QList interface
-        bool contains(AudioEffect *) const;
-        int indexOf(AudioEffect *) const;
-        void insert(int index, AudioEffect *);
-        void append(AudioEffect *);
-        int removeAll(AudioEffect *);
+        bool contains(Effect *) const;
+        int indexOf(Effect *) const;
+        void insert(int index, Effect *);
+        void append(Effect *);
+        int removeAll(Effect *);
 
         void setAudioPort(const AudioPort &);
         const AudioPort &audioPort() const;
@@ -58,7 +60,7 @@ class AudioPostList
         void wireStream(xine_post_out_t *audioSource);
 
     private:
-        AudioPostListData *d;
+        QExplicitlySharedDataPointer<AudioPostListData> d;
 };
 
 } // namespace Xine

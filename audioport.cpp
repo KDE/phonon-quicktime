@@ -26,6 +26,7 @@
 #include <xine.h>
 #include <QSharedData>
 #include <kdebug.h>
+#include <QtCore/QTimerEvent>
 
 namespace Phonon
 {

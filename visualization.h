@@ -21,6 +21,8 @@
 #define PHONON_XINE_VISUALIZATION_H
 
 #include <QObject>
+#include "sinknode.h"
+#include "sourcenode.h"
 
 namespace Phonon
 {
@@ -29,22 +31,22 @@ namespace Xine
 	class AudioPath;
 	class AbstractVideoOutput;
 
-class Visualization : public QObject
+class Visualization : public QObject, public SinkNode, public SourceNode
 {
 	Q_OBJECT
+    Q_INTERFACES(Phonon::Xine::SinkNode Phonon::Xine::SourceNode)
 	public:
 		Visualization( QObject* parent = 0 );
+
+        MediaStreamTypes inputMediaStreamTypes() const { return Phonon::Audio; }
+        MediaStreamTypes outputMediaStreamTypes() const { return Phonon::Video; }
 
 	public slots:
 		int visualization() const;
 		void setVisualization( int newVisualization );
-		void setAudioPath( QObject* audioPath );
-		void setVideoOutput( QObject* videoOutput );
 
 	private:
 		int m_visualization;
-		AudioPath* m_audioPath;
-		AbstractVideoOutput* m_videoOutput;
 };
 
 }} //namespace Phonon::Xine

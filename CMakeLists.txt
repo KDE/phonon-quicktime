@@ -12,14 +12,9 @@ set(phonon_xine_PART_SRCS
     audiopostlist.cpp
     abstractaudiooutput.cpp
     audiodataoutput.cpp
-    audioeffect.cpp
+    effect.cpp
     audiooutput.cpp
-    audiopath.cpp
     mediaobject.cpp
-    videoeffect.cpp
-    brightnesscontrol.cpp
-    deinterlacefilter.cpp
-    videopath.cpp
     videodataoutput.cpp
     visualization.cpp
     backend.cpp
