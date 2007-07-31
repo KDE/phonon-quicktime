@@ -32,6 +32,7 @@
 #include "xineengine_p.h"
 #include "backend.h"
 #include "events.h"
+#include "xinethread.h"
 
 namespace Phonon
 {
@@ -56,7 +57,8 @@ namespace Xine
         m_config(_config),
         d(new XineEnginePrivate),
         m_nullPort(0),
-        m_nullVideoPort(0)
+        m_nullVideoPort(0),
+        m_thread(0)
     {
         Q_ASSERT(s_instance == 0);
         s_instance = this;
@@ -67,6 +69,11 @@ namespace Xine
     XineEngine::~XineEngine()
     {
         qDeleteAll(m_cleanupObjects);
+        if (m_thread) {
+            m_thread->quit();
+            m_thread->wait();
+            delete m_thread;
+        }
         //kDebug(610) << k_funcinfo << endl;
         if (m_nullPort) {
             xine_close_audio_driver(m_xine, m_nullPort);
@@ -95,6 +102,18 @@ namespace Xine
 	{
 		return self()->m_xine;
 	}
+
+    XineThread *XineEngine::thread()
+    {
+        XineEngine *const e = self();
+        if (!e->m_thread) {
+            e->m_thread = new XineThread;
+            e->m_thread->moveToThread(e->m_thread);
+            e->m_thread->start();
+            e->m_thread->waitForEventLoop();
+        }
+        return e->m_thread;
+    }
 
     void XineEngine::xineEventListener(void *p, const xine_event_t *xineEvent)
     {

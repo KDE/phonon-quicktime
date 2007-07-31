@@ -43,9 +43,6 @@ class AudioPostList
         ~AudioPostList();
         bool operator==(const AudioPostList &rhs) const { return d == rhs.d; }
 
-        void setXineStream(XineStream *);
-        void unsetXineStream(XineStream *);
-
         // QList interface
         bool contains(Effect *) const;
         int indexOf(Effect *) const;
@@ -57,9 +54,13 @@ class AudioPostList
         const AudioPort &audioPort() const;
 
         // called from the xine thread
-        void wireStream(xine_post_out_t *audioSource);
+        void setXineStream(XineStream *);
+        void unsetXineStream(XineStream *);
+        void wireStream();
 
     private:
+        void wireStream(xine_post_out_t *audioSource);
+
         QExplicitlySharedDataPointer<AudioPostListData> d;
 };
 

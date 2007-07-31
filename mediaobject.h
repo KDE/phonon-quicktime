@@ -85,10 +85,10 @@ class ByteStream;
             QString errorString() const;
             Phonon::ErrorType errorType() const;
 
-            XineStream& stream() { return m_stream; }
-            const XineStream& stream() const { return m_stream; }
-            //void setAudioPort(AudioPort port) { m_stream.setAudioPort(port); }
-            void setVideoPort(VideoWidget *port) { m_stream.setVideoPort(port); }
+            XineStream& stream() { return *m_stream; }
+            const XineStream& stream() const { return *m_stream; }
+            //void setAudioPort(AudioPort port) { m_stream->setAudioPort(port); }
+            void setVideoPort(VideoWidget *port) { m_stream->setVideoPort(port); }
 
             bool hasInterface(AddonInterface::Interface i) const;
             QVariant interfaceCall(AddonInterface::Interface, int, const QList<QVariant> &);
@@ -145,7 +145,7 @@ class ByteStream;
             QByteArray autoplayMrlsToTitles(const char *plugin, const char *defaultMrl);
 
             Phonon::State m_state;
-            XineStream m_stream;
+            XineStream *m_stream;
             qint32 m_tickInterval;
             QPointer<ByteStream> m_bytestream;
 
