@@ -41,6 +41,7 @@ namespace Xine
 {
     class Backend;
     class XineEnginePrivate;
+    class XineThread;
 
     class XineEngine
 	{
@@ -62,6 +63,8 @@ namespace Xine
             static xine_video_port_t *nullVideoPort();
 
             static const QObject *sender();
+
+            static XineThread *thread();
 
             static void addCleanupObject(QObject *o) { self()->m_cleanupObjects << o; }
             static void removeCleanupObject(QObject *o) { self()->m_cleanupObjects.removeAll(o); }
@@ -98,6 +101,7 @@ namespace Xine
             const XineEnginePrivate *const d;
             xine_audio_port_t *m_nullPort;
             xine_video_port_t *m_nullVideoPort;
+            XineThread *m_thread;
 	};
 }
 }

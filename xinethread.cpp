@@ -1,10 +1,9 @@
 /*  This file is part of the KDE project
     Copyright (C) 2007 Matthias Kretz <kretz@kde.org>
 
-    This program is free software; you can redistribute it and/or
+    This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
-    License as published by the Free Software Foundation; either
-    version 2 of the License, or (at your option) any later version.
+    License version 2 as published by the Free Software Foundation.
 
     This library is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -19,31 +18,17 @@
 */
 
 #include "xinethread.h"
-#include <QtCore/QMutexLocker>
 #include <QtCore/QTimer>
 #include <QtCore/QCoreApplication>
 #include "xineengine.h"
 #include "xinestream.h"
+#include "audiopostlist.h"
 #include "events.h"
-#include "backend.h"
-#include <kdebug.h>
 
 namespace Phonon
 {
 namespace Xine
 {
-
-XineThread *XineThread::instance()
-{
-    Backend *const b = Backend::instance();
-    if (!b->m_thread) {
-        b->m_thread = new XineThread;
-        b->m_thread->moveToThread(b->m_thread);
-        b->m_thread->start();
-        b->m_thread->waitForEventLoop();
-    }
-    return b->m_thread;
-}
 
 XineThread::XineThread()
     : m_newStream(0),
@@ -68,12 +53,16 @@ void XineThread::waitForEventLoop()
 
 XineStream *XineThread::newStream()
 {
-    XineThread *that = XineThread::instance();
-
-    QMutexLocker locker(&that->m_mutex);
+    XineThread *that = XineEngine::thread();
     Q_ASSERT(that->m_newStream == 0);
-    QCoreApplication::postEvent(that, new QEVENT(NewStream));
-    that->m_waitingForNewStream.wait(&that->m_mutex);
+    QCoreApplication::postEvent(that, new QEvent(static_cast<QEvent::Type>(NewStream)));
+    if (!that->m_newStream) {
+        that->m_mutex.lock();
+        if (!that->m_newStream) {
+            that->m_waitingForNewStream.wait(&that->m_mutex);
+        }
+        that->m_mutex.unlock();
+    }
     Q_ASSERT(that->m_newStream);
     XineStream *ret = that->m_newStream;
     that->m_newStream = 0;
@@ -83,51 +72,30 @@ XineStream *XineThread::newStream()
 void XineThread::quit()
 {
     foreach (QObject *child, children()) {
-        kDebug(610) << child;
+        kDebug(610) << child << endl;
     }
     QThread::quit();
+}
+
+void XineThread::needRewire(AudioPostList *ap)
+{
+    QCoreApplication::postEvent(XineEngine::thread(), new NeedRewireEvent(ap));
 }
 
 bool XineThread::event(QEvent *e)
 {
     switch (e->type()) {
-    case Event::Cleanup:
+    case NeedRewire:
         e->accept();
-        {
-            const QList<QObject *> cleanupObjects = Backend::cleanupObjects();
-            foreach (QObject *o, cleanupObjects) {
-                delete o;
-            }
-        }
+        static_cast<NeedRewireEvent *>(e)->audioPostList->wireStream();
         return true;
-    case Event::NewStream:
+    case NewStream:
         e->accept();
         m_mutex.lock();
         Q_ASSERT(m_newStream == 0);
-        m_newStream = new XineStream;
-        m_newStream->moveToThread(this);
+        m_newStream = new XineStream(this);
         m_mutex.unlock();
         m_waitingForNewStream.wakeAll();
-        return true;
-    case Event::Rewire:
-        e->accept();
-        kDebug(610) << "XineThread Rewire event:";
-        {
-            RewireEvent *ev = static_cast<RewireEvent *>(e);
-            foreach (WireCall unwire, ev->unwireCalls) {
-                kDebug(610) << "     " << unwire.source << " XX " << unwire.sink;
-                unwire.sink->assert();
-                unwire.source->assert();
-                unwire.source->m_xtSink = 0;
-            }
-            foreach (WireCall wire, ev->wireCalls) {
-                kDebug(610) << "     " << wire.source << " -> " << wire.sink;
-                wire.sink->assert();
-                wire.source->assert();
-                wire.source->m_xtSink = wire.sink;
-                wire.sink->rewireTo(wire.source.data());
-            }
-        }
         return true;
     default:
         return QThread::event(e);

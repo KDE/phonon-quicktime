@@ -18,13 +18,17 @@
 */
 
 #include "audiopostlist.h"
-#include <QList>
 #include "audioport.h"
+#include "effect.h"
 #include "xinestream.h"
+#include "xineengine.h"
+#include "xinethread.h"
+
+#include <QtCore/QList>
+#include <QtCore/QSharedData>
+#include <QtCore/QThread>
 
 #include <xine.h>
-#include <QSharedData>
-#include "effect.h"
 #include <kdebug.h>
 
 namespace Phonon
@@ -109,21 +113,20 @@ class AudioPostListData : public QSharedData
         AudioPort output;
         AudioPort newOutput;
         XineStream *stream;
-
-        void needRewire(AudioPostList *o)
-        {
-            kDebug(610) << k_funcinfo << endl;
-            if (stream) {
-                kDebug(610) << stream << "->needRewire" << endl;
-                stream->needRewire(o);
-            }
-        }
 };
 
 // called from the xine thread: safe to call xine functions that call back to the ByteStream input
 // plugin
+void AudioPostList::wireStream()
+{
+    Q_ASSERT(QThread::currentThread() == XineEngine::thread());
+    Q_ASSERT(d->stream);
+    wireStream(d->stream->audioSource());
+}
+
 void AudioPostList::wireStream(xine_post_out_t *audioSource)
 {
+    Q_ASSERT(QThread::currentThread() == XineEngine::thread());
     if (d->newOutput.isValid()) {
         int err;
         if (!d->effects.isEmpty()) {
@@ -150,6 +153,7 @@ void AudioPostList::wireStream(xine_post_out_t *audioSource)
             err = xine_post_wire_audio_port(audioSource, d->newOutput);
         }
         Q_ASSERT(err == 1);
+        d->output.waitALittleWithDying(); // xine still accesses the port after a rewire :(
         d->output = d->newOutput;
     } else {
         kDebug(610) << "no valid audio output given, no audio" << endl;
@@ -160,7 +164,9 @@ void AudioPostList::wireStream(xine_post_out_t *audioSource)
 void AudioPostList::setAudioPort(const AudioPort &port)
 {
     d->newOutput = port;
-    d->needRewire(this);
+    if (d->stream) {
+        XineThread::needRewire(this);
+    }
 }
 
 const AudioPort &AudioPostList::audioPort() const
@@ -181,19 +187,25 @@ int AudioPostList::indexOf(Effect *effect) const
 void AudioPostList::insert(int index, Effect *effect)
 {
     d->effects.insert(index, ListData(effect, 0));
-    d->needRewire(this);
+    if (d->stream) {
+        XineThread::needRewire(this);
+    }
 }
 
 void AudioPostList::append(Effect *effect)
 {
     d->effects.append(ListData(effect, 0));
-    d->needRewire(this);
+    if (d->stream) {
+        XineThread::needRewire(this);
+    }
 }
 
 int AudioPostList::removeAll(Effect *effect)
 {
     int removed = d->effects.removeAll(ListData(effect, 0));
-    d->needRewire(this);
+    if (d->stream) {
+        XineThread::needRewire(this);
+    }
     return removed;
 }
 
@@ -232,4 +244,3 @@ void AudioPostList::unsetXineStream(XineStream *xs)
 } // namespace Xine
 } // namespace Phonon
 
-// vim: sw=4 sts=4 et tw=100

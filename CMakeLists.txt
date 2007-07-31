@@ -6,6 +6,7 @@ include_directories(${XINE_INCLUDE_DIR})
 ADD_DEFINITIONS(-D_FILE_OFFSET_BITS=64)
 
 set(phonon_xine_PART_SRCS
+   xinethread.cpp
     xineengine.cpp
     xinestream.cpp
     audioport.cpp

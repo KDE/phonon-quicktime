@@ -51,6 +51,10 @@ enum {
     PauseForBuffering = 2019,  // XXX numerically used in bytestream.cpp
     UnpauseForBuffering = 2020, // XXX numerically used in bytestream.cpp
     Error = 2021,
+
+    NeedRewire = 4800,
+    NewStream = 4801,
+
     NewMetaDataEvent = 5400,
     MediaFinishedEvent = 5401,
     ProgressEvent = 5402,
@@ -60,6 +64,13 @@ enum {
     FrameFormatChangeEvent = 5406,
     UiChannelsChangedEvent = 5407,
     ReferenceEvent = 5408
+};
+
+class NeedRewireEvent : public QEvent
+{
+    public:
+        NeedRewireEvent(AudioPostList *a) : QEvent(static_cast<QEvent::Type>(NeedRewire)), audioPostList(a) {}
+        AudioPostList *const audioPostList;
 };
 
 class XineReferenceEvent : public QEvent

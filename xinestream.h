@@ -20,19 +20,22 @@
 #ifndef PHONON_XINE_XINESTREAM_H
 #define PHONON_XINE_XINESTREAM_H
 
-#include <QThread>
-#include <QMutex>
-#include <QMultiMap>
-#include <phonon/phononnamespace.h>
-#include <xine.h>
-#include <QWaitCondition>
-
-#include <sys/time.h>
-#include <time.h>
 #include "audioport.h"
 #include "audiopostlist.h"
 
-class QTimer;
+#include <QtCore/QObject>
+#include <QtCore/QMutex>
+#include <QtCore/QMultiMap>
+#include <QtCore/QWaitCondition>
+#include <QtCore/QTimer>
+
+#include <Phonon/Global>
+
+#include <xine.h>
+
+#include <sys/time.h>
+#include <time.h>
+
 class KUrl;
 
 namespace Phonon
@@ -41,6 +44,8 @@ namespace Xine
 {
 class VideoWidget;
 class SeekCommandEvent;
+class MediaObject;
+class XineThread;
 
 /**
  * \brief xine_stream_t wrapper that runs in its own thread.
@@ -50,11 +55,11 @@ class SeekCommandEvent;
  *
  * \author Matthias Kretz <kretz@kde.org>
  */
-class XineStream : public QThread
+class XineStream : public QObject
 {
     Q_OBJECT
     public:
-        XineStream();
+        XineStream(XineThread *parent);
         ~XineStream();
 
         Phonon::State state() const { return m_state; }
@@ -74,14 +79,13 @@ class XineStream : public QThread
         void setTickInterval(qint32 interval);
         void setPrefinishMark(qint32 time);
 
-        void needRewire(AudioPostList *postList);
+        //void needRewire(AudioPostList *postList);
         void setParam(int param, int value);
         void eventSend(xine_event_t *);
         void useGaplessPlayback(bool);
         void gaplessSwitchTo(const KUrl &url);
         void gaplessSwitchTo(const QByteArray &mrl);
         void closeBlocking();
-        void waitForEventLoop();
         void aboutToDeleteVideoWidget();
         VideoWidget *videoWidget() const
         {
@@ -110,6 +114,7 @@ class XineStream : public QThread
             KeepState = 0xff
         };
 
+        xine_post_out_t *audioSource() const { Q_ASSERT(m_stream); return xine_get_audio_source(m_stream); }
 
     public slots:
         void setUrl(const KUrl &url);
@@ -118,15 +123,16 @@ class XineStream : public QThread
         void pause();
         void stop();
         void seek(qint64 time);
-        void quit();
 
         /**
          * all signals emitted from the xine thread
          */
     Q_SIGNALS:
+        void finished();
         void stateChanged(Phonon::State newstate, Phonon::State oldstate);
         void metaDataChanged(const QMultiMap<QString, QString>&);
         void length(qint64);
+        void seekDone();
         void needNextUrl();
         void tick(qint64);
         void prefinishMarkReached(qint32);
@@ -143,14 +149,12 @@ class XineStream : public QThread
 
     protected:
         bool event(QEvent *ev);
-        void run();
         void timerEvent(QTimerEvent *event);
 
     private slots:
         void getStartTime();
         void emitAboutToFinish();
         void emitTick();
-        void eventLoopReady();
 
     private:
         void getStreamInfo();
@@ -181,12 +185,10 @@ class XineStream : public QThread
         mutable QMutex m_streamInfoMutex;
         mutable QMutex m_updateTimeMutex;
         mutable QWaitCondition m_waitingForStreamInfo;
-        QWaitCondition m_waitingForEventLoop;
         QWaitCondition m_waitingForClose;
         QWaitCondition m_waitingForRewire;
         QMultiMap<QString, QString> m_metaDataMap;
         QByteArray m_mrl;
-        QTimer *m_tickTimer;
         QTimer *m_prefinishMarkTimer;
         struct timeval m_lastTimeUpdate;
 
@@ -215,6 +217,7 @@ class XineStream : public QThread
         bool m_ticking : 1;
         bool m_closing : 1;
         bool m_eventLoopReady : 1;
+        QTimer m_tickTimer;
 };
 
 } // namespace Xine
