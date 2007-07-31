@@ -210,7 +210,8 @@ static input_plugin_t *kbytestream_class_get_instance (input_class_t *cls_gen, x
     nbc_set_pause_cb(that->nbc, kbytestream_pause_cb, that);
     nbc_set_normal_cb(that->nbc, kbytestream_normal_cb, that);
     that->mrl    = strdup( mrl );
-    assert(strlen(mrl) >= 16 + sizeof(void *) && strlen(mrl) <= 16 + 2 * sizeof(void *));
+    // 13 == strlen("kbytestream:/")
+    assert(strlen(mrl) >= 13 + sizeof(void *) && strlen(mrl) <= 13 + 2 * sizeof(void *));
     const unsigned char *encoded = reinterpret_cast<const unsigned char*>( mrl + 13 );
     unsigned char *addrHack = reinterpret_cast<unsigned char *>(&that->bytestream);
     for (unsigned int i = 0; i < sizeof(void *); ++i, ++encoded) {
