@@ -1,5 +1,5 @@
 /*  This file is part of the KDE project
-    Copyright (C) 2006 Matthias Kretz <kretz@kde.org>
+    Copyright (C) 2007 Matthias Kretz <kretz@kde.org>
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -17,25 +17,33 @@
 
 */
 
-#ifndef PHONON_XINE_ABSTRACTVIDEOOUTPUT_H
-#define PHONON_XINE_ABSTRACTVIDEOOUTPUT_H
+#ifndef SINKNODE_H
+#define SINKNODE_H
 
-#include <QObject>
+#include <Phonon/Global>
 
 namespace Phonon
 {
 namespace Xine
 {
+class SourceNode;
 
-class AbstractVideoOutput
+class SinkNode
 {
-	public:
-		virtual ~AbstractVideoOutput() {}
+    public:
+        SinkNode() : m_source(0) {}
+        virtual ~SinkNode() {}
+        virtual MediaStreamTypes inputMediaStreamTypes() const = 0;
+        void setSource(SourceNode *s) { Q_ASSERT(m_source == 0); m_source = s; }
+        void unsetSource(SourceNode *s) { Q_ASSERT(m_source == s); m_source = 0; }
+        SourceNode *source() const { return m_source; }
+    private:
+        SourceNode *m_source;
 };
 
-}} //namespace Phonon::Fake
+} // namespace Xine
+} // namespace Phonon
 
-Q_DECLARE_INTERFACE( Phonon::Xine::AbstractVideoOutput, "org.kde.Phonon.Xine.AbstractVideoOutput/0.1" )
+Q_DECLARE_INTERFACE(Phonon::Xine::SinkNode, "XineSinkNode.phonon.kde.org")
 
-#endif // PHONON_XINE_ABSTRACTVIDEOOUTPUT_H
-// vim: sw=4 ts=4
+#endif // SINKNODE_H

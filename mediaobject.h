@@ -26,8 +26,6 @@
 
 #include "xineengine.h"
 #include "xinestream.h"
-#include "audiopath.h"
-#include "videopath.h"
 
 #include <QByteArray>
 #include <QList>
@@ -40,7 +38,7 @@
 #include <kurl.h>
 
 #include <xine.h>
-
+#include "sourcenode.h"
 
 namespace Phonon
 {
@@ -48,18 +46,14 @@ namespace Xine
 {
 class ByteStream;
 
-    class MediaObject : public QObject, public MediaObjectInterface, public AddonInterface
+    class MediaObject : public QObject, public MediaObjectInterface, public AddonInterface, public SourceNode
     {
         Q_OBJECT
-        Q_INTERFACES(Phonon::MediaObjectInterface Phonon::AddonInterface)
+        Q_INTERFACES(Phonon::MediaObjectInterface Phonon::AddonInterface Phonon::Xine::SourceNode)
         public:
             MediaObject(QObject *parent);
             ~MediaObject();
 
-            bool addVideoPath(QObject* videoPath);
-            bool addAudioPath(QObject* audioPath);
-            void removeVideoPath(QObject* videoPath);
-            void removeAudioPath(QObject* audioPath);
             State state() const;
             bool hasVideo() const;
             bool isSeekable() const;
@@ -68,6 +62,7 @@ class ByteStream;
             Q_INVOKABLE qint64 remainingTime() const;
             qint32 tickInterval() const;
 
+            /*
             QList<AudioStreamDescription> availableAudioStreams() const;
             QList<VideoStreamDescription> availableVideoStreams() const;
             QList<SubtitleStreamDescription> availableSubtitleStreams() const;
@@ -79,6 +74,7 @@ class ByteStream;
             void setCurrentAudioStream(const QString& streamName, const QObject* audioPath);
             void setCurrentVideoStream(const QString& streamName, const QObject* videoPath);
             void setCurrentSubtitleStream(const QString& streamName, const QObject* videoPath);
+            */
 
             void setTickInterval(qint32 newTickInterval);
             void play();
@@ -107,6 +103,8 @@ class ByteStream;
             void setSource(const MediaSource &source);
             void setNextSource(const MediaSource &source);
 
+            MediaStreamTypes outputMediaStreamTypes() const;
+
         signals:
             void aboutToFinish();
             void finished();
@@ -129,9 +127,6 @@ class ByteStream;
             void availableAnglesChanged(int);
             void angleChanged(int);
 
-        protected:
-            VideoPath* videoPath() const { return m_videoPath; }
-
         protected slots:
             void startToFakeBuffering();
 
@@ -152,8 +147,6 @@ class ByteStream;
             Phonon::State m_state;
             XineStream m_stream;
             qint32 m_tickInterval;
-            QList<AudioPath *> m_audioPaths;
-            VideoPath *m_videoPath;
             QPointer<ByteStream> m_bytestream;
 
             QHash<const QObject *, QString> m_currentAudioStream;

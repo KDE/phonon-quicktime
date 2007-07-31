@@ -1,6 +1,5 @@
 /*  This file is part of the KDE project
-    Copyright (C) 2006 Tim Beaulen <tbscope@gmail.com>
-    Copyright (C) 2006-2007 Matthias Kretz <kretz@kde.org>
+    Copyright (C) 2007 Matthias Kretz <kretz@kde.org>
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -17,28 +16,33 @@
     Boston, MA 02110-1301, USA.
 
 */
-#ifndef Phonon_XINE_ABSTRACTAUDIOOUTPUTBASE_H
-#define Phonon_XINE_ABSTRACTAUDIOOUTPUTBASE_H
 
-#include <QObject>
-#include <QList>
-#include "sinknode.h"
+#ifndef SOURCENODE_H
+#define SOURCENODE_H
+
+#include <Phonon/Global>
+#include <QtCore/QSet>
 
 namespace Phonon
 {
 namespace Xine
 {
-    class AbstractAudioOutput : public QObject, public SinkNode
-	{
-		Q_OBJECT
-        Q_INTERFACES(Phonon::Xine::SinkNode)
-		public:
-			AbstractAudioOutput( QObject* parent );
-			virtual ~AbstractAudioOutput();
+class SinkNode;
 
-            MediaStreamTypes inputMediaStreamTypes() const { return Phonon::Audio; }
-	};
-}} //namespace Phonon::Xine
+class SourceNode
+{
+    public:
+        virtual ~SourceNode() {}
+        virtual MediaStreamTypes outputMediaStreamTypes() const = 0;
+        void addSink(SinkNode *s) { Q_ASSERT(!m_sinks.contains(s)); m_sinks << s; }
+        void removeSink(SinkNode *s) { Q_ASSERT(m_sinks.contains(s)); m_sinks.remove(s); }
+        QSet<SinkNode *> sinks() const { return m_sinks; }
+    private:
+        QSet<SinkNode *> m_sinks;
+};
+} // namespace Xine
+} // namespace Phonon
 
-// vim: sw=4 ts=4 tw=80
-#endif // Phonon_XINE_ABSTRACTAUDIOOUTPUTBASE_H
+Q_DECLARE_INTERFACE(Phonon::Xine::SourceNode, "XineSourceNode.phonon.kde.org")
+
+#endif // SOURCENODE_H

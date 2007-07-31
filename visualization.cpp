@@ -18,8 +18,6 @@
 */
 
 #include "visualization.h"
-#include "audiopath.h"
-#include "abstractvideooutput.h"
 
 namespace Phonon
 {
@@ -39,22 +37,6 @@ int Visualization::visualization() const
 void Visualization::setVisualization( int newVisualization )
 {
 	m_visualization = newVisualization;
-}
-
-void Visualization::setAudioPath( QObject* audioPath )
-{
-	Q_ASSERT( audioPath );
-	AudioPath* ap = qobject_cast<AudioPath*>( audioPath );
-	Q_ASSERT( ap );
-	m_audioPath = ap;
-}
-
-void Visualization::setVideoOutput( QObject* videoOutput )
-{
-	Q_ASSERT( videoOutput );
-	AbstractVideoOutput* vo = dynamic_cast<Phonon::Xine::AbstractVideoOutput*>( videoOutput );
-	Q_ASSERT( vo );
-	m_videoOutput = vo;
 }
 
 }} //namespace Phonon::Xine

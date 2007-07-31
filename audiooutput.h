@@ -57,9 +57,12 @@ namespace Xine
             bool event(QEvent *);
 
 		Q_SIGNALS:
+            // for the Frontend
             void volumeChanged(qreal newVolume);
             void audioDeviceFailed();
 
+            // internal
+            void updateVolume(int);
             void audioPortChanged(const AudioPort &);
 
 		private:

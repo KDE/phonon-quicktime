@@ -21,13 +21,13 @@
 
 #include <QWidget>
 #include <phonon/videowidget.h>
-#include "abstractvideooutput.h"
 #include "videowidget.h"
 #include <QPixmap>
 #include <xine.h>
 
 #ifndef PHONON_XINE_NO_VIDEOWIDGET
 #include <xcb/xcb.h>
+#include "sinknode.h"
 #endif // PHONON_XINE_NO_VIDEOWIDGET
 
 class QMouseEvent;
@@ -36,11 +36,10 @@ namespace Phonon
 {
 namespace Xine
 {
-    class VideoPath;
-	class VideoWidget : public QWidget, public Phonon::Xine::AbstractVideoOutput
+    class VideoWidget : public QWidget, public Phonon::Xine::SinkNode
 	{
 		Q_OBJECT
-        Q_INTERFACES(Phonon::Xine::AbstractVideoOutput)
+        Q_INTERFACES(Phonon::Xine::SinkNode)
 		public:
 			VideoWidget( QWidget* parent = 0 );
 			~VideoWidget();
@@ -52,13 +51,12 @@ namespace Xine
 
 			Q_INVOKABLE QWidget *widget() { return this; }
 
+            /*
 			Q_INVOKABLE int overlayCapabilities() const;
 			Q_INVOKABLE bool createOverlay(QWidget *widget, int type);
+            */
 
 			xine_video_port_t* videoPort() const { return m_videoPort; }
-
-			void setPath( VideoPath* vp );
-			void unsetPath( VideoPath* vp );
 
 			void xineCallback( int &x, int &y, int &width, int &height,
 					double &ratio, int videoWidth, int videoHeight, double videoRatio, bool mayResize );
@@ -66,11 +64,13 @@ namespace Xine
             bool isValid() const { return videoPort() != 0; }
             void setVideoEmpty(bool);
 
+            MediaStreamTypes inputMediaStreamTypes() const { return Phonon::Video | Phonon::Subtitles; }
+
 		signals:
 			void videoPortChanged();
 
 		protected:
-			virtual void childEvent(QChildEvent *);
+            //virtual void childEvent(QChildEvent *);
             virtual void resizeEvent(QResizeEvent *);
             virtual bool event(QEvent *);
             virtual void mouseMoveEvent(QMouseEvent *);
@@ -82,7 +82,7 @@ namespace Xine
             virtual QSize sizeHint() const { return m_sizeHint; }
 
 		private:
-			QWidget *overlay;
+            //QWidget *overlay;
             void updateZoom();
 			xine_video_port_t* m_videoPort;
 #ifndef PHONON_XINE_NO_VIDEOWIDGET
@@ -91,7 +91,6 @@ namespace Xine
 #endif // PHONON_XINE_NO_VIDEOWIDGET
 			Phonon::VideoWidget::AspectRatio m_aspectRatio;
             Phonon::VideoWidget::ScaleMode m_scaleMode;
-			VideoPath* m_path;
 
             QSize m_sizeHint;
 			int m_videoWidth;

@@ -20,19 +20,11 @@
 
 #include "backend.h"
 #include "mediaobject.h"
-#include "avcapture.h"
-#include "bytestream.h"
-#include "mediaqueue.h"
-#include "audiopath.h"
-#include "audioeffect.h"
+#include "effect.h"
 #include "audiooutput.h"
 #include "audiodataoutput.h"
 #include "visualization.h"
-#include "videopath.h"
-#include "videoeffect.h"
 #include "volumefadereffect.h"
-#include "brightnesscontrol.h"
-#include "deinterlacefilter.h"
 #include "videodataoutput.h"
 #include "videowidget.h"
 
@@ -47,6 +39,8 @@
 
 extern "C" {
 #include <xine/xine_plugin.h>
+#include "sinknode.h"
+#include "sourcenode.h"
 extern plugin_info_t phonon_xine_plugin_info[];
 }
 
@@ -87,8 +81,6 @@ QObject *Backend::createObject(BackendInterface::Class c, QObject *parent, const
     switch (c) {
         case MediaObjectClass:
             return new MediaObject(parent);
-        case AudioPathClass:
-            return new AudioPath(parent);
         case VolumeFaderEffectClass:
             return new VolumeFaderEffect(parent);
         case AudioOutputClass:
@@ -97,20 +89,11 @@ QObject *Backend::createObject(BackendInterface::Class c, QObject *parent, const
             return new AudioDataOutput(parent);
         case VisualizationClass:
             return new Visualization(parent);
-        case VideoPathClass:
-            return new VideoPath(parent);
-        case BrightnessControlClass:
-            return new BrightnessControl(parent);
         case VideoDataOutputClass:
             return new VideoDataOutput(parent);
-        case DeinterlaceFilterClass:
-            return new DeinterlaceFilter(parent);
-        case AudioEffectClass:
-            Q_ASSERT(args.size() == 1);
-            return new AudioEffect(args[0].toInt(), parent);
-        case VideoEffectClass:
-            Q_ASSERT(args.size() == 1);
-            return new VideoEffect(args[0].toInt(), parent);
+    case EffectClass:
+        Q_ASSERT(args.size() == 1);
+        return new Effect(args[0].toInt(), parent);
     case VideoWidgetClass:
         {
             VideoWidget *vw = new VideoWidget(qobject_cast<QWidget *>(parent));
@@ -200,18 +183,15 @@ QSet<int> Backend::objectDescriptionIndexes( ObjectDescriptionType type ) const
 			break;
 		case Phonon::ContainerFormatType:
 			break;
-		case Phonon::AudioEffectType:
+		case Phonon::EffectType:
 			{
 				const char* const* postPlugins = xine_list_post_plugins_typed( XineEngine::xine(), XINE_POST_TYPE_AUDIO_FILTER );
 				for( int i = 0; postPlugins[i]; ++i )
 					set << 0x7F000000 + i;
-				break;
-			}
-		case Phonon::VideoEffectType:
-			{
-				const char* const* postPlugins = xine_list_post_plugins_typed( XineEngine::xine(), XINE_POST_TYPE_VIDEO_FILTER );
-				for( int i = 0; postPlugins[i]; ++i )
+                const char *const *postVPlugins = xine_list_post_plugins_typed( XineEngine::xine(), XINE_POST_TYPE_VIDEO_FILTER );
+                for (int i = 0; postVPlugins[i]; ++i) {
 					set << 0x7E000000 + i;
+                }
 				break;
 			}
 	}
@@ -301,7 +281,7 @@ QHash<QByteArray, QVariant> Backend::objectDescriptionProperties(ObjectDescripti
             break;
         case Phonon::ContainerFormatType:
             break;
-        case Phonon::AudioEffectType:
+        case Phonon::EffectType:
             {
                 const char *const *postPlugins = xine_list_post_plugins_typed(XineEngine::xine(), XINE_POST_TYPE_AUDIO_FILTER);
                 for (int i = 0; postPlugins[i]; ++i) {
@@ -311,12 +291,8 @@ QHash<QByteArray, QVariant> Backend::objectDescriptionProperties(ObjectDescripti
                         break;
                     }
                 }
-            }
-            break;
-        case Phonon::VideoEffectType:
-            {
-                const char *const *postPlugins = xine_list_post_plugins_typed(XineEngine::xine(), XINE_POST_TYPE_VIDEO_FILTER);
-                for (int i = 0; postPlugins[i]; ++i) {
+                const char *const *postVPlugins = xine_list_post_plugins_typed(XineEngine::xine(), XINE_POST_TYPE_VIDEO_FILTER);
+                for (int i = 0; postVPlugins[i]; ++i) {
                     if (0x7E000000 + i == index) {
                         ret.insert("name", QLatin1String(postPlugins[i]));
                         break;
@@ -326,6 +302,46 @@ QHash<QByteArray, QVariant> Backend::objectDescriptionProperties(ObjectDescripti
             break;
     }
     return ret;
+}
+
+bool Backend::startConnectionChange(QSet<QObject *> nodes)
+{
+    // there's nothing we can do but hope the connection changes won't take too long so that buffers
+    // would underrun. But we should be pretty safe the way xine works by not doing anything here.
+    return true;
+}
+
+bool Backend::connectNodes(QObject *_source, QObject *_sink)
+{
+    SourceNode *source = qobject_cast<SourceNode *>(_source);
+    SinkNode *sink = qobject_cast<SinkNode *>(_sink);
+    if (!source || !sink) {
+        return false;
+    }
+    // what streams to connect - i.e. all both nodes support
+    const MediaStreamTypes types = source->outputMediaStreamTypes() & sink->inputMediaStreamTypes();
+    source->addSink(sink);
+    sink->setSource(source);
+}
+
+bool Backend::disconnectNodes(QObject *_source, QObject *_sink)
+{
+    SourceNode *source = qobject_cast<SourceNode *>(_source);
+    SinkNode *sink = qobject_cast<SinkNode *>(_sink);
+    if (!source || !sink) {
+        return false;
+    }
+    const MediaStreamTypes types = source->outputMediaStreamTypes() & sink->inputMediaStreamTypes();
+    source->removeSink(sink);
+    sink->unsetSource(source);
+}
+
+bool Backend::endConnectionChange(QSet<QObject *> nodes)
+{
+    // Now that we know (by looking at the subgraph of nodes formed by the given nodes) what has to
+    // be rewired we go over the nodes in order (from sink to source) and rewire them (all called
+    // from the xine thread).
+    return true;
 }
 
 void Backend::freeSoundcardDevices()

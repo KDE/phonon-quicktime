@@ -18,7 +18,7 @@
 
 */
 
-#include "audioeffect.h"
+#include "effect.h"
 #include <klocale.h>
 #include <QVariant>
 #include "xineengine.h"
@@ -28,7 +28,7 @@ namespace Phonon
 {
 namespace Xine
 {
-AudioEffect::AudioEffect( int effectId, QObject* parent )
+Effect::Effect( int effectId, QObject* parent )
     : QObject(parent),
     m_pluginName(0),
     m_pluginParams(0)
@@ -46,14 +46,14 @@ AudioEffect::AudioEffect( int effectId, QObject* parent )
     }
 }
 
-AudioEffect::AudioEffect(const char *name, QObject *parent)
+Effect::Effect(const char *name, QObject *parent)
     : QObject(parent),
     m_pluginName(name),
     m_pluginParams(0)
 {
 }
 
-AudioEffect::~AudioEffect()
+Effect::~Effect()
 {
     foreach (xine_post_t *post, m_plugins) {
         xine_post_dispose(XineEngine::xine(), post);
@@ -61,18 +61,28 @@ AudioEffect::~AudioEffect()
     free(m_pluginParams);
 }
 
-bool AudioEffect::isValid() const
+bool Effect::isValid() const
 {
     return m_pluginName != 0;
 }
 
-QList<EffectParameter> AudioEffect::allDescriptions()
+MediaStreamTypes Effect::inputMediaStreamTypes() const
+{
+    return Phonon::Audio;
+}
+
+MediaStreamTypes Effect::outputMediaStreamTypes() const
+{
+    return Phonon::Audio;
+}
+
+QList<EffectParameter> Effect::allParameters()
 {
     ensureParametersReady();
     return m_parameterList;
 }
 
-EffectParameter AudioEffect::description(int parameterIndex)
+EffectParameter Effect::parameter(int parameterIndex)
 {
     ensureParametersReady();
     if (parameterIndex >= m_parameterList.size()) {
@@ -81,13 +91,13 @@ EffectParameter AudioEffect::description(int parameterIndex)
     return m_parameterList[parameterIndex];
 }
 
-int AudioEffect::parameterCount()
+int Effect::parameterCount()
 {
     ensureParametersReady();
     return m_parameterList.size();
 }
 
-void AudioEffect::ensureParametersReady()
+void Effect::ensureParametersReady()
 {
     if (m_parameterList.isEmpty() && m_plugins.isEmpty()) {
         newInstance(XineEngine::nullPort());
@@ -98,7 +108,7 @@ void AudioEffect::ensureParametersReady()
     }
 }
 
-xine_post_t *AudioEffect::newInstance(xine_audio_port_t *audioPort)
+xine_post_t *Effect::newInstance(xine_audio_port_t *audioPort)
 {
     QMutexLocker lock(&m_mutex);
     if (m_pluginName) {
@@ -152,7 +162,7 @@ xine_post_t *AudioEffect::newInstance(xine_audio_port_t *audioPort)
     return 0;
 }
 
-QVariant AudioEffect::parameterValue(int parameterIndex) const
+QVariant Effect::parameterValue(int parameterIndex) const
 {
     QMutexLocker lock(&m_mutex);
     if (m_plugins.isEmpty() || m_pluginApis.isEmpty()) {
@@ -190,11 +200,11 @@ QVariant AudioEffect::parameterValue(int parameterIndex) const
                 abort();
         }
     }
-    kError(610) << "invalid parameterIndex passed to AudioEffect::value" << endl;
+    kError(610) << "invalid parameterIndex passed to Effect::value" << endl;
     return QVariant();
 }
 
-void AudioEffect::setParameterValue(int parameterIndex, const QVariant &newValue)
+void Effect::setParameterValue(int parameterIndex, const QVariant &newValue)
 {
     QMutexLocker lock(&m_mutex);
     if (m_plugins.isEmpty() || m_pluginApis.isEmpty()) {
@@ -238,18 +248,17 @@ void AudioEffect::setParameterValue(int parameterIndex, const QVariant &newValue
                 }
                 break;
             case POST_PARAM_TYPE_LAST:         /* terminator of parameter list       */
-                kError(610) << "invalid parameterIndex passed to AudioEffect::setValue" << endl;
+                kError(610) << "invalid parameterIndex passed to Effect::setValue" << endl;
                 break;
             default:
                 abort();
         }
         api->set_parameters(post, m_pluginParams);
     } else {
-        kError(610) << "invalid parameterIndex passed to AudioEffect::setValue" << endl;
+        kError(610) << "invalid parameterIndex passed to Effect::setValue" << endl;
     }
 }
 
 }} //namespace Phonon::Xine
 
-#include "audioeffect.moc"
-// vim: sw=4 ts=4
+#include "moc_effect.cpp"

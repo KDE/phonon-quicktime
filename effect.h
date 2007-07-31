@@ -26,17 +26,20 @@
 #include <QList>
 #include <xine.h>
 #include <QMutex>
+#include "sinknode.h"
+#include "sourcenode.h"
 
 namespace Phonon
 {
 namespace Xine
 {
-	class AudioEffect : public QObject
+    class Effect : public QObject, public SinkNode, public SourceNode
 	{
 		Q_OBJECT
+        Q_INTERFACES(Phonon::Xine::SinkNode Phonon::Xine::SourceNode)
 		public:
-			AudioEffect( int effectId, QObject* parent );
-			~AudioEffect();
+			Effect( int effectId, QObject* parent );
+			~Effect();
 
             bool isValid() const;
 
@@ -48,9 +51,12 @@ namespace Xine
              */
             virtual xine_post_t *newInstance(xine_audio_port_t *);
 
+            MediaStreamTypes inputMediaStreamTypes() const;
+            MediaStreamTypes outputMediaStreamTypes() const;
+
         public slots:
-            QList<EffectParameter> allDescriptions();
-            EffectParameter description(int parameterIndex);
+            QList<EffectParameter> allParameters();
+            EffectParameter parameter(int parameterIndex);
             int parameterCount();
 
             QVariant parameterValue(int parameterIndex) const;
@@ -58,7 +64,7 @@ namespace Xine
 
         protected:
             virtual void ensureParametersReady();
-            AudioEffect(const char *name, QObject *parent);
+            Effect(const char *name, QObject *parent);
             void addParameter(const EffectParameter &p) { m_parameterList << p; }
 
             QList<xine_post_t *> m_plugins;
