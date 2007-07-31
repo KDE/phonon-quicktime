@@ -397,6 +397,12 @@ void VideoWidget::setVideoEmpty(bool b)
     }
 }
 
+void VideoWidget::rewireTo(SourceNode *source)
+{
+    Q_ASSERT(source->videoOutputPort());
+    xine_post_wire_video_port(source->videoOutputPort(), videoPort());
+}
+
 void VideoWidget::paintEvent(QPaintEvent *event)
 {
     //kDebug(610) << k_funcinfo << endl;

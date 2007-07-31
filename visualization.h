@@ -40,6 +40,8 @@ class Visualization : public QObject, public SinkNode, public SourceNode
 
         MediaStreamTypes inputMediaStreamTypes() const { return Phonon::Audio; }
         MediaStreamTypes outputMediaStreamTypes() const { return Phonon::Video; }
+        void rewireTo(SourceNode *);
+        xine_post_out_t *outputPort() const;
 
 	public slots:
 		int visualization() const;

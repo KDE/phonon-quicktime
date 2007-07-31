@@ -21,18 +21,22 @@
 #include "backend.h"
 #include "mediaobject.h"
 #include "effect.h"
+#include "events.h"
 #include "audiooutput.h"
 #include "audiodataoutput.h"
 #include "visualization.h"
 #include "volumefadereffect.h"
 #include "videodataoutput.h"
 #include "videowidget.h"
+#include "wirecall.h"
+#include "xinethread.h"
 
 #include <kdebug.h>
 #include <kgenericfactory.h>
 
-#include <QSet>
-#include <QVariant>
+#include <QtCore/QCoreApplication>
+#include <QtCore/QSet>
+#include <QtCore/QVariant>
 
 #include <phonon/audiodevice.h>
 #include <phonon/audiodeviceenumerator.h>
@@ -306,6 +310,7 @@ QHash<QByteArray, QVariant> Backend::objectDescriptionProperties(ObjectDescripti
 
 bool Backend::startConnectionChange(QSet<QObject *> nodes)
 {
+    Q_UNUSED(nodes);
     // there's nothing we can do but hope the connection changes won't take too long so that buffers
     // would underrun. But we should be pretty safe the way xine works by not doing anything here.
     return true;
@@ -320,8 +325,12 @@ bool Backend::connectNodes(QObject *_source, QObject *_sink)
     }
     // what streams to connect - i.e. all both nodes support
     const MediaStreamTypes types = source->outputMediaStreamTypes() & sink->inputMediaStreamTypes();
+    if (sink->source() != 0 || source->sinks().contains(sink)) {
+        return false;
+    }
     source->addSink(sink);
     sink->setSource(source);
+    return true;
 }
 
 bool Backend::disconnectNodes(QObject *_source, QObject *_sink)
@@ -332,8 +341,12 @@ bool Backend::disconnectNodes(QObject *_source, QObject *_sink)
         return false;
     }
     const MediaStreamTypes types = source->outputMediaStreamTypes() & sink->inputMediaStreamTypes();
+    if (!source->sinks().contains(sink) || sink->source() != source) {
+        return false;
+    }
     source->removeSink(sink);
     sink->unsetSource(source);
+    return true;
 }
 
 bool Backend::endConnectionChange(QSet<QObject *> nodes)
@@ -341,6 +354,34 @@ bool Backend::endConnectionChange(QSet<QObject *> nodes)
     // Now that we know (by looking at the subgraph of nodes formed by the given nodes) what has to
     // be rewired we go over the nodes in order (from sink to source) and rewire them (all called
     // from the xine thread).
+    QList<WireCall> wireCallsUnordered;
+    QList<WireCall> wireCalls;
+    foreach (QObject *q, nodes) {
+        SourceNode *source = qobject_cast<SourceNode *>(q);
+        if (source) {
+            foreach (SinkNode *sink, source->sinks()) {
+                WireCall w(source, sink);
+                if (wireCallsUnordered.contains(w)) {
+                    Q_ASSERT(!wireCalls.contains(w));
+                    wireCalls << w;
+                } else {
+                    wireCallsUnordered << w;
+                }
+            }
+        }
+        SinkNode *sink = qobject_cast<SinkNode *>(q);
+        if (sink && sink->source()) {
+            WireCall w(sink->source(), sink);
+            if (wireCallsUnordered.contains(w)) {
+                Q_ASSERT(!wireCalls.contains(w));
+                wireCalls << w;
+            } else {
+                wireCallsUnordered << w;
+            }
+        }
+    }
+    qSort(wireCalls);
+    QCoreApplication::postEvent(XineEngine::thread(), new RewireEvent(wireCalls));
     return true;
 }
 

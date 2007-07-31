@@ -97,6 +97,15 @@ bool XineThread::event(QEvent *e)
         m_mutex.unlock();
         m_waitingForNewStream.wakeAll();
         return true;
+    case Events::Rewire:
+        e->accept();
+        {
+            RewireEvent *ev = static_cast<RewireEvent *>(e);
+            foreach (const WireCall &wire, ev->wireCalls) {
+                wire.sink->rewireTo(wire.source);
+            }
+        }
+        return true;
     default:
         return QThread::event(e);
     }

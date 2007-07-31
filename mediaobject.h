@@ -104,6 +104,8 @@ class ByteStream;
             void setNextSource(const MediaSource &source);
 
             MediaStreamTypes outputMediaStreamTypes() const;
+            xine_post_out_t *audioOutputPort() const;
+            xine_post_out_t *videoOutputPort() const;
 
         signals:
             void aboutToFinish();

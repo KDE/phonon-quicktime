@@ -50,9 +50,13 @@ namespace Xine
              * \warning called from the xine thread
              */
             virtual xine_post_t *newInstance(xine_audio_port_t *);
+            virtual xine_post_out_t *audioOutputPort() const;
 
             MediaStreamTypes inputMediaStreamTypes() const;
             MediaStreamTypes outputMediaStreamTypes() const;
+            SourceNode *sourceInterface() { return this; }
+            SinkNode *sinkInterface() { return this; }
+            void rewireTo(SourceNode *);
 
         public slots:
             QList<EffectParameter> allParameters();
@@ -67,14 +71,13 @@ namespace Xine
             Effect(const char *name, QObject *parent);
             void addParameter(const EffectParameter &p) { m_parameterList << p; }
 
-            QList<xine_post_t *> m_plugins;
-            QList<xine_post_api_t *> m_pluginApis;
+            xine_post_t *m_plugin;
+            xine_post_api_t *m_pluginApi;
 
         private:
             mutable QMutex m_mutex;
             const char *m_pluginName;
             char *m_pluginParams;
-            AudioPostList m_postList;
             QList<Phonon::EffectParameter> m_parameterList;
 	};
 }} //namespace Phonon::Xine

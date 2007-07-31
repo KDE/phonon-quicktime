@@ -22,6 +22,7 @@
 
 #include <Phonon/Global>
 #include <QtCore/QSet>
+#include <xine.h>
 
 namespace Phonon
 {
@@ -37,6 +38,9 @@ class SourceNode
         void addSink(SinkNode *s) { Q_ASSERT(!m_sinks.contains(s)); m_sinks << s; }
         void removeSink(SinkNode *s) { Q_ASSERT(m_sinks.contains(s)); m_sinks.remove(s); }
         QSet<SinkNode *> sinks() const { return m_sinks; }
+        virtual SinkNode *sinkInterface() { return 0; }
+        virtual xine_post_out_t *audioOutputPort() const { return 0; }
+        virtual xine_post_out_t *videoOutputPort() const { return 0; }
     private:
         QSet<SinkNode *> m_sinks;
 };

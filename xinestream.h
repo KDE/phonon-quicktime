@@ -115,6 +115,7 @@ class XineStream : public QObject
         };
 
         xine_post_out_t *audioSource() const { Q_ASSERT(m_stream); return xine_get_audio_source(m_stream); }
+        xine_post_out_t *videoSource() const { Q_ASSERT(m_stream); return xine_get_video_source(m_stream); }
 
     public slots:
         void setUrl(const KUrl &url);

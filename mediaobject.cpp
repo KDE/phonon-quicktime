@@ -121,6 +121,20 @@ MediaStreamTypes MediaObject::outputMediaStreamTypes() const
     return Phonon::Audio;
 }
 
+// called from XineThread
+xine_post_out_t *MediaObject::audioOutputPort() const
+{
+    Q_ASSERT(QThread::currentThread() == XineEngine::thread());
+    return m_stream->audioSource();
+}
+
+// called from XineThread
+xine_post_out_t *MediaObject::videoOutputPort() const
+{
+    Q_ASSERT(QThread::currentThread() == XineEngine::thread());
+    return m_stream->videoSource();
+}
+
 bool MediaObject::isSeekable() const
 {
     return m_stream->isSeekable();

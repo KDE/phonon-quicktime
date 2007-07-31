@@ -21,7 +21,9 @@
 #define PHONON_XINE_EVENTS_H
 
 #include "audiopostlist.h"
+#include "wirecall.h"
 #include "xinestream.h"
+
 #include <QtCore/QEvent>
 #include <QtCore/QPair>
 #include <QtCore/QList>
@@ -79,9 +81,9 @@ class SinkNode;
 class RewireEvent : public QEvent
 {
     public:
-        RewireEvent(QList<QPair<SourceNode *, SinkNode *> > _wireCalls)
+        RewireEvent(QList<WireCall> _wireCalls)
             : QEvent(static_cast<QEvent::Type>(Events::Rewire)), wireCalls(_wireCalls) {}
-        const QList<QPair<SourceNode *, SinkNode *> > wireCalls;
+        const QList<WireCall> wireCalls;
 };
 
 class NeedRewireEvent : public QEvent

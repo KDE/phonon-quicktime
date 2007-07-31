@@ -53,6 +53,8 @@ namespace Xine
             void setVolume(qreal newVolume);
             bool setOutputDevice(int newDevice);
 
+            void rewireTo(SourceNode *);
+
         protected:
             bool event(QEvent *);
 
