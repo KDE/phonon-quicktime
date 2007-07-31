@@ -126,10 +126,10 @@ namespace Xine
 
         switch (xineEvent->type) {
             case XINE_EVENT_UI_SET_TITLE: /* request title display change in ui */
-                QCoreApplication::postEvent(xs, new QEvent(static_cast<QEvent::Type>(Xine::NewMetaDataEvent)));
+                QCoreApplication::postEvent(xs, new QEvent(static_cast<QEvent::Type>(Events::NewMetaData)));
                 break;
             case XINE_EVENT_UI_PLAYBACK_FINISHED: /* frontend can e.g. move on to next playlist entry */
-                QCoreApplication::postEvent(xs, new QEvent(static_cast<QEvent::Type>(Xine::MediaFinishedEvent)));
+                QCoreApplication::postEvent(xs, new QEvent(static_cast<QEvent::Type>(Events::MediaFinished)));
                 break;
             case XINE_EVENT_PROGRESS: /* index creation/network connections */
                 {
@@ -143,9 +143,9 @@ namespace Xine
                     if (vw) {
                         xine_spu_button_t *button = static_cast<xine_spu_button_t *>(xineEvent->data);
                         if (button->direction == 1) { // enter a button
-                            QCoreApplication::postEvent(vw, new QEvent(static_cast<QEvent::Type>(Xine::NavButtonInEvent)));
+                            QCoreApplication::postEvent(vw, new QEvent(static_cast<QEvent::Type>(Events::NavButtonIn)));
                         } else {
-                            QCoreApplication::postEvent(vw, new QEvent(static_cast<QEvent::Type>(Xine::NavButtonOutEvent)));
+                            QCoreApplication::postEvent(vw, new QEvent(static_cast<QEvent::Type>(Events::NavButtonOut)));
                         }
                     }
                 }
@@ -153,7 +153,7 @@ namespace Xine
             case XINE_EVENT_UI_CHANNELS_CHANGED:    /* inform ui that new channel info is available */
                 kDebug(610) << "XINE_EVENT_UI_CHANNELS_CHANGED" << endl;
                 {
-                    QCoreApplication::postEvent(xs, new QEvent(static_cast<QEvent::Type>(Xine::UiChannelsChangedEvent)));
+                    QCoreApplication::postEvent(xs, new QEvent(static_cast<QEvent::Type>(Events::UiChannelsChanged)));
                 }
                 break;
             case XINE_EVENT_UI_MESSAGE:             /* message (dialog) for the ui to display */
@@ -169,7 +169,7 @@ namespace Xine
                             AudioPort ap = post.audioPort();
                             kDebug(610) << "telling AudioPort " << ap << " valid = " << ap.isValid() << " output = " << ap.audioOutput() << endl;
                             if (ap.isValid()) {
-                                QCoreApplication::postEvent(ap.audioOutput(), new QEvent(static_cast<QEvent::Type>(Xine::AudioDeviceFailedEvent)));
+                                QCoreApplication::postEvent(ap.audioOutput(), new QEvent(static_cast<QEvent::Type>(Events::AudioDeviceFailed)));
                             }
                         }
                     }

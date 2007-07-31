@@ -103,7 +103,7 @@ bool AudioOutput::setOutputDevice(int newDevice)
 bool AudioOutput::event(QEvent *ev)
 {
     switch (ev->type()) {
-        case Xine::AudioDeviceFailedEvent:
+        case Events::AudioDeviceFailed:
             ev->accept();
             emit audioDeviceFailed();
             return true;

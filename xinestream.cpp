@@ -208,7 +208,7 @@ bool XineStream::hasVideo() const
 {
     if (!m_streamInfoReady) {
         QMutexLocker locker(&m_streamInfoMutex);
-        QCoreApplication::postEvent(const_cast<XineStream*>(this), new QEvent(static_cast<QEvent::Type>(GetStreamInfo)));
+        QCoreApplication::postEvent(const_cast<XineStream*>(this), new QEvent(static_cast<QEvent::Type>(Events::GetStreamInfo)));
         // wait a few ms, perhaps the other thread finishes the event in time and this method
         // can return a useful value
         // FIXME: this is non-deterministic: a program might fail sometimes and sometimes work
@@ -225,7 +225,7 @@ bool XineStream::isSeekable() const
 {
     if (!m_streamInfoReady) {
         //QMutexLocker locker(&m_streamInfoMutex);
-        QCoreApplication::postEvent(const_cast<XineStream*>(this), new QEvent(static_cast<QEvent::Type>(GetStreamInfo)));
+        QCoreApplication::postEvent(const_cast<XineStream*>(this), new QEvent(static_cast<QEvent::Type>(Events::GetStreamInfo)));
         // wait a few ms, perhaps the other thread finishes the event in time and this method
         // can return a useful value
         // FIXME: this is non-deterministic: a program might fail sometimes and sometimes work
@@ -347,7 +347,7 @@ void XineStream::setVolume(int vol)
 {
     if (m_volume != vol) {
         m_volume = vol;
-        QCoreApplication::postEvent(this, new QEvent(static_cast<QEvent::Type>(UpdateVolume)));
+        QCoreApplication::postEvent(this, new QEvent(static_cast<QEvent::Type>(Events::UpdateVolume)));
     }
 }
 
@@ -425,7 +425,7 @@ void XineStream::useGaplessPlayback(bool b)
         return;
     }
     m_useGaplessPlayback = b;
-    QCoreApplication::postEvent(this, new QEvent(static_cast<QEvent::Type>(GaplessPlaybackChanged)));
+    QCoreApplication::postEvent(this, new QEvent(static_cast<QEvent::Type>(Events::GaplessPlaybackChanged)));
 }
 
 // called from main thread
@@ -449,7 +449,7 @@ void XineStream::rewireOutputPorts()
         return;
     }
     m_rewireEventSent = true;
-    QCoreApplication::postEvent(this, new QEvent(static_cast<QEvent::Type>(RewireStream)));
+    QCoreApplication::postEvent(this, new QEvent(static_cast<QEvent::Type>(Events::RewireStream)));
 }
 
 // xine thread
@@ -545,49 +545,49 @@ inline void XineStream::error(Phonon::ErrorType type, const QString &string)
 const char* nameForEvent(int e)
 {
     switch (e) {
-        case Xine::ReferenceEvent:
-            return "Xine::ReferenceEvent";
-        case Xine::UiChannelsChangedEvent:
-            return "Xine::UiChannelsChangedEvent";
-        case Xine::MediaFinishedEvent:
-            return "Xine::MediaFinishedEvent";
-        case UpdateTime:
+        case Events::Reference:
+            return "Reference";
+        case Events::UiChannelsChanged:
+            return "UiChannelsChanged";
+        case Events::MediaFinished:
+            return "MediaFinished";
+        case Events::UpdateTime:
             return "UpdateTime";
-        case GaplessSwitch:
+        case Events::GaplessSwitch:
             return "GaplessSwitch";
-        case Xine::NewMetaDataEvent:
-            return "Xine::NewMetaDataEvent";
-        case Xine::ProgressEvent:
-            return "Xine::ProgressEvent";
-        case GetStreamInfo:
+        case Events::NewMetaData:
+            return "NewMetaData";
+        case Events::Progress:
+            return "Progress";
+        case Events::GetStreamInfo:
             return "GetStreamInfo";
-        case UpdateVolume:
+        case Events::UpdateVolume:
             return "UpdateVolume";
-        case MrlChanged:
+        case Events::MrlChanged:
             return "MrlChanged";
-        case GaplessPlaybackChanged:
+        case Events::GaplessPlaybackChanged:
             return "GaplessPlaybackChanged";
-        case RewireStream:
+        case Events::RewireStream:
             return "RewireStream";
-        case PlayCommand:
+        case Events::PlayCommand:
             return "PlayCommand";
-        case PauseCommand:
+        case Events::PauseCommand:
             return "PauseCommand";
-        case StopCommand:
+        case Events::StopCommand:
             return "StopCommand";
-        case SetTickInterval:
+        case Events::SetTickInterval:
             return "SetTickInterval";
-        case SetPrefinishMark:
+        case Events::SetPrefinishMark:
             return "SetPrefinishMark";
-        case SeekCommand:
+        case Events::SeekCommand:
             return "SeekCommand";
-        //case EventSend:
+        //case Events::EventSend:
             //return "EventSend";
-        case SetParam:
+        case Events::SetParam:
             return "SetParam";
-        case ChangeAudioPostList:
+        case Events::ChangeAudioPostList:
             return "ChangeAudioPostList";
-//X         case AudioRewire:
+//X         case Events::AudioRewire:
 //X             return "AudioRewire";
         default:
             return 0;
@@ -605,8 +605,8 @@ bool XineStream::event(QEvent *ev)
         // when closing all events except MrlChanged are ignored. MrlChanged is used to detach from
         // a kbytestream:/ MRL
         switch (ev->type()) {
-        case MrlChanged:
-        //case ChangeAudioPostList:
+        case Events::MrlChanged:
+        //case Events::ChangeAudioPostList:
             break;
         default:
             if (eventName) {
@@ -616,7 +616,7 @@ bool XineStream::event(QEvent *ev)
         }
     }
     if (eventName) {
-        if (static_cast<int>(ev->type()) == Xine::ProgressEvent) {
+        if (static_cast<int>(ev->type()) == Events::Progress) {
             XineProgressEvent* e = static_cast<XineProgressEvent*>(ev);
             kDebug(610) << "################################ Event: " << eventName << ": " << e->percent << endl;
         } else {
@@ -624,7 +624,7 @@ bool XineStream::event(QEvent *ev)
         }
     }
     switch (ev->type()) {
-    case Xine::ReferenceEvent:
+    case Events::Reference:
         ev->accept();
         {
             XineReferenceEvent *e = static_cast<XineReferenceEvent *>(ev);
@@ -640,7 +640,7 @@ bool XineStream::event(QEvent *ev)
             internalPlay();
         }
         return true;
-    case Xine::UiChannelsChangedEvent:
+    case Events::UiChannelsChanged:
         ev->accept();
         // check chapter, title, angle and substreams
         if (m_stream) {
@@ -683,28 +683,28 @@ bool XineStream::event(QEvent *ev)
             }
         }
         return true;
-    case Error:
+    case Events::Error:
         ev->accept();
         {
             ErrorEvent *e = static_cast<ErrorEvent *>(ev);
             error(e->type, e->reason);
         }
         return true;
-    case PauseForBuffering:
+    case Events::PauseForBuffering:
         ev->accept();
         if (m_stream) {
             xine_set_param(m_stream, XINE_PARAM_SPEED, XINE_SPEED_PAUSE); //_x_set_speed (m_stream, XINE_SPEED_PAUSE);
             streamClock(m_stream)->set_option (streamClock(m_stream), CLOCK_SCR_ADJUSTABLE, 0);
         }
         return true;
-    case UnpauseForBuffering:
+    case Events::UnpauseForBuffering:
         ev->accept();
         if (m_stream && Phonon::PausedState != m_state) {
             xine_set_param(m_stream, XINE_PARAM_SPEED, XINE_SPEED_NORMAL); //_x_set_speed (m_stream, XINE_SPEED_NORMAL);
         }
         streamClock(m_stream)->set_option (streamClock(m_stream), CLOCK_SCR_ADJUSTABLE, 1);
         return true;
-    case ChangeAudioPostList:
+    case Events::ChangeAudioPostList:
             ev->accept();
             {
                 ChangeAudioPostListEvent *e = static_cast<ChangeAudioPostListEvent *>(ev);
@@ -732,7 +732,7 @@ bool XineStream::event(QEvent *ev)
                 }
             }
             return true;
-//X         case AudioRewire:
+//X         case Events::AudioRewire:
 //X             ev->accept();
 //X             if (m_stream) {
 //X                 AudioRewireEvent *e = static_cast<AudioRewireEvent *>(ev);
@@ -740,7 +740,7 @@ bool XineStream::event(QEvent *ev)
 //X                 xine_set_param(m_stream, XINE_PARAM_AUDIO_AMP_LEVEL, m_volume);
 //X             }
 //X             return true;
-        case EventSend:
+        case Events::EventSend:
             ev->accept();
             {
                 EventSendEvent *e = static_cast<EventSendEvent *>(ev);
@@ -756,14 +756,14 @@ bool XineStream::event(QEvent *ev)
                 delete e->event;
             }
             return true;
-        case SetParam:
+        case Events::SetParam:
             ev->accept();
             if (m_stream) {
                 SetParamEvent *e = static_cast<SetParamEvent *>(ev);
                 xine_set_param(m_stream, e->param, e->value);
             }
             return true;
-        case Xine::MediaFinishedEvent:
+        case Events::MediaFinished:
             ev->accept();
             kDebug(610) << "MediaFinishedEvent m_useGaplessPlayback = " << m_useGaplessPlayback << endl;
             if (m_stream) {
@@ -775,11 +775,11 @@ bool XineStream::event(QEvent *ev)
                 }
             }
             return true;
-        case UpdateTime:
+        case Events::UpdateTime:
             updateTime();
             ev->accept();
             return true;
-        case GaplessSwitch:
+        case Events::GaplessSwitch:
             ev->accept();
             {
                 GaplessSwitchEvent *e = static_cast<GaplessSwitchEvent*>(ev);
@@ -811,14 +811,14 @@ bool XineStream::event(QEvent *ev)
                 updateMetaData();
             }
             return true;
-        case Xine::NewMetaDataEvent:
+        case Events::NewMetaData:
             ev->accept();
             if (m_stream) {
                 getStreamInfo();
                 updateMetaData();
             }
             return true;
-        case Xine::ProgressEvent:
+        case Events::Progress:
             {
                 XineProgressEvent* e = static_cast<XineProgressEvent*>(ev);
                 if (e->percent < 100) {
@@ -836,19 +836,19 @@ bool XineStream::event(QEvent *ev)
             }
             ev->accept();
             return true;
-        case GetStreamInfo:
+        case Events::GetStreamInfo:
             ev->accept();
             if (m_stream) {
                 getStreamInfo();
             }
             return true;
-        case UpdateVolume:
+        case Events::UpdateVolume:
             ev->accept();
             if (m_stream) {
                 xine_set_param(m_stream, XINE_PARAM_AUDIO_AMP_LEVEL, m_volume);
             }
             return true;
-        case MrlChanged:
+        case Events::MrlChanged:
             ev->accept();
             {
                 MrlChangedEvent *e = static_cast<MrlChangedEvent*>(ev);
@@ -921,7 +921,7 @@ bool XineStream::event(QEvent *ev)
                 }
             }
             return true;
-        case GaplessPlaybackChanged:
+        case Events::GaplessPlaybackChanged:
             if (m_stream) {
                 if (m_useGaplessPlayback) {
                     xine_set_param(m_stream, XINE_PARAM_EARLY_FINISHED_EVENT, 1);
@@ -931,7 +931,7 @@ bool XineStream::event(QEvent *ev)
             }
             ev->accept();
             return true;
-        case RewireStream:
+        case Events::RewireStream:
             ev->accept();
             {
                 QMutexLocker locker(&m_mutex);
@@ -1038,7 +1038,7 @@ bool XineStream::event(QEvent *ev)
 #endif
             }
             return true;
-        case PlayCommand:
+        case Events::PlayCommand:
             ev->accept();
             if (m_audioPostLists.isEmpty() && !m_videoPort) {
                 kWarning(610) << "request to play a stream, but no valid audio/video outputs are given/available" << endl;
@@ -1083,7 +1083,7 @@ bool XineStream::event(QEvent *ev)
                 internalPlay();
             }
             return true;
-        case PauseCommand:
+        case Events::PauseCommand:
             ev->accept();
             if (m_state == Phonon::ErrorState || m_state == Phonon::PausedState) {
                 return true;
@@ -1111,7 +1111,7 @@ bool XineStream::event(QEvent *ev)
             }
             internalPause();
             return true;
-        case StopCommand:
+        case Events::StopCommand:
             ev->accept();
             if (m_state == Phonon::ErrorState || m_state == Phonon::LoadingState || m_state == Phonon::StoppedState) {
                 return true;
@@ -1134,7 +1134,7 @@ bool XineStream::event(QEvent *ev)
             xine_stop(m_stream);
             changeState(Phonon::StoppedState);
             return true;
-        case SetTickInterval:
+        case Events::SetTickInterval:
             ev->accept();
             {
                 SetTickIntervalEvent *e = static_cast<SetTickIntervalEvent*>(ev);
@@ -1153,7 +1153,7 @@ bool XineStream::event(QEvent *ev)
                 }
             }
             return true;
-        case SetPrefinishMark:
+        case Events::SetPrefinishMark:
             ev->accept();
             {
                 SetPrefinishMarkEvent *e = static_cast<SetPrefinishMarkEvent*>(ev);
@@ -1169,7 +1169,7 @@ bool XineStream::event(QEvent *ev)
                 }
             }
             return true;
-        case SeekCommand:
+        case Events::SeekCommand:
             m_lastSeekCommand = 0;
             ev->accept();
             if (m_state == Phonon::ErrorState || !m_isSeekable) {
@@ -1258,19 +1258,19 @@ void XineStream::setMrl(const QByteArray &mrl, StateForNewMrl sfnm)
 // called from main thread
 void XineStream::play()
 {
-    QCoreApplication::postEvent(this, new QEvent(static_cast<QEvent::Type>(PlayCommand)));
+    QCoreApplication::postEvent(this, new QEvent(static_cast<QEvent::Type>(Events::PlayCommand)));
 }
 
 // called from main thread
 void XineStream::pause()
 {
-    QCoreApplication::postEvent(this, new QEvent(static_cast<QEvent::Type>(PauseCommand)));
+    QCoreApplication::postEvent(this, new QEvent(static_cast<QEvent::Type>(Events::PauseCommand)));
 }
 
 // called from main thread
 void XineStream::stop()
 {
-    QCoreApplication::postEvent(this, new QEvent(static_cast<QEvent::Type>(StopCommand)));
+    QCoreApplication::postEvent(this, new QEvent(static_cast<QEvent::Type>(Events::StopCommand)));
 }
 
 // called from main thread

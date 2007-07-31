@@ -55,7 +55,7 @@ XineStream *XineThread::newStream()
 {
     XineThread *that = XineEngine::thread();
     Q_ASSERT(that->m_newStream == 0);
-    QCoreApplication::postEvent(that, new QEvent(static_cast<QEvent::Type>(NewStream)));
+    QCoreApplication::postEvent(that, new QEvent(static_cast<QEvent::Type>(Events::NewStream)));
     if (!that->m_newStream) {
         that->m_mutex.lock();
         if (!that->m_newStream) {
@@ -85,11 +85,11 @@ void XineThread::needRewire(AudioPostList *ap)
 bool XineThread::event(QEvent *e)
 {
     switch (e->type()) {
-    case NeedRewire:
+    case Events::NeedRewire:
         e->accept();
         static_cast<NeedRewireEvent *>(e)->audioPostList->wireStream();
         return true;
-    case NewStream:
+    case Events::NewStream:
         e->accept();
         m_mutex.lock();
         Q_ASSERT(m_newStream == 0);
