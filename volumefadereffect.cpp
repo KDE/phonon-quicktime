@@ -104,22 +104,22 @@ void VolumeFaderEffect::setParameterValue(int parameterId, const QVariant &newVa
 
 xine_post_t *VolumeFaderEffect::newInstance(xine_audio_port_t *audioPort)
 {
+    Q_ASSERT(0 == m_plugin);
     kDebug(610) << k_funcinfo << audioPort << " fadeTime = " << m_parameters.fadeTime << endl;
-    xine_post_t *x = xine_post_init(XineEngine::xine(), "KVolumeFader", 1, &audioPort, 0);
-    m_plugins << x;
-    xine_post_in_t *paraInput = xine_post_input(x, "parameters");
+    m_plugin = xine_post_init(XineEngine::xine(), "KVolumeFader", 1, &audioPort, 0);
+    xine_post_in_t *paraInput = xine_post_input(m_plugin, "parameters");
     Q_ASSERT(paraInput);
     Q_ASSERT(paraInput->type == XINE_POST_DATA_PARAMETERS);
     Q_ASSERT(paraInput->data);
-    m_pluginApis << reinterpret_cast<xine_post_api_t *>(paraInput->data);
-    m_pluginApis.last()->set_parameters(m_plugins.last(), &m_parameters);
-    return x;
+    m_pluginApi = reinterpret_cast<xine_post_api_t *>(paraInput->data);
+    m_pluginApi->set_parameters(m_plugin, &m_parameters);
+    return m_plugin;
 }
 
 void VolumeFaderEffect::getParameters() const
 {
-    if (!m_pluginApis.isEmpty()) {
-        m_pluginApis.first()->get_parameters(m_plugins.first(), &m_parameters);
+    if (m_pluginApi) {
+        m_pluginApi->get_parameters(m_plugin, &m_parameters);
     }
 }
 
@@ -154,8 +154,8 @@ void VolumeFaderEffect::fadeTo( float volume, int fadeTime )
     //kDebug(610) << k_funcinfo << volume << fadeTime << endl;
     m_parameters.fadeTo = volume;
     m_parameters.fadeTime = fadeTime;
-    for (int i = 0; i < m_pluginApis.size(); ++i) {
-        m_pluginApis[i]->set_parameters(m_plugins[i], &m_parameters);
+    if (m_pluginApi) {
+        m_pluginApi->set_parameters(m_plugin, &m_parameters);
     }
 }
 

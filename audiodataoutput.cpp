@@ -20,6 +20,7 @@
 #include "audiodataoutput.h"
 #include <QVector>
 #include <QMap>
+#include "sourcenode.h"
 
 namespace Phonon
 {
@@ -32,6 +33,11 @@ AudioDataOutput::AudioDataOutput( QObject* parent )
 
 AudioDataOutput::~AudioDataOutput()
 {
+}
+
+void AudioDataOutput::rewireTo(SourceNode *source)
+{
+    //xine_post_wire_audio_port(source->outputPort(), m_audioPort);
 }
 
 Phonon::Experimental::AudioDataOutput::Format AudioDataOutput::format() const

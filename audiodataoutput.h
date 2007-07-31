@@ -34,6 +34,8 @@ namespace Xine
 			AudioDataOutput( QObject* parent );
 			~AudioDataOutput();
 
+            void rewireTo(SourceNode *);
+
 		public slots:
             Phonon::Experimental::AudioDataOutput::Format format() const;
 			int dataSize() const;

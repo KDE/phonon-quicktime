@@ -30,6 +30,8 @@ namespace Xine
 {
 Effect::Effect( int effectId, QObject* parent )
     : QObject(parent),
+    m_plugin(0),
+    m_pluginApi(0),
     m_pluginName(0),
     m_pluginParams(0)
 {
@@ -48,6 +50,8 @@ Effect::Effect( int effectId, QObject* parent )
 
 Effect::Effect(const char *name, QObject *parent)
     : QObject(parent),
+    m_plugin(0),
+    m_pluginApi(0),
     m_pluginName(name),
     m_pluginParams(0)
 {
@@ -55,8 +59,8 @@ Effect::Effect(const char *name, QObject *parent)
 
 Effect::~Effect()
 {
-    foreach (xine_post_t *post, m_plugins) {
-        xine_post_dispose(XineEngine::xine(), post);
+    if (m_plugin) {
+        xine_post_dispose(XineEngine::xine(), m_plugin);
     }
     free(m_pluginParams);
 }
@@ -64,6 +68,17 @@ Effect::~Effect()
 bool Effect::isValid() const
 {
     return m_pluginName != 0;
+}
+
+xine_post_out_t *Effect::audioOutputPort() const
+{
+    if (!m_plugin) {
+        // lazy initialization
+        const_cast<Effect *>(this)->newInstance(XineEngine::nullPort());
+    }
+    xine_post_out_t *x = xine_post_output(m_plugin, "audio out");
+    Q_ASSERT(x);
+    return x;
 }
 
 MediaStreamTypes Effect::inputMediaStreamTypes() const
@@ -74,6 +89,17 @@ MediaStreamTypes Effect::inputMediaStreamTypes() const
 MediaStreamTypes Effect::outputMediaStreamTypes() const
 {
     return Phonon::Audio;
+}
+
+void Effect::rewireTo(SourceNode *source)
+{
+    if (!m_plugin) {
+        // lazy initialization
+        const_cast<Effect *>(this)->newInstance(XineEngine::nullPort());
+    }
+    xine_post_in_t *x = xine_post_input(m_plugin, "audio in");
+    Q_ASSERT(x);
+    xine_post_wire(source->audioOutputPort(), x);
 }
 
 QList<EffectParameter> Effect::allParameters()
@@ -99,32 +125,35 @@ int Effect::parameterCount()
 
 void Effect::ensureParametersReady()
 {
-    if (m_parameterList.isEmpty() && m_plugins.isEmpty()) {
+    if (m_parameterList.isEmpty() && !m_plugin) {
         newInstance(XineEngine::nullPort());
-        if (!m_plugins.isEmpty()) {
-            xine_post_dispose(XineEngine::xine(), m_plugins.first());
-            m_plugins.clear();
+        if (m_plugin) {
+            xine_post_dispose(XineEngine::xine(), m_plugin);
+            m_plugin = 0;
+            if (m_pluginApi) {
+                // FIXME: how is it freed?
+                m_pluginApi = 0;
+            }
         }
     }
 }
 
 xine_post_t *Effect::newInstance(xine_audio_port_t *audioPort)
 {
+    Q_ASSERT(m_plugin == 0 && m_pluginApi == 0);
     QMutexLocker lock(&m_mutex);
     if (m_pluginName) {
-        xine_post_t *x = xine_post_init(XineEngine::xine(), m_pluginName, 1, &audioPort, 0);
-        m_plugins << x;
-        xine_post_in_t *paraInput = xine_post_input(x, "parameters");
+        m_plugin = xine_post_init(XineEngine::xine(), m_pluginName, 1, &audioPort, 0);
+        xine_post_in_t *paraInput = xine_post_input(m_plugin, "parameters");
         if (paraInput) {
             Q_ASSERT(paraInput->type == XINE_POST_DATA_PARAMETERS);
             Q_ASSERT(paraInput->data);
-            xine_post_api_t *api = reinterpret_cast<xine_post_api_t *>(paraInput->data);
-            m_pluginApis << api;
+            m_pluginApi = reinterpret_cast<xine_post_api_t *>(paraInput->data);
             if (m_parameterList.isEmpty()) {
-                xine_post_api_descr_t *desc = api->get_param_descr();
+                xine_post_api_descr_t *desc = m_pluginApi->get_param_descr();
                 Q_ASSERT(0 == m_pluginParams);
                 m_pluginParams = static_cast<char *>(malloc(desc->struct_size));
-                api->get_parameters(x, m_pluginParams);
+                m_pluginApi->get_parameters(m_plugin, m_pluginParams);
                 for (int i = 0; desc->parameter[i].type != POST_PARAM_TYPE_LAST; ++i) {
                     xine_post_api_parameter_t &p = desc->parameter[i];
                     switch (p.type) {
@@ -154,10 +183,8 @@ xine_post_t *Effect::newInstance(xine_audio_port_t *audioPort)
                     }
                 }
             }
-        } else {
-            m_pluginApis << 0;
         }
-        return x;
+        return m_plugin;
     }
     return 0;
 }
@@ -165,19 +192,13 @@ xine_post_t *Effect::newInstance(xine_audio_port_t *audioPort)
 QVariant Effect::parameterValue(int parameterIndex) const
 {
     QMutexLocker lock(&m_mutex);
-    if (m_plugins.isEmpty() || m_pluginApis.isEmpty()) {
+    if (!m_plugin || !m_pluginApi) {
         return QVariant(); // invalid
     }
 
-    xine_post_t *post = m_plugins.first();
-    xine_post_api_t *api = m_pluginApis.first();
-    if (!post || !api) {
-        return QVariant(); // invalid
-    }
-
-    xine_post_api_descr_t *desc = api->get_param_descr();
+    xine_post_api_descr_t *desc = m_pluginApi->get_param_descr();
     Q_ASSERT(m_pluginParams);
-    api->get_parameters(post, m_pluginParams);
+    m_pluginApi->get_parameters(m_plugin, m_pluginParams);
     int i = 0;
     for (; i < parameterIndex && desc->parameter[i].type != POST_PARAM_TYPE_LAST; ++i);
     if (i == parameterIndex) {
@@ -207,17 +228,11 @@ QVariant Effect::parameterValue(int parameterIndex) const
 void Effect::setParameterValue(int parameterIndex, const QVariant &newValue)
 {
     QMutexLocker lock(&m_mutex);
-    if (m_plugins.isEmpty() || m_pluginApis.isEmpty()) {
+    if (!m_plugin || !m_pluginApi) {
         return;
     }
 
-    xine_post_t *post = m_plugins.first();
-    xine_post_api_t *api = m_pluginApis.first();
-    if (!post || !api) {
-        return;
-    }
-
-    xine_post_api_descr_t *desc = api->get_param_descr();
+    xine_post_api_descr_t *desc = m_pluginApi->get_param_descr();
     Q_ASSERT(m_pluginParams);
     int i = 0;
     for (; i < parameterIndex && desc->parameter[i].type != POST_PARAM_TYPE_LAST; ++i);
@@ -253,7 +268,7 @@ void Effect::setParameterValue(int parameterIndex, const QVariant &newValue)
             default:
                 abort();
         }
-        api->set_parameters(post, m_pluginParams);
+        m_pluginApi->set_parameters(m_plugin, m_pluginParams);
     } else {
         kError(610) << "invalid parameterIndex passed to Effect::setValue" << endl;
     }

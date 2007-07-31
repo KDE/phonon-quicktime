@@ -37,6 +37,8 @@ class SinkNode
         void setSource(SourceNode *s) { Q_ASSERT(m_source == 0); m_source = s; }
         void unsetSource(SourceNode *s) { Q_ASSERT(m_source == s); m_source = 0; }
         SourceNode *source() const { return m_source; }
+        virtual void rewireTo(SourceNode *) = 0;
+        virtual SourceNode *sourceInterface() { return 0; }
     private:
         SourceNode *m_source;
 };

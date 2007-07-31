@@ -100,6 +100,13 @@ bool AudioOutput::setOutputDevice(int newDevice)
     return true;
 }
 
+// called from the XineThread
+void AudioOutput::rewireTo(SourceNode *source)
+{
+    Q_ASSERT(source->audioOutputPort());
+    xine_post_wire_audio_port(source->audioOutputPort(), m_audioPort);
+}
+
 bool AudioOutput::event(QEvent *ev)
 {
     switch (ev->type()) {

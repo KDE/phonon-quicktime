@@ -19,6 +19,7 @@
 
 #include "videodataoutput.h"
 #include <kdebug.h>
+#include "sourcenode.h"
 
 namespace Phonon
 {
@@ -31,6 +32,11 @@ VideoDataOutput::VideoDataOutput( QObject* parent )
 
 VideoDataOutput::~VideoDataOutput()
 {
+}
+
+void VideoDataOutput::rewireTo(SourceNode *source)
+{
+    xine_post_wire_video_port(source->videoOutputPort(), videoPort());
 }
 
 quint32 VideoDataOutput::format() const

@@ -65,6 +65,7 @@ namespace Xine
             void setVideoEmpty(bool);
 
             MediaStreamTypes inputMediaStreamTypes() const { return Phonon::Video | Phonon::Subtitles; }
+            void rewireTo(SourceNode *);
 
 		signals:
 			void videoPortChanged();

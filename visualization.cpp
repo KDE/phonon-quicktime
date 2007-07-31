@@ -18,6 +18,7 @@
 */
 
 #include "visualization.h"
+#include <kdebug.h>
 
 namespace Phonon
 {
@@ -37,6 +38,17 @@ int Visualization::visualization() const
 void Visualization::setVisualization( int newVisualization )
 {
 	m_visualization = newVisualization;
+}
+
+void Visualization::rewireTo(SourceNode *)
+{
+    kFatal() << k_funcinfo << "not implemented" << endl;
+}
+
+xine_post_out_t *Visualization::outputPort() const
+{
+    kFatal() << k_funcinfo << "not implemented" << endl;
+    return 0;
 }
 
 }} //namespace Phonon::Xine
