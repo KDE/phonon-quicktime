@@ -32,8 +32,8 @@ namespace Xine
 class WireCall
 {
     public:
-        WireCall() : source(0), sink(0) {}
-        WireCall(SourceNode *a, SinkNode *b) : source(a), sink(b) {}
+        WireCall() : src(0), snk(0) {}
+        WireCall(SourceNode *a, SinkNode *b) : source(a->threadSafeObject), sink(b->threadSafeObject), src(a), snk(b) {}
         /**
          * If the two WireCalls are in separate graphs returns false
          *
@@ -42,13 +42,13 @@ class WireCall
          * returns false if \p rhs is a source for this wire
          */
         bool operator<(const WireCall &rhs) const {
-            SourceNode *s = rhs.source;
-            if (source == s) {
+            SourceNode *s = rhs.src;
+            if (src == s) {
                 return true;
             }
             while (s->sinkInterface() && s->sinkInterface()->source()) {
                 s = s->sinkInterface()->source();
-                if (source == s) {
+                if (src == s) {
                     return true;
                 }
             }
@@ -60,8 +60,12 @@ class WireCall
             return source == rhs.source && sink == rhs.sink;
         }
 
-        SourceNode *source;
-        SinkNode *sink;
+        QExplicitlySharedDataPointer<SourceNodeXT> source;
+        QExplicitlySharedDataPointer<SinkNodeXT> sink;
+
+    private:
+        SourceNode *src;
+        SinkNode *snk;
 };
 } // namespace Xine
 } // namespace Phonon

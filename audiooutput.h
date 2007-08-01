@@ -33,6 +33,17 @@ namespace Phonon
 {
 namespace Xine
 {
+
+class AudioOutputXT : public SinkNodeXT
+{
+    friend class AudioOutput;
+    public:
+        void rewireTo(SourceNodeXT *);
+
+    private:
+        AudioPort m_audioPort;
+};
+
     class MediaObject;
     class AudioOutput : public AbstractAudioOutput, public AudioOutputInterface
 	{
@@ -42,7 +53,7 @@ namespace Xine
             AudioOutput(QObject *parent);
 			~AudioOutput();
 
-            AudioPort audioPort() const;
+            //AudioPort audioPort() const;
             void updateVolume(MediaObject *mp) const;
 
 			// Attributes Getters:
@@ -52,8 +63,6 @@ namespace Xine
 			// Attributes Setters:
             void setVolume(qreal newVolume);
             bool setOutputDevice(int newDevice);
-
-            void rewireTo(SourceNode *);
 
         protected:
             bool event(QEvent *);
@@ -70,7 +79,6 @@ namespace Xine
 		private:
             qreal m_volume;
 			int m_device;
-            AudioPort m_audioPort;
 	};
 }} //namespace Phonon::Xine
 

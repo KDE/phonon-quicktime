@@ -17,12 +17,12 @@
     Boston, MA 02110-1301, USA.
 
 */
-#ifndef Phonon_XINE_AUDIOEFFECT_H
-#define Phonon_XINE_AUDIOEFFECT_H
+#ifndef PHONON_XINE_EFFECT_H
+#define PHONON_XINE_EFFECT_H
 
 #include <QObject>
-#include "audiopostlist.h"
 #include <phonon/effectparameter.h>
+#include <phonon/effectinterface.h>
 #include <QList>
 #include <xine.h>
 #include <QMutex>
@@ -33,54 +33,52 @@ namespace Phonon
 {
 namespace Xine
 {
-    class Effect : public QObject, public SinkNode, public SourceNode
+
+class EffectXT : public SourceNodeXT, public SinkNodeXT
+{
+    friend class Effect;
+    public:
+        EffectXT(const char *name) : m_plugin(0), m_pluginApi(0), m_pluginName(name), m_pluginParams(0) {}
+        ~EffectXT();
+        xine_post_out_t *audioOutputPort() const;
+        void rewireTo(SourceNodeXT *source);
+        void ensureInstance();
+        virtual void createInstance();
+    protected:
+        xine_post_t *m_plugin;
+        xine_post_api_t *m_pluginApi;
+    private:
+        mutable QMutex m_mutex;
+        const char *m_pluginName;
+        char *m_pluginParams;
+        QList<Phonon::EffectParameter> m_parameterList;
+};
+
+    class Effect : public QObject, public EffectInterface, public SinkNode, public SourceNode
 	{
 		Q_OBJECT
-        Q_INTERFACES(Phonon::Xine::SinkNode Phonon::Xine::SourceNode)
+        Q_INTERFACES(Phonon::EffectInterface Phonon::Xine::SinkNode Phonon::Xine::SourceNode)
 		public:
 			Effect( int effectId, QObject* parent );
-			~Effect();
 
             bool isValid() const;
-
-            /**
-             * calls xine_post_init for one input, the given audio port and no
-             * video port
-             *
-             * \warning called from the xine thread
-             */
-            virtual xine_post_t *newInstance(xine_audio_port_t *);
-            virtual xine_post_out_t *audioOutputPort() const;
 
             MediaStreamTypes inputMediaStreamTypes() const;
             MediaStreamTypes outputMediaStreamTypes() const;
             SourceNode *sourceInterface() { return this; }
             SinkNode *sinkInterface() { return this; }
-            void rewireTo(SourceNode *);
 
-        public slots:
-            QList<EffectParameter> allParameters();
-            EffectParameter parameter(int parameterIndex);
-            int parameterCount();
+            QList<EffectParameter> parameters() const;
 
-            QVariant parameterValue(int parameterIndex) const;
-            void setParameterValue(int parameterIndex, const QVariant &newValue);
+            QVariant parameterValue(const EffectParameter &p) const;
+            void setParameterValue(const EffectParameter &p, const QVariant &newValue);
 
         protected:
             virtual void ensureParametersReady();
-            Effect(const char *name, QObject *parent);
-            void addParameter(const EffectParameter &p) { m_parameterList << p; }
-
-            xine_post_t *m_plugin;
-            xine_post_api_t *m_pluginApi;
-
-        private:
-            mutable QMutex m_mutex;
-            const char *m_pluginName;
-            char *m_pluginParams;
-            QList<Phonon::EffectParameter> m_parameterList;
+            Effect(EffectXT *, QObject *parent);
+            void addParameter(const EffectParameter &p);
 	};
 }} //namespace Phonon::Xine
 
-// vim: sw=4 ts=4 tw=80
-#endif // Phonon_XINE_AUDIOEFFECT_H
+// vim: sw=4 ts=4
+#endif // PHONON_XINE_EFFECT_H

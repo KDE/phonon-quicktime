@@ -48,8 +48,8 @@ namespace Xine
 {
 
 // called from main thread
-XineStream::XineStream(XineThread *parent)
-    : QObject(parent),
+XineStream::XineStream()
+    : QObject(0), // XineStream is ref-counted
     m_stream(0),
     m_event_queue(0),
     m_videoPort(0),
@@ -84,12 +84,14 @@ XineStream::XineStream(XineThread *parent)
 
 XineStream::~XineStream()
 {
+    /*
     QList<AudioPostList>::Iterator it = m_audioPostLists.begin();
     const QList<AudioPostList>::Iterator end = m_audioPostLists.end();
     for (; it != end; ++it) {
         kDebug(610) << k_funcinfo << "unsetXineStream" << endl;
         it->unsetXineStream(this);
     }
+    */
     if(m_event_queue) {
         xine_event_dispose_queue(m_event_queue);
         m_event_queue = 0;
@@ -306,9 +308,28 @@ bool XineStream::createStream()
     m_portMutex.lock();
     m_videoPort = m_newVideoPort;
     //kDebug(610) << k_funcinfo << "AudioPort.xinePort() = " << m_audioPort.xinePort() << endl;
-    xine_video_port_t *videoPort = m_videoPort ? m_videoPort->videoPort() : XineEngine::nullVideoPort();
-    //m_stream = xine_stream_new(XineEngine::xine(), m_audioPort.xinePort(), videoPort);
-    m_stream = xine_stream_new(XineEngine::xine(), XineEngine::nullPort(), videoPort);
+    xine_audio_port_t *audioPort = 0;
+    xine_video_port_t *videoPort = 0;
+    Q_ASSERT(m_mediaObject);
+    QSet<SinkNode *> sinks = m_mediaObject->sinks();
+    foreach (SinkNode *sink, sinks) {
+        if (sink->threadSafeObject->audioPort()) {
+            Q_ASSERT(audioPort == 0);
+            audioPort = sink->threadSafeObject->audioPort();
+        }
+        if (sink->threadSafeObject->videoPort()) {
+            Q_ASSERT(videoPort == 0);
+            videoPort = sink->threadSafeObject->videoPort();
+        }
+    }
+    if (!audioPort) {
+        audioPort = XineEngine::nullPort();
+    }
+    if (!videoPort) {
+        videoPort = XineEngine::nullVideoPort();
+    }
+    m_stream = xine_stream_new(XineEngine::xine(), audioPort, videoPort);
+    /*
     if (m_audioPostLists.size() == 1) {
         m_audioPostLists.first().wireStream();
     } else if (m_audioPostLists.size() > 1) {
@@ -317,15 +338,16 @@ bool XineStream::createStream()
             apl.wireStream();
         }
     }
-    //if (!m_audioPort.isValid()) {
-        //xine_set_param(m_stream, XINE_PARAM_IGNORE_AUDIO, 1);
-    //} else
-        if (m_volume != 100) {
+    */
+    if (m_volume != 100) {
         xine_set_param(m_stream, XINE_PARAM_AUDIO_AMP_LEVEL, m_volume);
     }
-    if (!m_videoPort) {
-        xine_set_param(m_stream, XINE_PARAM_IGNORE_VIDEO, 1);
-    }
+//X     if (!m_audioPort.isValid()) {
+//X         xine_set_param(m_stream, XINE_PARAM_IGNORE_AUDIO, 1);
+//X     }
+//X     if (!m_videoPort) {
+//X         xine_set_param(m_stream, XINE_PARAM_IGNORE_VIDEO, 1);
+//X     }
     m_portMutex.unlock();
     m_waitingForRewire.wakeAll();
 
@@ -351,6 +373,7 @@ void XineStream::setVolume(int vol)
     }
 }
 
+/*
 //called from main thread
 void XineStream::addAudioPostList(const AudioPostList &postList)
 {
@@ -362,6 +385,7 @@ void XineStream::removeAudioPostList(const AudioPostList &postList)
 {
     QCoreApplication::postEvent(this, new ChangeAudioPostListEvent(postList, ChangeAudioPostListEvent::Remove));
 }
+*/
 
 //called from main thread
 void XineStream::setVideoPort(VideoWidget *port)
@@ -585,8 +609,10 @@ const char* nameForEvent(int e)
             //return "EventSend";
         case Events::SetParam:
             return "SetParam";
+            /*
         case Events::ChangeAudioPostList:
             return "ChangeAudioPostList";
+            */
 //X         case Events::AudioRewire:
 //X             return "AudioRewire";
         default:
@@ -704,6 +730,7 @@ bool XineStream::event(QEvent *ev)
         }
         streamClock(m_stream)->set_option (streamClock(m_stream), CLOCK_SCR_ADJUSTABLE, 1);
         return true;
+        /*
     case Events::ChangeAudioPostList:
             ev->accept();
             {
@@ -732,6 +759,7 @@ bool XineStream::event(QEvent *ev)
                 }
             }
             return true;
+            */
 //X         case Events::AudioRewire:
 //X             ev->accept();
 //X             if (m_stream) {
@@ -942,7 +970,9 @@ bool XineStream::event(QEvent *ev)
                 if (!m_stream) {
                     return true;
                 }
+                kFatal(610) << "not implemented" << endl;
 
+#if 0
                 m_portMutex.lock();
                 /*bool needRecreate = (
                         (m_newVideoPort == 0 && m_videoPort != 0) ||
@@ -974,6 +1004,7 @@ bool XineStream::event(QEvent *ev)
                     m_portMutex.unlock();
                     m_waitingForRewire.wakeAll();
                     return true;
+#endif
 #if 0
                 }
                 m_portMutex.unlock();
@@ -1040,7 +1071,7 @@ bool XineStream::event(QEvent *ev)
             return true;
         case Events::PlayCommand:
             ev->accept();
-            if (m_audioPostLists.isEmpty() && !m_videoPort) {
+            if (m_mediaObject->sinks().isEmpty()) {
                 kWarning(610) << "request to play a stream, but no valid audio/video outputs are given/available" << endl;
                 error(Phonon::FatalError, i18n("Playback failed because no valid audio or video outputs are available"));
                 return true;
@@ -1240,6 +1271,12 @@ void XineStream::closeBlocking()
 void XineStream::setError(Phonon::ErrorType type, const QString &reason)
 {
     QCoreApplication::postEvent(this, new ErrorEvent(type, reason));
+}
+
+void XineStream::audioDeviceFailed()
+{
+    kFatal(610) << k_funcinfo << "not implemented" << endl;
+    //QCoreApplication::postEvent(ap.audioOutput(), new QEvent(static_cast<QEvent::Type>(Events::AudioDeviceFailed)));
 }
 
 // called from main thread

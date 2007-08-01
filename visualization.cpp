@@ -25,8 +25,18 @@ namespace Phonon
 namespace Xine
 {
 
+class VisualizationXT : public SinkNodeXT, public SourceNodeXT
+{
+    public:
+        void rewireTo(SourceNodeXT *);
+        xine_post_out_t *videoOutputPort() const;
+};
+
+#define K_XT(type) (static_cast<type *>(SinkNode::threadSafeObject.data()))
 Visualization::Visualization( QObject* parent )
-	: QObject( parent )
+    : QObject(parent),
+    SinkNode(new VisualizationXT),
+    SourceNode(K_XT(VisualizationXT))
 {
 }
 
@@ -40,12 +50,12 @@ void Visualization::setVisualization( int newVisualization )
 	m_visualization = newVisualization;
 }
 
-void Visualization::rewireTo(SourceNode *)
+void VisualizationXT::rewireTo(SourceNodeXT *)
 {
     kFatal() << k_funcinfo << "not implemented" << endl;
 }
 
-xine_post_out_t *Visualization::outputPort() const
+xine_post_out_t *VisualizationXT::videoOutputPort() const
 {
     kFatal() << k_funcinfo << "not implemented" << endl;
     return 0;

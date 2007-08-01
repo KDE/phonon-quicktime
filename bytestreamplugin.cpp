@@ -64,7 +64,7 @@ static uint32_t kbytestream_plugin_get_capabilities (input_plugin_t *this_gen) {
 }
 
 /* remove the !__APPLE__ junk once the osx xine stuff is merged back into xine 1.2 proper */
-#if ((XINE_SUB_VERSION >= 90 && XINE_MINOR_VERSION == 1 && !__APPLE__) || (XINE_MINOR_VERSION > 1) && XINE_MAJOR_VERSION == 1) || XINE_MAJOR_VERSION > 1
+#if ((XINE_SUB_VERSION >= 90 && XINE_MINOR_VERSION == 1 && !defined __APPLE__) || (XINE_MINOR_VERSION > 1) && XINE_MAJOR_VERSION == 1) || XINE_MAJOR_VERSION > 1
 static off_t kbytestream_plugin_read (input_plugin_t *this_gen, void *buf, off_t len) {
 #else
 static off_t kbytestream_plugin_read (input_plugin_t *this_gen, char *buf, off_t len) {

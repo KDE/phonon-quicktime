@@ -22,25 +22,46 @@
 
 #include <QTime>
 #include "effect.h"
-#include <phonon/volumefadereffect.h>
 #include <QList>
 
 #include <xine.h>
+#include <Phonon/VolumeFaderEffect>
+#include <Phonon/VolumeFaderInterface>
 
 namespace Phonon
 {
 namespace Xine
 {
-	class VolumeFaderEffect : public Effect
-	{
-		Q_OBJECT
+
+struct PluginParameters
+{
+    Phonon::VolumeFaderEffect::FadeCurve fadeCurve;
+    float currentVolume;
+    float fadeTo;
+    int fadeTime;
+    PluginParameters(Phonon::VolumeFaderEffect::FadeCurve a, float b, float c, int d)
+        : fadeCurve(a), currentVolume(b), fadeTo(c), fadeTime(d) {}
+};
+
+class VolumeFaderEffectXT : public EffectXT
+{
+    friend class VolumeFaderEffect;
+    public:
+        VolumeFaderEffectXT();
+        virtual void createInstance();
+
+    private:
+        mutable PluginParameters m_parameters;
+};
+
+class VolumeFaderEffect : public Effect, public Phonon::VolumeFaderInterface
+{
+    Q_OBJECT
+    Q_INTERFACES(Phonon::VolumeFaderInterface)
 		public:
 			VolumeFaderEffect( QObject* parent );
 			~VolumeFaderEffect();
 
-            xine_post_t *newInstance(xine_audio_port_t *);
-
-		public slots:
 			float volume() const;
 			void setVolume( float volume );
 			Phonon::VolumeFaderEffect::FadeCurve fadeCurve() const;
@@ -52,18 +73,6 @@ namespace Xine
 
 		private:
             void getParameters() const;
-
-            struct PluginParameters
-            {
-                Phonon::VolumeFaderEffect::FadeCurve fadeCurve;
-                float currentVolume;
-                float fadeTo;
-                int fadeTime;
-                PluginParameters(Phonon::VolumeFaderEffect::FadeCurve a, float b, float c, int d)
-                    : fadeCurve(a), currentVolume(b), fadeTo(c), fadeTime(d) {}
-            };
-
-            mutable PluginParameters m_parameters;
 	};
 }} //namespace Phonon::Xine
 

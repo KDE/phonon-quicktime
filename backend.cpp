@@ -32,6 +32,7 @@
 #include "xinethread.h"
 
 #include <kdebug.h>
+#include <klocale.h>
 #include <kgenericfactory.h>
 
 #include <QtCore/QCoreApplication>
@@ -59,6 +60,13 @@ namespace Xine
 Backend::Backend( QObject* parent, const QStringList& )
 	: QObject( parent )
 {
+    setProperty("identifier",     QLatin1String("phonon_xine"));
+    setProperty("backendName",    QLatin1String("Xine"));
+    setProperty("backendComment", i18n("Phonon Xine Backend"));
+    setProperty("backendVersion", QLatin1String("0.1"));
+    setProperty("backendIcon",    QLatin1String("phonon-xine"));
+    setProperty("backendWebsite", QLatin1String("http://multimedia.kde.org/"));
+
     new XineEngine(XineBackendFactory::componentData().config());
 	char configfile[2048];
 

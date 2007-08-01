@@ -1,10 +1,9 @@
 /*  This file is part of the KDE project
     Copyright (C) 2007 Matthias Kretz <kretz@kde.org>
 
-    This program is free software; you can redistribute it and/or
+    This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
-    License as published by the Free Software Foundation; either
-    version 2 of the License, or (at your option) any later version.
+    License version 2 as published by the Free Software Foundation.
 
     This library is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,8 +19,6 @@
 
 #include "sinknode.h"
 #include "sourcenode.h"
-#include "events.h"
-#include "keepreference.h"
 
 namespace Phonon
 {
@@ -30,12 +27,11 @@ namespace Xine
 
 SinkNodeXT::~SinkNodeXT()
 {
-    deleted = true;
 }
 
-xine_audio_port_t *SinkNodeXT::audioPort() const
+AudioPort SinkNodeXT::audioPort() const
 {
-    return 0;
+    return AudioPort();
 }
 
 xine_video_port_t *SinkNodeXT::videoPort() const
@@ -44,7 +40,7 @@ xine_video_port_t *SinkNodeXT::videoPort() const
 }
 
 SinkNode::SinkNode(SinkNodeXT *_xt)
-    : m_threadSafeObject(_xt), m_source(0)
+    : threadSafeObject(_xt), m_source(0)
 {
     Q_ASSERT(_xt);
 }
@@ -54,10 +50,6 @@ SinkNode::~SinkNode()
     if (m_source) {
         m_source->removeSink(this);
     }
-    KeepReference<0> *keep = new KeepReference<0>;
-    keep->addObject(m_threadSafeObject.data());
-    m_threadSafeObject = 0;
-    keep->ready();
 }
 
 void SinkNode::setSource(SourceNode *s)
@@ -80,64 +72,6 @@ SourceNode *SinkNode::source() const
 SourceNode *SinkNode::sourceInterface()
 {
     return 0;
-}
-
-void SinkNode::upstreamEvent(Event *e)
-{
-    Q_ASSERT(e);
-    if (m_source) {
-        m_source->upstreamEvent(e);
-    } else {
-        if (e->type() == Event::IsThereAXineEngineForMe) {
-            downstreamEvent(new Event(Event::NoThereIsNoXineEngineForYou));
-        }
-        if (!--e->ref) {
-            delete e;
-        }
-    }
-}
-
-void SinkNode::findXineEngine()
-{
-    upstreamEvent(new Event(Event::IsThereAXineEngineForMe));
-}
-
-void SinkNode::downstreamEvent(Event *e)
-{
-    Q_ASSERT(e);
-    bool emitXineEngineChanged = false;
-    switch (e->type()) {
-    case Event::HeresYourXineStream:
-        {
-            XineEngine xine = static_cast<HeresYourXineStreamEvent *>(e)->stream->xine();
-            if (m_threadSafeObject->m_xine != xine) {
-                aboutToChangeXineEngine();
-                m_threadSafeObject->m_xine = xine;
-                emitXineEngineChanged = true;
-            }
-        }
-        break;
-    case Event::NoThereIsNoXineEngineForYou:
-        if (m_threadSafeObject->m_xine) {
-            aboutToChangeXineEngine();
-            m_threadSafeObject->m_xine = XineEngine();
-            emitXineEngineChanged = true;
-        }
-        break;
-    default:
-        break;
-    }
-    SourceNode *iface = sourceInterface();
-    if (iface) {
-        iface->SourceNode::downstreamEvent(e);
-    } else {
-        if (!--e->ref) {
-            delete e;
-        }
-    }
-    if (emitXineEngineChanged) {
-        xineEngineChanged();
-    }
 }
 
 } // namespace Xine

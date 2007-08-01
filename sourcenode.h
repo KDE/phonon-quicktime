@@ -21,6 +21,7 @@
 #define SOURCENODE_H
 
 #include <Phonon/Global>
+#include <QtCore/QExplicitlySharedDataPointer>
 #include <QtCore/QSet>
 #include <xine.h>
 
@@ -30,17 +31,27 @@ namespace Xine
 {
 class SinkNode;
 
-class SourceNode
+class SourceNodeXT : virtual public QSharedData
 {
     public:
-        virtual ~SourceNode() {}
+        virtual ~SourceNodeXT();
+        virtual xine_post_out_t *audioOutputPort() const;
+        virtual xine_post_out_t *videoOutputPort() const;
+};
+
+class SourceNode
+{
+    friend class WireCall;
+    public:
+        SourceNode(SourceNodeXT *_xt);
+        virtual ~SourceNode();
         virtual MediaStreamTypes outputMediaStreamTypes() const = 0;
-        void addSink(SinkNode *s) { Q_ASSERT(!m_sinks.contains(s)); m_sinks << s; }
-        void removeSink(SinkNode *s) { Q_ASSERT(m_sinks.contains(s)); m_sinks.remove(s); }
-        QSet<SinkNode *> sinks() const { return m_sinks; }
-        virtual SinkNode *sinkInterface() { return 0; }
-        virtual xine_post_out_t *audioOutputPort() const { return 0; }
-        virtual xine_post_out_t *videoOutputPort() const { return 0; }
+        void addSink(SinkNode *s);
+        void removeSink(SinkNode *s);
+        QSet<SinkNode *> sinks() const;
+        virtual SinkNode *sinkInterface();
+    protected:
+        QExplicitlySharedDataPointer<SourceNodeXT> threadSafeObject;
     private:
         QSet<SinkNode *> m_sinks;
 };

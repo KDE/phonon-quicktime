@@ -33,7 +33,7 @@ namespace Xine
 		Q_OBJECT
         Q_INTERFACES(Phonon::Xine::SinkNode)
 		public:
-			AbstractAudioOutput( QObject* parent );
+            AbstractAudioOutput(SinkNodeXT *, QObject* parent);
 			virtual ~AbstractAudioOutput();
 
             MediaStreamTypes inputMediaStreamTypes() const { return Phonon::Audio; }

@@ -31,10 +31,8 @@ namespace Xine
 	{
 		Q_OBJECT
 		public:
-			AudioDataOutput( QObject* parent );
+            AudioDataOutput(QObject* parent);
 			~AudioDataOutput();
-
-            void rewireTo(SourceNode *);
 
 		public slots:
             Phonon::Experimental::AudioDataOutput::Format format() const;
