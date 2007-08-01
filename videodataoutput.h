@@ -44,10 +44,7 @@ namespace Xine
 			VideoDataOutput( QObject* parent );
 			~VideoDataOutput();
 
-            xine_video_port_t* videoPort() const { return m_videoPort; }
-
             MediaStreamTypes inputMediaStreamTypes() const { return Phonon::Video; }
-            void rewireTo(SourceNode *);
 
 		public slots:
 			int frameRate() const;
@@ -65,7 +62,6 @@ namespace Xine
 			void endOfMedia();
 
 		private:
-            xine_video_port_t* m_videoPort;
 			quint32 m_fourcc;
 			int m_frameRate;
 			QSize m_frameSize;

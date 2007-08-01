@@ -17,47 +17,64 @@
 
 */
 
-#ifndef PHONON_XINE_XINETHREAD_H
-#define PHONON_XINE_XINETHREAD_H
-
-#include <QtCore/QThread>
-#include <QtCore/QWaitCondition>
-#include <QtCore/QMutex>
+#include "sourcenode.h"
+#include "sinknode.h"
 
 namespace Phonon
 {
 namespace Xine
 {
-class XineStream;
-class AudioPostList;
 
-class XineThread : public QThread
+SourceNodeXT::~SourceNodeXT()
 {
-    Q_OBJECT
-    public:
-        XineThread();
-        ~XineThread();
+}
 
-        void waitForEventLoop();
-        static XineStream *newStream();
-        //static void needRewire(AudioPostList *);
-        void quit();
+xine_post_out_t *SourceNodeXT::audioOutputPort() const
+{
+    return 0;
+}
 
-    protected:
-        void run();
-        bool event(QEvent *e);
+xine_post_out_t *SourceNodeXT::videoOutputPort() const
+{
+    return 0;
+}
 
-    private slots:
-        void eventLoopReady();
+SourceNode::SourceNode(SourceNodeXT *_xt)
+    : threadSafeObject(_xt)
+{
+    Q_ASSERT(_xt);
+}
 
-    private:
-        QMutex m_mutex;
-        QWaitCondition m_waitingForEventLoop;
-        QWaitCondition m_waitingForNewStream;
-        XineStream *m_newStream;
-        bool m_eventLoopReady;
-};
+SourceNode::~SourceNode()
+{
+    if (!m_sinks.isEmpty()) {
+        foreach (SinkNode *s, m_sinks) {
+            s->unsetSource(this);
+        }
+    }
+}
+
+void SourceNode::addSink(SinkNode *s)
+{
+    Q_ASSERT(!m_sinks.contains(s));
+    m_sinks << s;
+}
+
+void SourceNode::removeSink(SinkNode *s)
+{
+    Q_ASSERT(m_sinks.contains(s));
+    m_sinks.remove(s);
+}
+
+QSet<SinkNode *> SourceNode::sinks() const
+{
+    return m_sinks;
+}
+
+SinkNode *SourceNode::sinkInterface()
+{
+    return 0;
+}
 
 } // namespace Xine
 } // namespace Phonon
-#endif // PHONON_XINE_XINETHREAD_H

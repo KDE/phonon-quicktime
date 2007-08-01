@@ -52,13 +52,13 @@ namespace Events
         SetParam = 2014,
         EventSend = 2015,
         AudioRewire = 2016,
-        ChangeAudioPostList = 2017,
+        //ChangeAudioPostList = 2017,
         QuitLoop = 2018,
         PauseForBuffering = 2019,  // XXX numerically used in bytestream.cpp
         UnpauseForBuffering = 2020, // XXX numerically used in bytestream.cpp
         Error = 2021,
 
-        NeedRewire = 4800,
+        //NeedRewire = 4800,
         NewStream = 4801,
 
         NewMetaData = 5400,
@@ -86,12 +86,14 @@ class RewireEvent : public QEvent
         const QList<WireCall> wireCalls;
 };
 
+/*
 class NeedRewireEvent : public QEvent
 {
     public:
         NeedRewireEvent(AudioPostList *a) : QEvent(static_cast<QEvent::Type>(Events::NeedRewire)), audioPostList(a) {}
         AudioPostList *const audioPostList;
 };
+*/
 
 class XineReferenceEvent : public QEvent
 {
@@ -136,6 +138,7 @@ class ErrorEvent : public QEvent
         const QString reason;
 };
 
+/*
 class ChangeAudioPostListEvent : public QEvent
 {
     public:
@@ -146,6 +149,7 @@ class ChangeAudioPostListEvent : public QEvent
         AudioPostList postList;
         const AddOrRemove what;
 };
+*/
 
 class AudioRewireEvent : public QEvent
 {

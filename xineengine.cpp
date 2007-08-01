@@ -164,14 +164,7 @@ namespace Xine
                         kDebug(610) << "XINE_MSG_AUDIO_OUT_UNAVAILABLE" << endl;
                         // we don't know for sure which AudioOutput failed. but the one without any
                         // capabilities must be the guilty one
-                        QList<AudioPostList> posts = xs->audioPostLists();
-                        foreach (AudioPostList post, posts) {
-                            AudioPort ap = post.audioPort();
-                            kDebug(610) << "telling AudioPort " << ap << " valid = " << ap.isValid() << " output = " << ap.audioOutput() << endl;
-                            if (ap.isValid()) {
-                                QCoreApplication::postEvent(ap.audioOutput(), new QEvent(static_cast<QEvent::Type>(Events::AudioDeviceFailed)));
-                            }
-                        }
+                        xs->audioDeviceFailed();
                     }
                 }
                 break;

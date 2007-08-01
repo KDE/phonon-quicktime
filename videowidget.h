@@ -20,15 +20,16 @@
 #define PHONON_XINE_VIDEOWIDGET_H
 
 #include <QWidget>
-#include <phonon/videowidget.h>
-#include "videowidget.h"
+#include "sinknode.h"
 #include <QPixmap>
 #include <xine.h>
 
 #ifndef PHONON_XINE_NO_VIDEOWIDGET
 #include <xcb/xcb.h>
-#include "sinknode.h"
 #endif // PHONON_XINE_NO_VIDEOWIDGET
+
+#include <Phonon/VideoWidget>
+#include <Phonon/VideoWidgetInterface>
 
 class QMouseEvent;
 
@@ -36,36 +37,56 @@ namespace Phonon
 {
 namespace Xine
 {
-    class VideoWidget : public QWidget, public Phonon::Xine::SinkNode
-	{
-		Q_OBJECT
-        Q_INTERFACES(Phonon::Xine::SinkNode)
-		public:
-			VideoWidget( QWidget* parent = 0 );
-			~VideoWidget();
+class VideoWidgetXT : public SinkNodeXT
+{
+    friend class VideoWidget;
+    public:
+        VideoWidgetXT(QWidget *);
+        ~VideoWidgetXT();
+        void rewireTo(SourceNodeXT *);
+    private:
+#ifndef PHONON_XINE_NO_VIDEOWIDGET
+        xcb_visual_t m_visual;
+        xcb_connection_t *m_xcbConnection;
+#endif // PHONON_XINE_NO_VIDEOWIDGET
+        xine_video_port_t *m_videoPort;
+};
 
-			Q_INVOKABLE Phonon::VideoWidget::AspectRatio aspectRatio() const;
-			Q_INVOKABLE void setAspectRatio( Phonon::VideoWidget::AspectRatio aspectRatio );
-            Q_INVOKABLE Phonon::VideoWidget::ScaleMode scaleMode() const;
-            Q_INVOKABLE void setScaleMode(Phonon::VideoWidget::ScaleMode mode);
+class VideoWidget : public QWidget, public Phonon::VideoWidgetInterface, public Phonon::Xine::SinkNode
+{
+    Q_OBJECT
+    Q_INTERFACES(Phonon::VideoWidgetInterface Phonon::Xine::SinkNode)
+    public:
+        VideoWidget(QWidget *parent = 0);
 
-			Q_INVOKABLE QWidget *widget() { return this; }
+        Phonon::VideoWidget::AspectRatio aspectRatio() const;
+        void setAspectRatio( Phonon::VideoWidget::AspectRatio aspectRatio );
+        Phonon::VideoWidget::ScaleMode scaleMode() const;
+        void setScaleMode(Phonon::VideoWidget::ScaleMode mode);
 
-            /*
-			Q_INVOKABLE int overlayCapabilities() const;
-			Q_INVOKABLE bool createOverlay(QWidget *widget, int type);
-            */
+        QWidget *widget() { return this; }
 
-			xine_video_port_t* videoPort() const { return m_videoPort; }
+        qreal brightness() const;
+        void  setBrightness(qreal);
+
+        qreal contrast() const;
+        void  setContrast(qreal);
+
+        qreal hue() const;
+        void  setHue(qreal);
+
+        qreal saturation() const;
+        void  setSaturation(qreal);
+
+        //xine_video_port_t *videoPort() const { return m_videoPort; }
 
 			void xineCallback( int &x, int &y, int &width, int &height,
 					double &ratio, int videoWidth, int videoHeight, double videoRatio, bool mayResize );
 
-            bool isValid() const { return videoPort() != 0; }
+            bool isValid() const;
             void setVideoEmpty(bool);
 
             MediaStreamTypes inputMediaStreamTypes() const { return Phonon::Video | Phonon::Subtitles; }
-            void rewireTo(SourceNode *);
 
 		signals:
 			void videoPortChanged();
@@ -85,11 +106,6 @@ namespace Xine
 		private:
             //QWidget *overlay;
             void updateZoom();
-			xine_video_port_t* m_videoPort;
-#ifndef PHONON_XINE_NO_VIDEOWIDGET
-            xcb_visual_t m_visual;
-            xcb_connection_t *m_xcbConnection;
-#endif // PHONON_XINE_NO_VIDEOWIDGET
 			Phonon::VideoWidget::AspectRatio m_aspectRatio;
             Phonon::VideoWidget::ScaleMode m_scaleMode;
 
@@ -101,6 +117,11 @@ namespace Xine
              * No video should be shown, all paint events should draw black
              */
             bool m_empty;
+
+            qreal m_brightness;
+            qreal m_contrast;
+            qreal m_hue;
+            qreal m_saturation;
 	};
 }} //namespace Phonon::Xine
 

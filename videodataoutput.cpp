@@ -25,8 +25,19 @@ namespace Phonon
 {
 namespace Xine
 {
+class VideoDataOutputXT : public SinkNodeXT
+{
+    public:
+        xine_video_port_t *videoPort() const { return m_videoPort; }
+        void rewireTo(SourceNodeXT *);
+
+    private:
+        xine_video_port_t* m_videoPort;
+};
+
 VideoDataOutput::VideoDataOutput( QObject* parent )
-	: QObject( parent )
+    : QObject(parent),
+    SinkNode(new VideoDataOutputXT)
 {
 }
 
@@ -34,7 +45,7 @@ VideoDataOutput::~VideoDataOutput()
 {
 }
 
-void VideoDataOutput::rewireTo(SourceNode *source)
+void VideoDataOutputXT::rewireTo(SourceNodeXT *source)
 {
     xine_post_wire_video_port(source->videoOutputPort(), videoPort());
 }

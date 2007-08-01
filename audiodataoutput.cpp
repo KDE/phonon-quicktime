@@ -26,8 +26,13 @@ namespace Phonon
 {
 namespace Xine
 {
+class AudioDataOutputXT : public SinkNodeXT
+{
+    void rewireTo(SourceNodeXT *);
+};
+
 AudioDataOutput::AudioDataOutput( QObject* parent )
-	: AbstractAudioOutput( parent )
+    : AbstractAudioOutput(new AudioDataOutputXT, parent)
 {
 }
 
@@ -35,7 +40,7 @@ AudioDataOutput::~AudioDataOutput()
 {
 }
 
-void AudioDataOutput::rewireTo(SourceNode *source)
+void AudioDataOutputXT::rewireTo(SourceNodeXT *source)
 {
     //xine_post_wire_audio_port(source->outputPort(), m_audioPort);
 }

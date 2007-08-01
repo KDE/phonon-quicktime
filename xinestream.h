@@ -22,6 +22,7 @@
 
 #include "audioport.h"
 #include "audiopostlist.h"
+#include "sourcenode.h"
 
 #include <QtCore/QObject>
 #include <QtCore/QMutex>
@@ -55,11 +56,11 @@ class XineThread;
  *
  * \author Matthias Kretz <kretz@kde.org>
  */
-class XineStream : public QObject
+class XineStream : public QObject, public SourceNodeXT
 {
     Q_OBJECT
     public:
-        XineStream(XineThread *parent);
+        XineStream();
         ~XineStream();
 
         Phonon::State state() const { return m_state; }
@@ -71,9 +72,10 @@ class XineStream : public QObject
         bool isSeekable() const;
         void setVolume(int vol);
 
+        /*
         void addAudioPostList(const AudioPostList &);
         void removeAudioPostList(const AudioPostList &);
-        const QList<AudioPostList>& audioPostLists() { return m_audioPostLists; }
+        */
 
         void setVideoPort(VideoWidget *vwi);
         void setTickInterval(qint32 interval);
@@ -114,8 +116,11 @@ class XineStream : public QObject
             KeepState = 0xff
         };
 
-        xine_post_out_t *audioSource() const { Q_ASSERT(m_stream); return xine_get_audio_source(m_stream); }
-        xine_post_out_t *videoSource() const { Q_ASSERT(m_stream); return xine_get_video_source(m_stream); }
+        xine_post_out_t *audioOutputPort() const { Q_ASSERT(m_stream); return xine_get_audio_source(m_stream); }
+        xine_post_out_t *videoOutputPort() const { Q_ASSERT(m_stream); return xine_get_video_source(m_stream); }
+
+        void setMediaObject(MediaObject *m) { m_mediaObject = m; }
+        void audioDeviceFailed();
 
     public slots:
         void setUrl(const KUrl &url);
@@ -174,8 +179,6 @@ class XineStream : public QObject
         xine_stream_t *m_stream;
         xine_event_queue_t *m_event_queue;
 
-        QList<AudioPostList> m_audioPostLists;
-
         VideoWidget *m_videoPort;
         VideoWidget *m_newVideoPort;
 
@@ -196,6 +199,7 @@ class XineStream : public QObject
         QString m_errorString;
         Phonon::ErrorType m_errorType;
 
+        MediaObject *m_mediaObject;
         SeekCommandEvent *m_lastSeekCommand;
         qint32 m_prefinishMark;
         int m_volume;

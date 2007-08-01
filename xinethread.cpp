@@ -77,23 +77,28 @@ void XineThread::quit()
     QThread::quit();
 }
 
+/*
 void XineThread::needRewire(AudioPostList *ap)
 {
     QCoreApplication::postEvent(XineEngine::thread(), new NeedRewireEvent(ap));
 }
+*/
 
 bool XineThread::event(QEvent *e)
 {
     switch (e->type()) {
+        /*
     case Events::NeedRewire:
         e->accept();
         static_cast<NeedRewireEvent *>(e)->audioPostList->wireStream();
         return true;
+        */
     case Events::NewStream:
         e->accept();
         m_mutex.lock();
         Q_ASSERT(m_newStream == 0);
-        m_newStream = new XineStream(this);
+        m_newStream = new XineStream;
+        m_newStream->moveToThread(this);
         m_mutex.unlock();
         m_waitingForNewStream.wakeAll();
         return true;
@@ -101,7 +106,7 @@ bool XineThread::event(QEvent *e)
         e->accept();
         {
             RewireEvent *ev = static_cast<RewireEvent *>(e);
-            foreach (const WireCall &wire, ev->wireCalls) {
+            foreach (WireCall wire, ev->wireCalls) {
                 wire.sink->rewireTo(wire.source);
             }
         }

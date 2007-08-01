@@ -1,6 +1,5 @@
 /*  This file is part of the KDE project
-    Copyright (C) 2006 Tim Beaulen <tbscope@gmail.com>
-    Copyright (C) 2006-2007 Matthias Kretz <kretz@kde.org>
+    Copyright (C) 2007 Matthias Kretz <kretz@kde.org>
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -17,28 +16,63 @@
     Boston, MA 02110-1301, USA.
 
 */
-#ifndef Phonon_XINE_ABSTRACTAUDIOOUTPUTBASE_H
-#define Phonon_XINE_ABSTRACTAUDIOOUTPUTBASE_H
 
-#include <QObject>
-#include <QList>
 #include "sinknode.h"
+#include "sourcenode.h"
 
 namespace Phonon
 {
 namespace Xine
 {
-    class AbstractAudioOutput : public QObject, public SinkNode
-	{
-		Q_OBJECT
-        Q_INTERFACES(Phonon::Xine::SinkNode)
-		public:
-            AbstractAudioOutput(SinkNodeXT *, QObject* parent);
-			virtual ~AbstractAudioOutput();
 
-            MediaStreamTypes inputMediaStreamTypes() const { return Phonon::Audio; }
-	};
-}} //namespace Phonon::Xine
+SinkNodeXT::~SinkNodeXT()
+{
+}
 
-// vim: sw=4 ts=4 tw=80
-#endif // Phonon_XINE_ABSTRACTAUDIOOUTPUTBASE_H
+AudioPort SinkNodeXT::audioPort() const
+{
+    return AudioPort();
+}
+
+xine_video_port_t *SinkNodeXT::videoPort() const
+{
+    return 0;
+}
+
+SinkNode::SinkNode(SinkNodeXT *_xt)
+    : threadSafeObject(_xt), m_source(0)
+{
+    Q_ASSERT(_xt);
+}
+
+SinkNode::~SinkNode()
+{
+    if (m_source) {
+        m_source->removeSink(this);
+    }
+}
+
+void SinkNode::setSource(SourceNode *s)
+{
+    Q_ASSERT(m_source == 0);
+    m_source = s;
+}
+
+void SinkNode::unsetSource(SourceNode *s)
+{
+    Q_ASSERT(m_source == s);
+    m_source = 0;
+}
+
+SourceNode *SinkNode::source() const
+{
+    return m_source;
+}
+
+SourceNode *SinkNode::sourceInterface()
+{
+    return 0;
+}
+
+} // namespace Xine
+} // namespace Phonon

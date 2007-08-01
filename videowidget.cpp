@@ -39,6 +39,7 @@ namespace Phonon
 {
 namespace Xine
 {
+#define K_XT(type) (static_cast<type *>(SinkNode::threadSafeObject.data()))
 
 #ifndef PHONON_XINE_NO_VIDEOWIDGET
 static void dest_size_cb( void* user_data, int video_width, int video_height, double video_pixel_aspect,
@@ -83,11 +84,50 @@ void VideoWidget::xineCallback( int &x, int &y, int &width, int &height, double 
 	ratio = 1.0;
 }
 
+VideoWidgetXT::VideoWidgetXT(QWidget *w)
+    : m_xcbConnection(0),
+    m_videoPort(0)
+{
+#ifndef PHONON_XINE_NO_VIDEOWIDGET
+    // make a new XCB connection for xine
+    int preferredScreen = 0;
+    m_xcbConnection = xcb_connect(NULL, &preferredScreen);//DisplayString(x11Info().display()), NULL);
+    if (m_xcbConnection) {
+        m_visual.connection = m_xcbConnection;
+        xcb_screen_iterator_t screenIt = xcb_setup_roots_iterator(xcb_get_setup(m_xcbConnection));
+        while ((screenIt.rem > 1) && (preferredScreen > 0)) {
+            xcb_screen_next(&screenIt);
+            --preferredScreen;
+        }
+        m_visual.screen = screenIt.data;
+        m_visual.window = w->winId();
+        m_visual.user_data = static_cast<void *>(this);
+        m_visual.dest_size_cb = Phonon::Xine::dest_size_cb;
+        m_visual.frame_output_cb = Phonon::Xine::frame_output_cb;
+
+        // make sure all Qt<->X communication is done, else xine_open_video_driver will crash
+        QApplication::syncX();
+
+        Q_ASSERT(w->testAttribute(Qt::WA_WState_Created));
+        m_videoPort = xine_open_video_driver(XineEngine::xine(), "auto", XINE_VISUAL_TYPE_XCB, static_cast<void*>(&m_visual));
+        if (!m_videoPort) {
+#endif // PHONON_XINE_NO_VIDEOWIDGET
+            kError(610) << "No xine video output plugin using libxcb for threadsafe access to the X server found. No video for you." << endl;
+#ifndef PHONON_XINE_NO_VIDEOWIDGET
+        }
+    }
+#endif // PHONON_XINE_NO_VIDEOWIDGET
+}
+
 VideoWidget::VideoWidget( QWidget* parent )
     : QWidget(parent),
-    m_videoPort(0),
+    SinkNode(new VideoWidgetXT(this)),
     m_fullScreen(false),
-    m_empty(true)
+    m_empty(true),
+    m_brightness(0.0),
+    m_contrast(0.0),
+    m_hue(0.0),
+    m_saturation(0.0)
 {
 	// for some reason it can hang if the widget is 0x0
 	setMinimumSize( 1, 1 );
@@ -104,42 +144,9 @@ VideoWidget::VideoWidget( QWidget* parent )
 
     // required for dvdnav
     setMouseTracking(true);
-
-#ifndef PHONON_XINE_NO_VIDEOWIDGET
-	// make a new X connection for xine
-	// ~QApplication hangs (or crashes) in XCloseDisplay called from Qt when XInitThreads is
-	// called. Without it everything is fine, except of course xine rendering onto the window from
-	// multiple threads. So Phonon-Xine will use its own xine vo plugins not using X(Un)LockDisplay.
-    int preferredScreen = 0;
-    m_xcbConnection = xcb_connect(NULL, &preferredScreen);//DisplayString(x11Info().display()), NULL);
-    if (m_xcbConnection) {
-        m_visual.connection = m_xcbConnection;
-        xcb_screen_iterator_t screenIt = xcb_setup_roots_iterator(xcb_get_setup(m_xcbConnection));
-        while ((screenIt.rem > 1) && (preferredScreen > 0)) {
-            xcb_screen_next(&screenIt);
-            --preferredScreen;
-        }
-        m_visual.screen = screenIt.data;
-        m_visual.window = winId();
-        m_visual.user_data = static_cast<void*>(this);
-        m_visual.dest_size_cb = Phonon::Xine::dest_size_cb;
-        m_visual.frame_output_cb = Phonon::Xine::frame_output_cb;
-
-        // make sure all Qt<->X communication is done, else xine_open_video_driver will crash
-        QApplication::syncX();
-
-        Q_ASSERT(testAttribute(Qt::WA_WState_Created));
-        m_videoPort = xine_open_video_driver(XineEngine::xine(), "auto", XINE_VISUAL_TYPE_XCB, static_cast<void*>(&m_visual));
-        if (!m_videoPort) {
-#endif // PHONON_XINE_NO_VIDEOWIDGET
-            kError(610) << "No xine video output plugin using libxcb for threadsafe access to the X server found. No video for you." << endl;
-#ifndef PHONON_XINE_NO_VIDEOWIDGET
-        }
-    }
-#endif // PHONON_XINE_NO_VIDEOWIDGET
 }
 
-VideoWidget::~VideoWidget()
+VideoWidgetXT::~VideoWidgetXT()
 {
     if (m_videoPort) {
         xine_port_send_gui_data(m_videoPort, XINE_GUI_SEND_WILL_DESTROY_DRAWABLE, 0);
@@ -208,6 +215,64 @@ void VideoWidget::setScaleMode(Phonon::VideoWidget::ScaleMode mode)
 {
     m_scaleMode = mode;
     updateZoom();
+}
+
+qreal VideoWidget::brightness() const
+{
+    return m_brightness;
+}
+
+void VideoWidget::setBrightness(qreal newBrightness)
+{
+    newBrightness = qBound(-1.0, newBrightness, 1.0);
+    if (m_brightness != newBrightness) {
+        m_brightness = newBrightness;
+        /*
+        XineStream *s = stream();
+        if (s) {
+            s->setParam(XINE_PARAM_VO_BRIGHTNESS, m_brightness);
+        }
+        */
+    }
+}
+
+qreal VideoWidget::contrast() const
+{
+    return m_contrast;
+}
+
+void VideoWidget::setContrast(qreal newContrast)
+{
+    newContrast = qBound(-1.0, newContrast, 1.0);
+    if (m_contrast != newContrast) {
+        m_contrast = newContrast;
+    }
+}
+
+qreal VideoWidget::hue() const
+{
+    return m_hue;
+}
+
+void VideoWidget::setHue(qreal newHue)
+{
+    newHue = qBound(-1.0, newHue, 1.0);
+    if (m_hue != newHue) {
+        m_hue = newHue;
+    }
+}
+
+qreal VideoWidget::saturation() const
+{
+    return m_saturation;
+}
+
+void VideoWidget::setSaturation(qreal newSaturation)
+{
+    newSaturation = qBound(-1.0, newSaturation, 1.0);
+    if (m_saturation != newSaturation) {
+        m_saturation = newSaturation;
+    }
 }
 
 /*
@@ -349,7 +414,7 @@ void VideoWidget::mouseMoveEvent(QMouseEvent *mev)
 //X         rect.w = 0;
 //X         rect.h = 0;
 //X 
-//X         xine_port_send_gui_data(m_videoPort, XINE_GUI_SEND_TRANSLATE_GUI_TO_VIDEO, (void*)&rect);
+//X         xine_port_send_gui_data(K_XT(VideoWidgetXT)->m_videoPort, XINE_GUI_SEND_TRANSLATE_GUI_TO_VIDEO, (void*)&rect);
 //X 
 //X         event->type        = XINE_EVENT_INPUT_MOUSE_MOVE;
 //X         event->data        = input;
@@ -376,7 +441,7 @@ void VideoWidget::mousePressEvent(QMouseEvent *mev)
 //X         rect.w = 0;
 //X         rect.h = 0;
 //X 
-//X         xine_port_send_gui_data(m_videoPort, XINE_GUI_SEND_TRANSLATE_GUI_TO_VIDEO, (void*)&rect);
+//X         xine_port_send_gui_data(K_XT(VideoWidgetXT)->m_videoPort, XINE_GUI_SEND_TRANSLATE_GUI_TO_VIDEO, (void*)&rect);
 //X 
 //X         event->type        = XINE_EVENT_INPUT_MOUSE_BUTTON;
 //X         event->data        = input;
@@ -389,6 +454,11 @@ void VideoWidget::mousePressEvent(QMouseEvent *mev)
     QWidget::mousePressEvent(mev);
 }
 
+bool VideoWidget::isValid() const
+{
+    return K_XT(const VideoWidgetXT)->m_videoPort != 0;
+}
+
 void VideoWidget::setVideoEmpty(bool b)
 {
     m_empty = b;
@@ -397,7 +467,7 @@ void VideoWidget::setVideoEmpty(bool b)
     }
 }
 
-void VideoWidget::rewireTo(SourceNode *source)
+void VideoWidgetXT::rewireTo(SourceNodeXT *source)
 {
     Q_ASSERT(source->videoOutputPort());
     xine_post_wire_video_port(source->videoOutputPort(), videoPort());
@@ -411,7 +481,7 @@ void VideoWidget::paintEvent(QPaintEvent *event)
 //X         QPainter p(this);
 //X         p.fillRect(rect(), Qt::black);
 //X #ifndef PHONON_XINE_NO_VIDEOWIDGET
-//X     } else if (m_videoPort) {
+//X     } else if (K_XT(VideoWidgetXT)->m_videoPort) {
 //X         const QRect &rect = event->rect();
 //X 
 //X         xcb_expose_event_t xcb_event;
@@ -424,7 +494,7 @@ void VideoWidget::paintEvent(QPaintEvent *event)
 //X         xcb_event.height = rect.height();
 //X         xcb_event.count = 0;
 //X 
-//X         xine_port_send_gui_data(m_videoPort, XINE_GUI_SEND_EXPOSE_EVENT, &xcb_event);
+//X         xine_port_send_gui_data(K_XT(VideoWidgetXT)->m_videoPort, XINE_GUI_SEND_EXPOSE_EVENT, &xcb_event);
 //X #endif // PHONON_XINE_NO_VIDEOWIDGET
 //X     } else {
 //X         QPainter p(this);
@@ -435,12 +505,12 @@ void VideoWidget::paintEvent(QPaintEvent *event)
 
 void VideoWidget::showEvent( QShowEvent* )
 {
-	//xine_port_send_gui_data( m_videoPort, XINE_GUI_SEND_VIDEOWIN_VISIBLE, static_cast<void*>( 1 ) );
+	//xine_port_send_gui_data( K_XT(VideoWidgetXT)->m_videoPort, XINE_GUI_SEND_VIDEOWIN_VISIBLE, static_cast<void*>( 1 ) );
 }
 
 void VideoWidget::hideEvent( QHideEvent* )
 {
-	//xine_port_send_gui_data( m_videoPort, XINE_GUI_SEND_VIDEOWIN_VISIBLE, static_cast<void*>( 0 ) );
+	//xine_port_send_gui_data( K_XT(VideoWidgetXT)->m_videoPort, XINE_GUI_SEND_VIDEOWIN_VISIBLE, static_cast<void*>( 0 ) );
 }
 
 void VideoWidget::changeEvent( QEvent* event )
@@ -453,13 +523,13 @@ void VideoWidget::changeEvent( QEvent* event )
 	{
         kDebug(610) << k_funcinfo << "ParentChange" << winId() << endl;
 #ifndef PHONON_XINE_NO_VIDEOWIDGET
-        if (m_visual.window != winId()) {
-            m_visual.window = winId();
-            if (m_videoPort) {
+        if (K_XT(VideoWidgetXT)->m_visual.window != winId()) {
+            K_XT(VideoWidgetXT)->m_visual.window = winId();
+            if (K_XT(VideoWidgetXT)->m_videoPort) {
                 // make sure all Qt<->X communication is done, else winId() might not be known at the
                 // X-server yet
                 QApplication::syncX();
-                xine_port_send_gui_data(m_videoPort, XINE_GUI_SEND_DRAWABLE_CHANGED, reinterpret_cast<void*>(m_visual.window));
+                xine_port_send_gui_data(K_XT(VideoWidgetXT)->m_videoPort, XINE_GUI_SEND_DRAWABLE_CHANGED, reinterpret_cast<void*>(K_XT(VideoWidgetXT)->m_visual.window));
                 kDebug(610) << "XINE_GUI_SEND_DRAWABLE_CHANGED done." << endl;
             }
         }
@@ -467,6 +537,7 @@ void VideoWidget::changeEvent( QEvent* event )
     }
 }
 
+#undef K_XT
 }} //namespace Phonon::Xine
 
 #include "videowidget.moc"

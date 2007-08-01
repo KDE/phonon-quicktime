@@ -6,6 +6,8 @@ include_directories(${XINE_INCLUDE_DIR})
 ADD_DEFINITIONS(-D_FILE_OFFSET_BITS=64)
 
 set(phonon_xine_PART_SRCS
+   sinknode.cpp
+   sourcenode.cpp
    xinethread.cpp
     xineengine.cpp
     xinestream.cpp

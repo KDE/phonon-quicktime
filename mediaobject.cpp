@@ -50,14 +50,16 @@ namespace Xine
 {
 MediaObject::MediaObject(QObject *parent)
     : QObject(parent),
+    SourceNode(XineThread::newStream()),
     m_state(Phonon::LoadingState),
-    m_stream(XineThread::newStream()),
+    m_stream(static_cast<XineStream *>(SourceNode::threadSafeObject.data())),
     m_currentTitle(1),
     m_transitionTime(0),
     m_autoplayTitles(true),
     m_fakingBuffering(false),
     m_shouldFakeBufferingOnPlay(true)
 {
+    m_stream->setMediaObject(this);
     m_stream->useGaplessPlayback(true);
 
     qRegisterMetaType<QMultiMap<QString,QString> >("QMultiMap<QString,QString>");
@@ -80,6 +82,13 @@ MediaObject::MediaObject(QObject *parent)
     connect(m_stream, SIGNAL(needNextUrl()), SLOT(needNextUrl()));
 }
 
+class XineStreamKeeper : public QObject
+{
+    public:
+        XineStreamKeeper(XineStream *x) : xs(x) { moveToThread(XineEngine::thread()); }
+        QExplicitlySharedDataPointer<XineStream> xs;
+};
+
 MediaObject::~MediaObject()
 {
 //X     FIXME
@@ -99,8 +108,8 @@ MediaObject::~MediaObject()
         // don't delete m_bytestream - the xine input plugin owns it
     }
     m_stream->closeBlocking();
-    m_stream->deleteLater();
-
+    //m_stream->deleteLater();
+    (new XineStreamKeeper(m_stream))->deleteLater();
 }
 
 State MediaObject::state() const
@@ -119,20 +128,6 @@ MediaStreamTypes MediaObject::outputMediaStreamTypes() const
         return Phonon::Audio | Phonon::Video;
     }
     return Phonon::Audio;
-}
-
-// called from XineThread
-xine_post_out_t *MediaObject::audioOutputPort() const
-{
-    Q_ASSERT(QThread::currentThread() == XineEngine::thread());
-    return m_stream->audioSource();
-}
-
-// called from XineThread
-xine_post_out_t *MediaObject::videoOutputPort() const
-{
-    Q_ASSERT(QThread::currentThread() == XineEngine::thread());
-    return m_stream->videoSource();
 }
 
 bool MediaObject::isSeekable() const

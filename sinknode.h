@@ -21,24 +21,39 @@
 #define SINKNODE_H
 
 #include <Phonon/Global>
+#include <xine.h>
+#include "audioport.h"
 
 namespace Phonon
 {
 namespace Xine
 {
 class SourceNode;
+class SourceNodeXT;
+
+class SinkNodeXT : virtual public QSharedData
+{
+    public:
+        virtual ~SinkNodeXT();
+        virtual void rewireTo(SourceNodeXT *) = 0;
+        virtual AudioPort audioPort() const;
+        virtual xine_video_port_t *videoPort() const;
+};
 
 class SinkNode
 {
+    friend class WireCall;
+    friend class XineStream;
     public:
-        SinkNode() : m_source(0) {}
-        virtual ~SinkNode() {}
+        SinkNode(SinkNodeXT *_xt);
+        virtual ~SinkNode();
         virtual MediaStreamTypes inputMediaStreamTypes() const = 0;
-        void setSource(SourceNode *s) { Q_ASSERT(m_source == 0); m_source = s; }
-        void unsetSource(SourceNode *s) { Q_ASSERT(m_source == s); m_source = 0; }
-        SourceNode *source() const { return m_source; }
-        virtual void rewireTo(SourceNode *) = 0;
-        virtual SourceNode *sourceInterface() { return 0; }
+        void setSource(SourceNode *s);
+        void unsetSource(SourceNode *s);
+        SourceNode *source() const;
+        virtual SourceNode *sourceInterface();
+    protected:
+        QExplicitlySharedDataPointer<SinkNodeXT> threadSafeObject;
     private:
         SourceNode *m_source;
 };
