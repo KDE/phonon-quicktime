@@ -106,6 +106,7 @@ QObject *Backend::createObject(BackendInterface::Class c, QObject *parent, const
     case EffectClass:
         {
             Q_ASSERT(args.size() == 1);
+            kDebug(610) << "creating Effect(" << args[0] << endl;
             Effect *e = new Effect(args[0].toInt(), parent);
             if (e->isValid()) {
                 return e;
@@ -207,10 +208,10 @@ QSet<int> Backend::objectDescriptionIndexes( ObjectDescriptionType type ) const
 				const char* const* postPlugins = xine_list_post_plugins_typed( XineEngine::xine(), XINE_POST_TYPE_AUDIO_FILTER );
 				for( int i = 0; postPlugins[i]; ++i )
 					set << 0x7F000000 + i;
-                const char *const *postVPlugins = xine_list_post_plugins_typed( XineEngine::xine(), XINE_POST_TYPE_VIDEO_FILTER );
+                /*const char *const *postVPlugins = xine_list_post_plugins_typed( XineEngine::xine(), XINE_POST_TYPE_VIDEO_FILTER );
                 for (int i = 0; postVPlugins[i]; ++i) {
 					set << 0x7E000000 + i;
-                }
+                }*/
 				break;
 			}
 	}
@@ -310,13 +311,13 @@ QHash<QByteArray, QVariant> Backend::objectDescriptionProperties(ObjectDescripti
                         break;
                     }
                 }
-                const char *const *postVPlugins = xine_list_post_plugins_typed(XineEngine::xine(), XINE_POST_TYPE_VIDEO_FILTER);
+                /*const char *const *postVPlugins = xine_list_post_plugins_typed(XineEngine::xine(), XINE_POST_TYPE_VIDEO_FILTER);
                 for (int i = 0; postVPlugins[i]; ++i) {
                     if (0x7E000000 + i == index) {
                         ret.insert("name", QLatin1String(postPlugins[i]));
                         break;
                     }
-                }
+                }*/
             }
             break;
     }
