@@ -55,54 +55,59 @@ void EffectXT::ensureInstance()
     if (!m_plugin) {
         createInstance();
     }
+    Q_ASSERT(m_plugin);
 }
 
 void EffectXT::createInstance()
 {
-    kDebug(610) << k_funcinfo << endl;
+    kDebug(610) << k_funcinfo << "m_pluginName = \"" << m_pluginName << "\"" << endl;
     xine_audio_port_t *audioPort = XineEngine::nullPort();
     Q_ASSERT(m_plugin == 0 && m_pluginApi == 0);
-    if (m_pluginName) {
-        m_plugin = xine_post_init(XineEngine::xine(), m_pluginName, 1, &audioPort, 0);
-        xine_post_in_t *paraInput = xine_post_input(m_plugin, "parameters");
-        if (paraInput) {
-            Q_ASSERT(paraInput->type == XINE_POST_DATA_PARAMETERS);
-            Q_ASSERT(paraInput->data);
-            m_pluginApi = reinterpret_cast<xine_post_api_t *>(paraInput->data);
-            if (m_parameterList.isEmpty()) {
-                xine_post_api_descr_t *desc = m_pluginApi->get_param_descr();
-                Q_ASSERT(0 == m_pluginParams);
-                m_pluginParams = static_cast<char *>(malloc(desc->struct_size));
-                m_pluginApi->get_parameters(m_plugin, m_pluginParams);
-                for (int i = 0; desc->parameter[i].type != POST_PARAM_TYPE_LAST; ++i) {
-                    xine_post_api_parameter_t &p = desc->parameter[i];
-                    switch (p.type) {
-                        case POST_PARAM_TYPE_INT:          /* integer (or vector of integers)    */
-                            m_parameterList << EffectParameter(i, p.name, EffectParameter::IntegerHint,
-                                        *reinterpret_cast<int *>(m_pluginParams + p.offset),
-                                        static_cast<int>(p.range_min), static_cast<int>(p.range_max), QVariantList(), p.description);
-                            break;
-                        case POST_PARAM_TYPE_DOUBLE:       /* double (or vector of doubles)      */
-                            m_parameterList << EffectParameter(i, p.name, 0,
-                                        *reinterpret_cast<double *>(m_pluginParams + p.offset),
-                                        p.range_min, p.range_max, QVariantList(), p.description);
-                            break;
-                        case POST_PARAM_TYPE_CHAR:         /* char (or vector of chars = string) */
-                        case POST_PARAM_TYPE_STRING:       /* (char *), ASCIIZ                   */
-                        case POST_PARAM_TYPE_STRINGLIST:   /* (char **) list, NULL terminated    */
-                            kWarning(610) << "char/string/stringlist parameter '" << p.name << "' not supported." << endl;
-                            break;
-                        case POST_PARAM_TYPE_BOOL:         /* integer (0 or 1)                   */
-                            m_parameterList << EffectParameter(i, p.name, EffectParameter::ToggledHint,
-                                        static_cast<bool>(*reinterpret_cast<int *>(m_pluginParams + p.offset)),
-                                        QVariant(), QVariant(), QVariantList(), p.description);
-                            break;
-                        case POST_PARAM_TYPE_LAST:         /* terminator of parameter list       */
-                        default:
-                            abort();
-                    }
-                }
-            }
+    if (!m_pluginName) {
+        kWarning(610) << "tried to create invalid Effect" << endl;
+        return;
+    }
+    m_plugin = xine_post_init(XineEngine::xine(), m_pluginName, 1, &audioPort, 0);
+    xine_post_in_t *paraInput = xine_post_input(m_plugin, "parameters");
+    if (!paraInput) {
+        return;
+    }
+    Q_ASSERT(paraInput->type == XINE_POST_DATA_PARAMETERS);
+    Q_ASSERT(paraInput->data);
+    m_pluginApi = reinterpret_cast<xine_post_api_t *>(paraInput->data);
+    if (!m_parameterList.isEmpty()) {
+        return;
+    }
+    xine_post_api_descr_t *desc = m_pluginApi->get_param_descr();
+    Q_ASSERT(0 == m_pluginParams);
+    m_pluginParams = static_cast<char *>(malloc(desc->struct_size));
+    m_pluginApi->get_parameters(m_plugin, m_pluginParams);
+    for (int i = 0; desc->parameter[i].type != POST_PARAM_TYPE_LAST; ++i) {
+        xine_post_api_parameter_t &p = desc->parameter[i];
+        switch (p.type) {
+        case POST_PARAM_TYPE_INT:          /* integer (or vector of integers)    */
+            m_parameterList << EffectParameter(i, p.name, EffectParameter::IntegerHint,
+                    *reinterpret_cast<int *>(m_pluginParams + p.offset),
+                    static_cast<int>(p.range_min), static_cast<int>(p.range_max), QVariantList(), p.description);
+            break;
+        case POST_PARAM_TYPE_DOUBLE:       /* double (or vector of doubles)      */
+            m_parameterList << EffectParameter(i, p.name, 0,
+                    *reinterpret_cast<double *>(m_pluginParams + p.offset),
+                    p.range_min, p.range_max, QVariantList(), p.description);
+            break;
+        case POST_PARAM_TYPE_CHAR:         /* char (or vector of chars = string) */
+        case POST_PARAM_TYPE_STRING:       /* (char *), ASCIIZ                   */
+        case POST_PARAM_TYPE_STRINGLIST:   /* (char **) list, NULL terminated    */
+            kWarning(610) << "char/string/stringlist parameter '" << p.name << "' not supported." << endl;
+            break;
+        case POST_PARAM_TYPE_BOOL:         /* integer (0 or 1)                   */
+            m_parameterList << EffectParameter(i, p.name, EffectParameter::ToggledHint,
+                    static_cast<bool>(*reinterpret_cast<int *>(m_pluginParams + p.offset)),
+                    QVariant(), QVariant(), QVariantList(), p.description);
+            break;
+        case POST_PARAM_TYPE_LAST:         /* terminator of parameter list       */
+        default:
+            abort();
         }
     }
 }
