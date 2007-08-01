@@ -312,7 +312,9 @@ bool XineStream::createStream()
     xine_video_port_t *videoPort = 0;
     Q_ASSERT(m_mediaObject);
     QSet<SinkNode *> sinks = m_mediaObject->sinks();
+    kDebug(610) << "MediaObject is connected to " << sinks.size() << " nodes" << endl;
     foreach (SinkNode *sink, sinks) {
+        Q_ASSERT(sink->threadSafeObject);
         if (sink->threadSafeObject->audioPort()) {
             Q_ASSERT(audioPort == 0);
             audioPort = sink->threadSafeObject->audioPort();
@@ -323,9 +325,11 @@ bool XineStream::createStream()
         }
     }
     if (!audioPort) {
+        kDebug(610) << "creating xine_stream with null audio port" << endl;
         audioPort = XineEngine::nullPort();
     }
     if (!videoPort) {
+        kDebug(610) << "creating xine_stream with null video port" << endl;
         videoPort = XineEngine::nullVideoPort();
     }
     m_stream = xine_stream_new(XineEngine::xine(), audioPort, videoPort);
@@ -1271,6 +1275,22 @@ void XineStream::closeBlocking()
 void XineStream::setError(Phonon::ErrorType type, const QString &reason)
 {
     QCoreApplication::postEvent(this, new ErrorEvent(type, reason));
+}
+
+xine_post_out_t *XineStream::audioOutputPort() const
+{
+    if (!m_stream) {
+        return 0;
+    }
+    return xine_get_audio_source(m_stream);
+}
+
+xine_post_out_t *XineStream::videoOutputPort() const
+{
+    if (!m_stream) {
+        return 0;
+    }
+    return xine_get_video_source(m_stream);
 }
 
 void XineStream::audioDeviceFailed()

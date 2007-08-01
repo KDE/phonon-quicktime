@@ -469,7 +469,9 @@ void VideoWidget::setVideoEmpty(bool b)
 
 void VideoWidgetXT::rewireTo(SourceNodeXT *source)
 {
-    Q_ASSERT(source->videoOutputPort());
+    if (!source->videoOutputPort()) {
+        return;
+    }
     xine_post_wire_video_port(source->videoOutputPort(), videoPort());
 }
 

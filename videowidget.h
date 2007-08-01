@@ -44,6 +44,8 @@ class VideoWidgetXT : public SinkNodeXT
         VideoWidgetXT(QWidget *);
         ~VideoWidgetXT();
         void rewireTo(SourceNodeXT *);
+
+        xine_video_port_t *videoPort() const { return m_videoPort; }
     private:
 #ifndef PHONON_XINE_NO_VIDEOWIDGET
         xcb_visual_t m_visual;
@@ -77,8 +79,6 @@ class VideoWidget : public QWidget, public Phonon::VideoWidgetInterface, public 
 
         qreal saturation() const;
         void  setSaturation(qreal);
-
-        //xine_video_port_t *videoPort() const { return m_videoPort; }
 
 			void xineCallback( int &x, int &y, int &width, int &height,
 					double &ratio, int videoWidth, int videoHeight, double videoRatio, bool mayResize );

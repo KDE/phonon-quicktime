@@ -83,10 +83,10 @@ void AudioOutput::setVolume(qreal newVolume)
     emit volumeChanged(m_volume);
 }
 
-//X AudioPort AudioOutput::audioPort() const
-//X {
-//X     return m_audioPort;
-//X }
+AudioPort AudioOutputXT::audioPort() const
+{
+    return m_audioPort;
+}
 
 bool AudioOutput::setOutputDevice(int newDevice)
 {
@@ -104,7 +104,9 @@ bool AudioOutput::setOutputDevice(int newDevice)
 
 void AudioOutputXT::rewireTo(SourceNodeXT *source)
 {
-    Q_ASSERT(source->audioOutputPort());
+    if (!source->audioOutputPort()) {
+        return;
+    }
     xine_post_wire_audio_port(source->audioOutputPort(), m_audioPort);
 }
 
