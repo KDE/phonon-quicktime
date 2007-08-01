@@ -108,8 +108,15 @@ MediaObject::~MediaObject()
         // don't delete m_bytestream - the xine input plugin owns it
     }
     m_stream->closeBlocking();
-    //m_stream->deleteLater();
-    (new XineStreamKeeper(m_stream))->deleteLater();
+
+    // XineStream has to be deleted in the XineThread. But in ~SourceNode threadSafeObject goes out
+    // of scope and if that's the last ref to XineStream its deleted from there (wrong thread).
+    // Thats why XineStreamKeeper (that lives in the XineThread) refs XineStream, threadSafeObject
+    // is set to 0 (to avoid a race) and then keeper is the last object with a ref and deleted from
+    // the xine thread.
+    XineStreamKeeper *keeper = new XineStreamKeeper(m_stream);
+    SourceNode::threadSafeObject = 0;
+    keeper->deleteLater();
 }
 
 State MediaObject::state() const
