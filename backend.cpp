@@ -104,8 +104,15 @@ QObject *Backend::createObject(BackendInterface::Class c, QObject *parent, const
         case VideoDataOutputClass:
             return new VideoDataOutput(parent);
     case EffectClass:
-        Q_ASSERT(args.size() == 1);
-        return new Effect(args[0].toInt(), parent);
+        {
+            Q_ASSERT(args.size() == 1);
+            Effect *e = new Effect(args[0].toInt(), parent);
+            if (e->isValid()) {
+                return e;
+            }
+            delete e;
+            return 0;
+        }
     case VideoWidgetClass:
         {
             VideoWidget *vw = new VideoWidget(qobject_cast<QWidget *>(parent));
