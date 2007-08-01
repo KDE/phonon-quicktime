@@ -39,6 +39,9 @@ xine_post_out_t *EffectXT::audioOutputPort() const
 
 void EffectXT::rewireTo(SourceNodeXT *source)
 {
+    if (!source->audioOutputPort()) {
+        return;
+    }
     ensureInstance();
     xine_post_in_t *x = xine_post_input(m_plugin, "audio in");
     Q_ASSERT(x);

@@ -39,6 +39,7 @@ class AudioOutputXT : public SinkNodeXT
     friend class AudioOutput;
     public:
         void rewireTo(SourceNodeXT *);
+        AudioPort audioPort() const;
 
     private:
         AudioPort m_audioPort;
@@ -53,7 +54,6 @@ class AudioOutputXT : public SinkNodeXT
             AudioOutput(QObject *parent);
 			~AudioOutput();
 
-            //AudioPort audioPort() const;
             void updateVolume(MediaObject *mp) const;
 
 			// Attributes Getters:

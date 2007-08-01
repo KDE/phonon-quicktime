@@ -116,8 +116,8 @@ class XineStream : public QObject, public SourceNodeXT
             KeepState = 0xff
         };
 
-        xine_post_out_t *audioOutputPort() const { Q_ASSERT(m_stream); return xine_get_audio_source(m_stream); }
-        xine_post_out_t *videoOutputPort() const { Q_ASSERT(m_stream); return xine_get_video_source(m_stream); }
+        xine_post_out_t *audioOutputPort() const;
+        xine_post_out_t *videoOutputPort() const;
 
         void setMediaObject(MediaObject *m) { m_mediaObject = m; }
         void audioDeviceFailed();
