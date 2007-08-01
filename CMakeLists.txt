@@ -10,7 +10,6 @@ set(phonon_xine_PART_SRCS
     xineengine.cpp
     xinestream.cpp
     audioport.cpp
-    audiopostlist.cpp
     abstractaudiooutput.cpp
     audiodataoutput.cpp
     effect.cpp
