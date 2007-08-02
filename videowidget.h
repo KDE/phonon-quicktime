@@ -61,6 +61,7 @@ class VideoWidget : public QWidget, public Phonon::VideoWidgetInterface, public 
     Q_INTERFACES(Phonon::VideoWidgetInterface Phonon::Xine::SinkNode)
     public:
         VideoWidget(QWidget *parent = 0);
+        ~VideoWidget();
 
         Phonon::VideoWidget::AspectRatio aspectRatio() const;
         void setAspectRatio( Phonon::VideoWidget::AspectRatio aspectRatio );
