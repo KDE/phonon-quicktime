@@ -177,7 +177,8 @@ QSet<int> Backend::objectDescriptionIndexes( ObjectDescriptionType type ) const
 	{
 		case Phonon::AudioOutputDeviceType:
             return XineEngine::audioOutputIndexes();
-		case Phonon::AudioCaptureDeviceType:
+/*
+    case Phonon::AudioCaptureDeviceType:
             {
                 QList<AudioDevice> devlist = AudioDeviceEnumerator::availableCaptureDevices();
                 foreach (AudioDevice dev, devlist) {
@@ -203,6 +204,7 @@ QSet<int> Backend::objectDescriptionIndexes( ObjectDescriptionType type ) const
 			break;
 		case Phonon::ContainerFormatType:
 			break;
+            */
 		case Phonon::EffectType:
 			{
 				const char* const* postPlugins = xine_list_post_plugins_typed( XineEngine::xine(), XINE_POST_TYPE_AUDIO_FILTER );
@@ -234,6 +236,7 @@ QHash<QByteArray, QVariant> Backend::objectDescriptionProperties(ObjectDescripti
                 ret.insert("available", XineEngine::audioOutputAvailable(index));
             }
             break;
+            /*
         case Phonon::AudioCaptureDeviceType:
             {
                 QList<AudioDevice> devlist = AudioDeviceEnumerator::availableCaptureDevices();
@@ -301,6 +304,7 @@ QHash<QByteArray, QVariant> Backend::objectDescriptionProperties(ObjectDescripti
             break;
         case Phonon::ContainerFormatType:
             break;
+            */
         case Phonon::EffectType:
             {
                 const char *const *postPlugins = xine_list_post_plugins_typed(XineEngine::xine(), XINE_POST_TYPE_AUDIO_FILTER);
