@@ -91,15 +91,6 @@ class XineStreamKeeper : public QObject
 
 MediaObject::~MediaObject()
 {
-//X     FIXME
-//X     foreach (AudioPath *p, m_audioPaths) {
-//X         m_stream->removeAudioPostList(p->audioPostList());
-//X         p->removeMediaObject(this);
-//X     }
-//X     if (m_videoPath) {
-//X         m_videoPath->unsetMediaObject(this);
-//X     }
-
     if (m_bytestream) {
         // ByteStream must be stopped before calling XineStream::closeBlocking to avoid deadlocks
         // when closeBlocking waits for data in the ByteStream that will never arrive since the main
