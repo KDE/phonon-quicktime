@@ -30,6 +30,7 @@ namespace Phonon
 namespace Xine
 {
 class SinkNode;
+class MediaObject;
 
 class SourceNodeXT : virtual public QSharedData
 {
@@ -50,6 +51,7 @@ class SourceNode
         void removeSink(SinkNode *s);
         QSet<SinkNode *> sinks() const;
         virtual SinkNode *sinkInterface();
+        virtual MediaObject *mediaObjectInterface() { return 0; }
     protected:
         QExplicitlySharedDataPointer<SourceNodeXT> threadSafeObject;
     private:
