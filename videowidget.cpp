@@ -101,7 +101,7 @@ VideoWidgetXT::VideoWidgetXT(QWidget *w)
         }
         m_visual.screen = screenIt.data;
         m_visual.window = w->winId();
-        m_visual.user_data = static_cast<void *>(this);
+        m_visual.user_data = static_cast<void *>(w);
         m_visual.dest_size_cb = Phonon::Xine::dest_size_cb;
         m_visual.frame_output_cb = Phonon::Xine::frame_output_cb;
 
@@ -466,6 +466,11 @@ void VideoWidget::setVideoEmpty(bool b)
     }
 }
 
+xine_video_port_t *VideoWidgetXT::videoPort() const
+{
+    return m_videoPort;
+}
+
 void VideoWidgetXT::rewireTo(SourceNodeXT *source)
 {
     if (!source->videoOutputPort()) {
@@ -476,7 +481,7 @@ void VideoWidgetXT::rewireTo(SourceNodeXT *source)
 
 void VideoWidget::paintEvent(QPaintEvent *event)
 {
-    //kDebug(610) << k_funcinfo << endl;
+    //kDebug(610) << k_funcinfo << "m_empty = " << m_empty << endl;
     if (m_empty || !source()) {// || m_path->mediaObject()->state() == Phonon::LoadingState) {
         QPainter p(this);
         p.fillRect(rect(), Qt::black);
