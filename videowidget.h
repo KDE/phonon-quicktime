@@ -46,7 +46,7 @@ class VideoWidgetXT : public SinkNodeXT
         ~VideoWidgetXT();
         void rewireTo(SourceNodeXT *);
 
-        xine_video_port_t *videoPort() const { return m_videoPort; }
+        xine_video_port_t *videoPort() const;
     private:
 #ifndef PHONON_XINE_NO_VIDEOWIDGET
         xcb_visual_t m_visual;
