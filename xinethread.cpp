@@ -104,9 +104,11 @@ bool XineThread::event(QEvent *e)
         return true;
     case Events::Rewire:
         e->accept();
+        kDebug(610) << "XineThread Rewire event:" << endl;
         {
             RewireEvent *ev = static_cast<RewireEvent *>(e);
             foreach (WireCall wire, ev->wireCalls) {
+                kDebug(610) << "     " << wire.source << " -> " << wire.sink << endl;
                 wire.sink->rewireTo(wire.source);
             }
         }
