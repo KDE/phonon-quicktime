@@ -37,6 +37,7 @@ namespace Phonon
 {
 namespace Xine
 {
+class MediaObject;
 class VideoWidgetXT : public SinkNodeXT
 {
     friend class VideoWidget;
@@ -104,6 +105,7 @@ class VideoWidget : public QWidget, public Phonon::VideoWidgetInterface, public 
             virtual QSize sizeHint() const { return m_sizeHint; }
 
 		private:
+            MediaObject *findMediaObject() const;
             //QWidget *overlay;
             void updateZoom();
 			Phonon::VideoWidget::AspectRatio m_aspectRatio;
