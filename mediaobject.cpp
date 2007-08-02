@@ -131,10 +131,7 @@ bool MediaObject::hasVideo() const
 
 MediaStreamTypes MediaObject::outputMediaStreamTypes() const
 {
-    if (hasVideo()) {
-        return Phonon::Audio | Phonon::Video;
-    }
-    return Phonon::Audio;
+    return Phonon::Audio | Phonon::Video;
 }
 
 bool MediaObject::isSeekable() const
