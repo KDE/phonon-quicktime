@@ -146,6 +146,16 @@ VideoWidget::VideoWidget( QWidget* parent )
     setMouseTracking(true);
 }
 
+VideoWidget::~VideoWidget()
+{
+    // tell the xine stream to stop using this videoPort
+    MediaObject *mo = findMediaObject();
+    if (mo) {
+        XineStream &xs = mo->stream();
+        xs.aboutToDeleteVideoWidget();
+    }
+}
+
 VideoWidgetXT::~VideoWidgetXT()
 {
     if (m_videoPort) {
@@ -153,14 +163,6 @@ VideoWidgetXT::~VideoWidgetXT()
 
         xine_video_port_t *vp = m_videoPort;
         m_videoPort = 0;
-        // tell the xine stream to stop using this videoPort
-        //if( m_path && m_path->mediaObject() )
-        //emit videoPortChanged();
-//X         FIXME:
-//X         if (m_path && m_path->mediaObject()) {
-//X             XineStream &xs = m_path->mediaObject()->stream();
-//X             xs.aboutToDeleteVideoWidget();
-//X         }
 
         xine_close_video_driver(XineEngine::xine(), vp);
     }
