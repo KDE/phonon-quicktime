@@ -131,7 +131,7 @@ bool MediaObject::hasVideo() const
 
 MediaStreamTypes MediaObject::outputMediaStreamTypes() const
 {
-    return Phonon::Audio | Phonon::Video;
+    return Phonon::Xine::Audio | Phonon::Xine::Video;
 }
 
 bool MediaObject::isSeekable() const
@@ -351,10 +351,6 @@ void MediaObject::handleStateChange(Phonon::State newstate, Phonon::State oldsta
 }
 void MediaObject::handleFinished()
 {
-//X     FIXME
-//X     if (videoPath()) {
-//X         videoPath()->streamFinished();
-//X     }
     kDebug(610) << "emit finished()" << endl;
     emit finished();
 }

@@ -23,6 +23,7 @@
 #include <Phonon/Global>
 #include <xine.h>
 #include "audioport.h"
+#include "xineengine.h"
 
 namespace Phonon
 {

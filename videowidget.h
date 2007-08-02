@@ -88,7 +88,7 @@ class VideoWidget : public QWidget, public Phonon::VideoWidgetInterface, public 
             bool isValid() const;
             void setVideoEmpty(bool);
 
-            MediaStreamTypes inputMediaStreamTypes() const { return Phonon::Video | Phonon::Subtitles; }
+            MediaStreamTypes inputMediaStreamTypes() const { return Phonon::Xine::Video | Phonon::Xine::Subtitle; }
 
 		signals:
 			void videoPortChanged();

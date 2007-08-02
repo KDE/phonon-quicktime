@@ -24,6 +24,7 @@
 #include <QtCore/QExplicitlySharedDataPointer>
 #include <QtCore/QSet>
 #include <xine.h>
+#include "xineengine.h"
 
 namespace Phonon
 {

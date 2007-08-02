@@ -44,7 +44,7 @@ namespace Xine
 			VideoDataOutput( QObject* parent );
 			~VideoDataOutput();
 
-            MediaStreamTypes inputMediaStreamTypes() const { return Phonon::Video; }
+            MediaStreamTypes inputMediaStreamTypes() const { return Phonon::Xine::Video; }
 
 		public slots:
 			int frameRate() const;
