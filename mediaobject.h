@@ -104,6 +104,7 @@ class ByteStream;
             void setNextSource(const MediaSource &source);
 
             MediaStreamTypes outputMediaStreamTypes() const;
+            MediaObject *mediaObjectInterface() { return this; }
 
         signals:
             void aboutToFinish();
