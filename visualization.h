@@ -38,8 +38,8 @@ class Visualization : public QObject, public SinkNode, public SourceNode
 	public:
 		Visualization( QObject* parent = 0 );
 
-        MediaStreamTypes inputMediaStreamTypes() const { return Phonon::Audio; }
-        MediaStreamTypes outputMediaStreamTypes() const { return Phonon::Video; }
+        MediaStreamTypes inputMediaStreamTypes() const { return Phonon::Xine::Audio; }
+        MediaStreamTypes outputMediaStreamTypes() const { return Phonon::Xine::Video; }
 
 	public slots:
 		int visualization() const;

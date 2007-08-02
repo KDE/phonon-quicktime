@@ -39,6 +39,21 @@ namespace Phonon
 
 namespace Xine
 {
+    enum MediaStreamType {
+        Audio = 1,
+        Video = 2,
+        StillImage = 4,
+        Subtitle = 8,
+        AllMedia = 0xFFFFFFFF
+    };
+    Q_DECLARE_FLAGS(MediaStreamTypes, MediaStreamType)
+} // namespace Xine
+} // namespace Phonon
+Q_DECLARE_OPERATORS_FOR_FLAGS(Phonon::Xine::MediaStreamTypes)
+namespace Phonon
+{
+namespace Xine
+{
     class Backend;
     class XineEnginePrivate;
     class XineThread;

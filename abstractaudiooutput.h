@@ -36,7 +36,7 @@ namespace Xine
             AbstractAudioOutput(SinkNodeXT *, QObject* parent);
 			virtual ~AbstractAudioOutput();
 
-            MediaStreamTypes inputMediaStreamTypes() const { return Phonon::Audio; }
+            MediaStreamTypes inputMediaStreamTypes() const { return Phonon::Xine::Audio; }
 	};
 }} //namespace Phonon::Xine
 

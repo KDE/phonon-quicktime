@@ -156,12 +156,12 @@ bool Effect::isValid() const
 
 MediaStreamTypes Effect::inputMediaStreamTypes() const
 {
-    return Phonon::Audio;
+    return Phonon::Xine::Audio;
 }
 
 MediaStreamTypes Effect::outputMediaStreamTypes() const
 {
-    return Phonon::Audio;
+    return Phonon::Xine::Audio;
 }
 
 QList<EffectParameter> Effect::parameters() const
