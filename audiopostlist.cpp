@@ -18,17 +18,13 @@
 */
 
 #include "audiopostlist.h"
+#include <QList>
 #include "audioport.h"
-#include "effect.h"
 #include "xinestream.h"
-#include "xineengine.h"
-#include "xinethread.h"
-
-#include <QtCore/QList>
-#include <QtCore/QSharedData>
-#include <QtCore/QThread>
 
 #include <xine.h>
+#include <QSharedData>
+#include "audioeffect.h"
 #include <kdebug.h>
 
 namespace Phonon
@@ -53,7 +49,7 @@ static inline xine_post_in_t *inputFor(xine_post_t *post)
 class ListData
 {
     public:
-        inline ListData(Effect *e, xine_post_t *x)
+        inline ListData(AudioEffect *e, xine_post_t *x)
             : m_effect(e),
             m_post(x),
             m_next(0)
@@ -63,7 +59,7 @@ class ListData
         // compare list items only by looking at m_effect
         bool operator==(const ListData &rhs) { return m_effect == rhs.m_effect; }
 
-        Effect *effect() const { return m_effect; }
+        AudioEffect *effect() const { return m_effect; }
         xine_post_t *post() const { return m_post; }
 
         // called from the xine thread
@@ -77,7 +73,7 @@ class ListData
                 m_post = m_effect->newInstance(audioPort);
                 Q_ASSERT(m_post);
             } else {
-                kDebug(610) << "xine_post_wire(" << outputFor(m_post) << ", " << audioSink << ")" << endl;
+                kDebug(610) << "xine_post_wire(" << outputFor(m_post) << ", " << audioSink << ")";
                 int err = xine_post_wire(outputFor(m_post), audioSink);
                 Q_ASSERT(err == 1);
             }
@@ -94,14 +90,14 @@ class ListData
                 m_post = m_effect->newInstance(audioPort);
                 Q_ASSERT(m_post);
             } else {
-                kDebug(610) << "xine_post_wire_audio_port(" << outputFor(m_post) << ", " << audioPort << ")" << endl;
+                kDebug(610) << "xine_post_wire_audio_port(" << outputFor(m_post) << ", " << audioPort << ")";
                 int err = xine_post_wire_audio_port(outputFor(m_post), audioPort);
                 Q_ASSERT(err == 1);
             }
         }
 
     private:
-        Effect *m_effect;
+        AudioEffect *m_effect;
         xine_post_t *m_post;
         xine_post_in_t *m_next;
 };
@@ -112,21 +108,23 @@ class AudioPostListData : public QSharedData
         QList<ListData> effects;
         AudioPort output;
         AudioPort newOutput;
-        XineStream *stream;
+        QList<XineStream *> streams;
+
+        void needRewire(AudioPostList *o)
+        {
+            kDebug(610) << k_funcinfo;
+            foreach (XineStream *xs, streams) {
+                Q_ASSERT(xs);
+                kDebug(610) << xs << "->needRewire";
+                xs->needRewire(o);
+            }
+        }
 };
 
 // called from the xine thread: safe to call xine functions that call back to the ByteStream input
 // plugin
-void AudioPostList::wireStream()
-{
-    Q_ASSERT(QThread::currentThread() == XineEngine::thread());
-    Q_ASSERT(d->stream);
-    wireStream(d->stream->audioSource());
-}
-
 void AudioPostList::wireStream(xine_post_out_t *audioSource)
 {
-    Q_ASSERT(QThread::currentThread() == XineEngine::thread());
     if (d->newOutput.isValid()) {
         int err;
         if (!d->effects.isEmpty()) {
@@ -146,17 +144,16 @@ void AudioPostList::wireStream(xine_post_out_t *audioSource)
                 effect.setOutput(inputFor(next), d->newOutput);
                 next = effect.post();
             }
-            kDebug(610) << "xine_post_wire(" << audioSource << ", " << inputFor(next) << ")" << endl;
+            kDebug(610) << "xine_post_wire(" << audioSource << ", " << inputFor(next) << ")";
             err = xine_post_wire(audioSource, inputFor(next));
         } else {
-            kDebug(610) << "xine_post_wire_audio_port(" << audioSource << ", " << d->newOutput << ")" << endl;
+            kDebug(610) << "xine_post_wire_audio_port(" << audioSource << ", " << d->newOutput << ")";
             err = xine_post_wire_audio_port(audioSource, d->newOutput);
         }
         Q_ASSERT(err == 1);
-        d->output.waitALittleWithDying(); // xine still accesses the port after a rewire :(
         d->output = d->newOutput;
     } else {
-        kDebug(610) << "no valid audio output given, no audio" << endl;
+        kDebug(610) << "no valid audio output given, no audio";
         //xine_set_param(stream, XINE_PARAM_IGNORE_AUDIO, 1);
     }
 }
@@ -164,9 +161,7 @@ void AudioPostList::wireStream(xine_post_out_t *audioSource)
 void AudioPostList::setAudioPort(const AudioPort &port)
 {
     d->newOutput = port;
-    if (d->stream) {
-        XineThread::needRewire(this);
-    }
+    d->needRewire(this);
 }
 
 const AudioPort &AudioPostList::audioPort() const
@@ -174,73 +169,83 @@ const AudioPort &AudioPostList::audioPort() const
     return d->output;
 }
 
-bool AudioPostList::contains(Effect *effect) const
+bool AudioPostList::contains(AudioEffect *effect) const
 {
     return d->effects.contains(ListData(effect, 0));
 }
 
-int AudioPostList::indexOf(Effect *effect) const
+int AudioPostList::indexOf(AudioEffect *effect) const
 {
     return d->effects.indexOf(ListData(effect, 0));
 }
 
-void AudioPostList::insert(int index, Effect *effect)
+void AudioPostList::insert(int index, AudioEffect *effect)
 {
     d->effects.insert(index, ListData(effect, 0));
-    if (d->stream) {
-        XineThread::needRewire(this);
-    }
+    d->needRewire(this);
 }
 
-void AudioPostList::append(Effect *effect)
+void AudioPostList::append(AudioEffect *effect)
 {
     d->effects.append(ListData(effect, 0));
-    if (d->stream) {
-        XineThread::needRewire(this);
-    }
+    d->needRewire(this);
 }
 
-int AudioPostList::removeAll(Effect *effect)
+int AudioPostList::removeAll(AudioEffect *effect)
 {
     int removed = d->effects.removeAll(ListData(effect, 0));
-    if (d->stream) {
-        XineThread::needRewire(this);
-    }
+    d->needRewire(this);
     return removed;
 }
 
 AudioPostList::AudioPostList()
     : d(new AudioPostListData)
 {
+    d->ref.ref();
 }
 
 AudioPostList::AudioPostList(const AudioPostList &rhs)
     :d (rhs.d)
 {
+    if (d) {
+        d->ref.ref();
+    }
 }
 
 AudioPostList &AudioPostList::operator=(const AudioPostList &rhs)
 {
-    d = rhs.d;
+    if (d != rhs.d) {
+        AudioPostListData *x = rhs.d;
+        if (x) {
+            x->ref.ref();
+        }
+        x = qAtomicSetPtr(&d, x);
+        if (x && !x->ref.deref())
+            delete x;
+    }
     return *this;
 }
 
 AudioPostList::~AudioPostList()
 {
+    if (d && !d->ref.deref()) {
+        delete d;
+    }
 }
 
-void AudioPostList::setXineStream(XineStream *xs)
+void AudioPostList::addXineStream(XineStream *xs)
 {
-    Q_ASSERT(d->stream == 0);
-    d->stream = xs;
+    Q_ASSERT(!d->streams.contains(xs));
+    d->streams.append(xs);
 }
 
-void AudioPostList::unsetXineStream(XineStream *xs)
+void AudioPostList::removeXineStream(XineStream *xs)
 {
-    Q_ASSERT(d->stream == xs);
-    d->stream = 0;
+    const int r = d->streams.removeAll(xs);
+    Q_ASSERT(1 == r);
 }
 
 } // namespace Xine
 } // namespace Phonon
 
+// vim: sw=4 sts=4 et tw=100

@@ -88,7 +88,7 @@ void MediaQueue::setNextUrl( const KUrl& url )
 void MediaQueue::setDoCrossfade( bool xfade )
 {
     if (xfade) {
-		kWarning( 610 ) << "crossfades with Xine are not implemented yet" << endl;
+		kWarning( 610 ) << "crossfades with Xine are not implemented yet";
 	}
 	//m_doCrossfade = xfade;
 }

@@ -18,7 +18,8 @@
 
 */
 
-#include "videoeffect.h"
+#include "audioeffect.h"
+#include <klocale.h>
 #include <QVariant>
 #include "xineengine.h"
 #include <QMutexLocker>
@@ -27,13 +28,12 @@ namespace Phonon
 {
 namespace Xine
 {
-VideoEffect::VideoEffect( int effectId, QObject* parent )
+AudioEffect::AudioEffect( int effectId, QObject* parent )
     : QObject(parent),
     m_pluginName(0),
-    m_pluginParams(0),
-    m_path(0)
+    m_pluginParams(0)
 {
-    const char *const *postPlugins = xine_list_post_plugins_typed(XineEngine::xine(), XINE_POST_TYPE_VIDEO_FILTER);
+    const char *const *postPlugins = xine_list_post_plugins_typed(XineEngine::xine(), XINE_POST_TYPE_AUDIO_FILTER);
     if (effectId >= 0x7F000000) {
         effectId -= 0x7F000000;
         for(int i = 0; postPlugins[i]; ++i) {
@@ -46,15 +46,14 @@ VideoEffect::VideoEffect( int effectId, QObject* parent )
     }
 }
 
-VideoEffect::VideoEffect(const char *name, QObject *parent)
+AudioEffect::AudioEffect(const char *name, QObject *parent)
     : QObject(parent),
     m_pluginName(name),
-    m_pluginParams(0),
-    m_path(0)
+    m_pluginParams(0)
 {
 }
 
-VideoEffect::~VideoEffect()
+AudioEffect::~AudioEffect()
 {
     foreach (xine_post_t *post, m_plugins) {
         xine_post_dispose(XineEngine::xine(), post);
@@ -62,18 +61,18 @@ VideoEffect::~VideoEffect()
     free(m_pluginParams);
 }
 
-void VideoEffect::setPath( VideoPath* path )
+bool AudioEffect::isValid() const
 {
-	m_path = path;
+    return m_pluginName != 0;
 }
 
-QList<EffectParameter> VideoEffect::allDescriptions()
+QList<EffectParameter> AudioEffect::allDescriptions()
 {
     ensureParametersReady();
     return m_parameterList;
 }
 
-EffectParameter VideoEffect::description(int parameterIndex)
+EffectParameter AudioEffect::description(int parameterIndex)
 {
     ensureParametersReady();
     if (parameterIndex >= m_parameterList.size()) {
@@ -82,16 +81,16 @@ EffectParameter VideoEffect::description(int parameterIndex)
     return m_parameterList[parameterIndex];
 }
 
-int VideoEffect::parameterCount()
+int AudioEffect::parameterCount()
 {
     ensureParametersReady();
     return m_parameterList.size();
 }
 
-void VideoEffect::ensureParametersReady()
+void AudioEffect::ensureParametersReady()
 {
     if (m_parameterList.isEmpty() && m_plugins.isEmpty()) {
-        newInstance(XineEngine::nullVideoPort());
+        newInstance(XineEngine::nullPort());
         if (!m_plugins.isEmpty()) {
             xine_post_dispose(XineEngine::xine(), m_plugins.first());
             m_plugins.clear();
@@ -99,11 +98,11 @@ void VideoEffect::ensureParametersReady()
     }
 }
 
-xine_post_t *VideoEffect::newInstance(xine_video_port_t *videoPort)
+xine_post_t *AudioEffect::newInstance(xine_audio_port_t *audioPort)
 {
     QMutexLocker lock(&m_mutex);
     if (m_pluginName) {
-        xine_post_t *x = xine_post_init(XineEngine::xine(), m_pluginName, 1, 0, &videoPort);
+        xine_post_t *x = xine_post_init(XineEngine::xine(), m_pluginName, 1, &audioPort, 0);
         m_plugins << x;
         xine_post_in_t *paraInput = xine_post_input(x, "parameters");
         if (paraInput) {
@@ -153,7 +152,7 @@ xine_post_t *VideoEffect::newInstance(xine_video_port_t *videoPort)
     return 0;
 }
 
-QVariant VideoEffect::parameterValue(int parameterIndex) const
+QVariant AudioEffect::parameterValue(int parameterIndex) const
 {
     QMutexLocker lock(&m_mutex);
     if (m_plugins.isEmpty() || m_pluginApis.isEmpty()) {
@@ -191,11 +190,11 @@ QVariant VideoEffect::parameterValue(int parameterIndex) const
                 abort();
         }
     }
-    kError(610) << "invalid parameterIndex passed to VideoEffect::value" << endl;
+    kError(610) << "invalid parameterIndex passed to AudioEffect::value" << endl;
     return QVariant();
 }
 
-void VideoEffect::setParameterValue(int parameterIndex, const QVariant &newValue)
+void AudioEffect::setParameterValue(int parameterIndex, const QVariant &newValue)
 {
     QMutexLocker lock(&m_mutex);
     if (m_plugins.isEmpty() || m_pluginApis.isEmpty()) {
@@ -239,18 +238,18 @@ void VideoEffect::setParameterValue(int parameterIndex, const QVariant &newValue
                 }
                 break;
             case POST_PARAM_TYPE_LAST:         /* terminator of parameter list       */
-                kError(610) << "invalid parameterIndex passed to VideoEffect::setValue" << endl;
+                kError(610) << "invalid parameterIndex passed to AudioEffect::setValue" << endl;
                 break;
             default:
                 abort();
         }
         api->set_parameters(post, m_pluginParams);
     } else {
-        kError(610) << "invalid parameterIndex passed to VideoEffect::setValue" << endl;
+        kError(610) << "invalid parameterIndex passed to AudioEffect::setValue" << endl;
     }
 }
 
 }} //namespace Phonon::Xine
 
-#include "videoeffect.moc"
+#include "audioeffect.moc"
 // vim: sw=4 ts=4
