@@ -26,7 +26,6 @@ namespace Phonon
 {
 namespace Xine
 {
-#define K_XT(type) (static_cast<type *>(SinkNode::threadSafeObject.data()))
 
 enum ParameterIds {
     VolumeParameter = 0,
@@ -36,14 +35,9 @@ enum ParameterIds {
     StartFadeParameter = 4
 };
 
-VolumeFaderEffectXT::VolumeFaderEffectXT()
-    : EffectXT("KVolumeFader"),
-    m_parameters(Phonon::VolumeFaderEffect::Fade3Decibel, 1.0f, 1.0f, 0)
-{
-}
-
 VolumeFaderEffect::VolumeFaderEffect( QObject* parent )
-    : Effect(new VolumeFaderEffectXT, parent)
+    : AudioEffect("KVolumeFader", parent),
+    m_parameters(Phonon::VolumeFaderEffect::Fade3Decibel, 1.0f, 1.0f, 0)
 {
     const QVariant one = 1.0;
     const QVariant dZero = 0.0;
@@ -64,16 +58,16 @@ VolumeFaderEffect::~VolumeFaderEffect()
 
 QVariant VolumeFaderEffect::parameterValue(int parameterId) const
 {
-    kDebug(610) << k_funcinfo << parameterId << endl;
+    kDebug(610) << k_funcinfo << parameterId;
     switch (static_cast<ParameterIds>(parameterId)) {
         case VolumeParameter:
             return static_cast<double>(volume());
         case FadeCurveParameter:
             return static_cast<int>(fadeCurve());
         case FadeToParameter:
-            return static_cast<double>(K_XT(const VolumeFaderEffectXT)->m_parameters.fadeTo);
+            return static_cast<double>(m_parameters.fadeTo);
         case FadeTimeParameter:
-            return K_XT(const VolumeFaderEffectXT)->m_parameters.fadeTime;
+            return m_parameters.fadeTime;
         case StartFadeParameter:
             return 0;
     }
@@ -83,7 +77,7 @@ QVariant VolumeFaderEffect::parameterValue(int parameterId) const
 
 void VolumeFaderEffect::setParameterValue(int parameterId, const QVariant &newValue)
 {
-    kDebug(610) << k_funcinfo << parameterId << newValue << endl;
+    kDebug(610) << k_funcinfo << parameterId << newValue;
     switch (static_cast<ParameterIds>(parameterId)) {
         case VolumeParameter:
             setVolume(newValue.toDouble());
@@ -92,14 +86,14 @@ void VolumeFaderEffect::setParameterValue(int parameterId, const QVariant &newVa
             setFadeCurve(static_cast<Phonon::VolumeFaderEffect::FadeCurve>(newValue.toInt()));
             break;
         case FadeToParameter:
-            K_XT(const VolumeFaderEffectXT)->m_parameters.fadeTo = newValue.toDouble();
+            m_parameters.fadeTo = newValue.toDouble();
             break;
         case FadeTimeParameter:
-            K_XT(const VolumeFaderEffectXT)->m_parameters.fadeTime = newValue.toInt();
+            m_parameters.fadeTime = newValue.toInt();
             break;
         case StartFadeParameter:
             if (newValue.toBool()) {
-                fadeTo(K_XT(const VolumeFaderEffectXT)->m_parameters.fadeTo, K_XT(const VolumeFaderEffectXT)->m_parameters.fadeTime);
+                fadeTo(m_parameters.fadeTo, m_parameters.fadeTime);
             }
             break;
         default:
@@ -108,64 +102,63 @@ void VolumeFaderEffect::setParameterValue(int parameterId, const QVariant &newVa
     }
 }
 
-void VolumeFaderEffectXT::createInstance()
+xine_post_t *VolumeFaderEffect::newInstance(xine_audio_port_t *audioPort)
 {
-    xine_audio_port_t *audioPort = XineEngine::nullPort();
-    Q_ASSERT(0 == m_plugin);
-    kDebug(610) << k_funcinfo << audioPort << " fadeTime = " << m_parameters.fadeTime << endl;
-    m_plugin = xine_post_init(XineEngine::xine(), "KVolumeFader", 1, &audioPort, 0);
-    xine_post_in_t *paraInput = xine_post_input(m_plugin, "parameters");
+    kDebug(610) << k_funcinfo << audioPort << " fadeTime = " << m_parameters.fadeTime;
+    xine_post_t *x = xine_post_init(XineEngine::xine(), "KVolumeFader", 1, &audioPort, 0);
+    m_plugins << x;
+    xine_post_in_t *paraInput = xine_post_input(x, "parameters");
     Q_ASSERT(paraInput);
     Q_ASSERT(paraInput->type == XINE_POST_DATA_PARAMETERS);
     Q_ASSERT(paraInput->data);
-    m_pluginApi = reinterpret_cast<xine_post_api_t *>(paraInput->data);
-    m_pluginApi->set_parameters(m_plugin, &m_parameters);
+    m_pluginApis << reinterpret_cast<xine_post_api_t *>(paraInput->data);
+    m_pluginApis.last()->set_parameters(m_plugins.last(), &m_parameters);
+    return x;
 }
 
 void VolumeFaderEffect::getParameters() const
 {
-    if (K_XT(const VolumeFaderEffectXT)->m_pluginApi) {
-        K_XT(const VolumeFaderEffectXT)->m_pluginApi->get_parameters(K_XT(const VolumeFaderEffectXT)->m_plugin, &K_XT(const VolumeFaderEffectXT)->m_parameters);
+    if (!m_pluginApis.isEmpty()) {
+        m_pluginApis.first()->get_parameters(m_plugins.first(), &m_parameters);
     }
 }
 
 float VolumeFaderEffect::volume() const
 {
-    //kDebug(610) << k_funcinfo << endl;
+    //kDebug(610) << k_funcinfo;
     getParameters();
-    return K_XT(const VolumeFaderEffectXT)->m_parameters.currentVolume;
+    return m_parameters.currentVolume;
 }
 
 void VolumeFaderEffect::setVolume( float volume )
 {
-    //kDebug(610) << k_funcinfo << volume << endl;
-    K_XT(const VolumeFaderEffectXT)->m_parameters.currentVolume = volume;
+    //kDebug(610) << k_funcinfo << volume;
+    m_parameters.currentVolume = volume;
 }
 
 Phonon::VolumeFaderEffect::FadeCurve VolumeFaderEffect::fadeCurve() const
 {
-    //kDebug(610) << k_funcinfo << endl;
+    //kDebug(610) << k_funcinfo;
     getParameters();
-    return K_XT(const VolumeFaderEffectXT)->m_parameters.fadeCurve;
+    return m_parameters.fadeCurve;
 }
 
 void VolumeFaderEffect::setFadeCurve( Phonon::VolumeFaderEffect::FadeCurve curve )
 {
-    //kDebug(610) << k_funcinfo << curve << endl;
-    K_XT(const VolumeFaderEffectXT)->m_parameters.fadeCurve = curve;
+    //kDebug(610) << k_funcinfo << curve;
+    m_parameters.fadeCurve = curve;
 }
 
 void VolumeFaderEffect::fadeTo( float volume, int fadeTime )
 {
-    //kDebug(610) << k_funcinfo << volume << fadeTime << endl;
-    K_XT(const VolumeFaderEffectXT)->m_parameters.fadeTo = volume;
-    K_XT(const VolumeFaderEffectXT)->m_parameters.fadeTime = fadeTime;
-    if (K_XT(VolumeFaderEffectXT)->m_pluginApi) {
-        K_XT(VolumeFaderEffectXT)->m_pluginApi->set_parameters(K_XT(const VolumeFaderEffectXT)->m_plugin, &K_XT(const VolumeFaderEffectXT)->m_parameters);
+    //kDebug(610) << k_funcinfo << volume << fadeTime;
+    m_parameters.fadeTo = volume;
+    m_parameters.fadeTime = fadeTime;
+    for (int i = 0; i < m_pluginApis.size(); ++i) {
+        m_pluginApis[i]->set_parameters(m_plugins[i], &m_parameters);
     }
 }
 
-#undef K_XT
 }} //namespace Phonon::Xine
 
 #include "volumefadereffect.moc"

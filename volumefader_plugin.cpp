@@ -315,7 +315,7 @@ void KVolumeFaderPlugin::fadeBuffer(audio_buffer_t *buf)
             oneOverCurveLength = 0.0f;
             fadeStart += fadeDiff;
             fadeDiff = 0.0f; // else a new mediaobject using this effect will start a 0s fade with fadeDiff != 0
-            kDebug(610) << "fade ended: stay at " << fadeStart << endl;
+            kDebug(610) << "fade ended: stay at " << fadeStart;
         }
         if (fadeStart == 0.0f) {
             memset(data + i, 0, sizeof(int16_t)*(bufferLength-i));
@@ -339,7 +339,7 @@ void KVolumeFaderPlugin::fadeBuffer(audio_buffer_t *buf)
             data[i] = data[i] * fadeStart / maxVolume;
         }*/
     } else {
-        kDebug(610) << k_funcinfo << "broken bits " << buf->format.bits << endl;
+        kDebug(610) << k_funcinfo << "broken bits " << buf->format.bits;
     }
 }
 

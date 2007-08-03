@@ -244,7 +244,7 @@ static int kmixer_port_open(xine_audio_port_t *port_gen, xine_stream_t *stream,
     _x_post_rewire(&that->post);
     _x_post_inc_usage(port);
     if (port->usage_count != 1) {
-        kDebug(610) << k_funcinfo << "bad usage count: " << port->usage_count << endl;
+        kDebug(610) << k_funcinfo << "bad usage count: " << port->usage_count;
     }
 
     if (that->rate) {
