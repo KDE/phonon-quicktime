@@ -26,6 +26,7 @@
 #include <xine.h>
 #include <QSharedData>
 #include <kdebug.h>
+#include <QtCore/QTimerEvent>
 
 namespace Phonon
 {
@@ -50,23 +51,13 @@ AudioPortDeleter::~AudioPortDeleter()
     XineEngine::removeCleanupObject(this);
 }
 
-class AudioPortData : public QSharedData
-{
-    public:
-        AudioPortData() : port(0), audioOutput(0) {}
-        ~AudioPortData();
-
-        xine_audio_port_t *port;
-        QObject *audioOutput;
-};
-
 AudioPortData::~AudioPortData()
 {
-    //kDebug(610) << k_funcinfo << this << " port = " << port;
+    //kDebug(610) << k_funcinfo << this << " port = " << port << endl;
     if (port) {
         xine_close_audio_driver(XineEngine::xine(), port);
         port = 0;
-        kDebug(610) << "----------------------------------------------- audio_port destroyed";
+        kDebug(610) << "----------------------------------------------- audio_port destroyed" << endl;
     }
 }
 
@@ -96,7 +87,7 @@ AudioPort::AudioPort(int deviceIndex)
     : d(new AudioPortData)
 {
     QByteArray outputPlugin = XineEngine::audioDriverFor(deviceIndex).toLatin1();
-    //kDebug(610) << k_funcinfo << outputPlugin << alsaDevices;
+    //kDebug(610) << k_funcinfo << outputPlugin << alsaDevices << endl;
 
     if (outputPlugin == "alsa") {
         QStringList alsaDevices = XineEngine::alsaDevicesFor(deviceIndex);
@@ -135,15 +126,15 @@ AudioPort::AudioPort(int deviceIndex)
 
             d->port = xine_open_audio_driver(XineEngine::xine(), outputPlugin.constData(), 0);
             if (d->port) {
-                kDebug(610) << k_funcinfo << "use ALSA device: " << device;
+                kDebug(610) << k_funcinfo << "use ALSA device: " << device << endl;
                 break;
             }
         }
     } else {
-        kDebug(610) << k_funcinfo << "use output plugin: '" << outputPlugin << "'";
+        kDebug(610) << k_funcinfo << "use output plugin: '" << outputPlugin << "'" << endl;
         d->port = xine_open_audio_driver(XineEngine::xine(), outputPlugin.constData(), 0);
     }
-    kDebug(610) << "----------------------------------------------- audio_port created";
+    kDebug(610) << "----------------------------------------------- audio_port created" << endl;
 }
 
 bool AudioPort::isValid() const

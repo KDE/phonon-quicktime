@@ -31,10 +31,19 @@ namespace Phonon
 namespace Xine
 {
 
-class AudioPortData;
+class AudioPortData : public QSharedData
+{
+    public:
+        AudioPortData() : port(0), audioOutput(0) {}
+        ~AudioPortData();
+
+        xine_audio_port_t *port;
+        QObject *audioOutput;
+};
 
 class AudioPort
 {
+    friend class NullSinkXT;
     public:
         AudioPort();
         AudioPort(int deviceIndex);

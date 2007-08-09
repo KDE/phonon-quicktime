@@ -1,10 +1,9 @@
 /*  This file is part of the KDE project
     Copyright (C) 2007 Matthias Kretz <kretz@kde.org>
 
-    This program is free software; you can redistribute it and/or
+    This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
-    License as published by the Free Software Foundation; either
-    version 2 of the License, or (at your option) any later version.
+    License version 2 as published by the Free Software Foundation.
 
     This library is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -29,18 +28,16 @@ namespace Phonon
 namespace Xine
 {
 
-class XineStream;
 class NullSinkXT : public SinkNodeXT
 {
     public:
-        NullSinkXT() : SinkNodeXT("NullSink"), m_stream(0) {}
+        NullSinkXT();
         virtual void rewireTo(SourceNodeXT *);
-        virtual xine_audio_port_t *audioPort() const;
-        virtual xine_video_port_t *videoPort() const;
-
+        virtual AudioPort audioPort() const { return m_audioPort; }
+        virtual xine_video_port_t *videoPort() const { return m_videoPort; }
     private:
-        friend class NullSink;
-        QPointer<XineStream> m_stream;
+        AudioPort m_audioPort;
+        xine_video_port_t *m_videoPort;
 };
 
 class NullSinkPrivate;
@@ -48,10 +45,11 @@ class NullSink : public QObject, public SinkNode
 {
     friend class NullSinkPrivate;
     Q_OBJECT
+    private:
+        NullSink(QObject *parent = 0) : QObject(parent), SinkNode(new NullSinkXT) {}
     public:
-        NullSink(QObject *parent) : QObject(parent), SinkNode(new NullSinkXT) {}
+        static NullSink *instance();
         MediaStreamTypes inputMediaStreamTypes() const { return Phonon::Xine::Audio | Phonon::Xine::Video; }
-        void downstreamEvent(Event *e);
 };
 } // namespace Xine
 } // namespace Phonon
