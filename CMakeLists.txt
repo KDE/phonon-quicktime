@@ -9,6 +9,7 @@ set(phonon_xine_PART_SRCS
    sinknode.cpp
    sourcenode.cpp
    xinethread.cpp
+   nullsink.cpp
     xineengine.cpp
     xinestream.cpp
     audioport.cpp
