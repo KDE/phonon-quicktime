@@ -27,27 +27,28 @@ namespace Phonon
 namespace Xine
 {
 
-NullSinkXT::NullSinkXT()
-    : m_videoPort(0)
-{
-}
-
 void NullSinkXT::rewireTo(SourceNodeXT *source)
 {
     xine_post_out_t *audioSource = source->audioOutputPort();
     xine_post_out_t *videoSource = source->videoOutputPort();
     if (audioSource) {
-        if (!m_audioPort.isValid()) {
-            m_audioPort.d->port = XineEngine::nullPort();
-        }
-        xine_post_wire_audio_port(audioSource, m_audioPort);
+        xine_post_wire_audio_port(audioSource, audioPort());
     }
     if (videoSource) {
-        if (!m_videoPort) {
-            m_videoPort = XineEngine::nullVideoPort();
-        }
-        xine_post_wire_video_port(videoSource, m_videoPort);
+        xine_post_wire_video_port(videoSource, videoPort());
     }
+}
+
+AudioPort NullSinkXT::audioPort() const
+{
+    AudioPort ret;
+    ret.d->port = XineEngine::nullPort();
+    return ret;
+}
+
+xine_video_port_t *NullSinkXT::videoPort() const
+{
+    return XineEngine::nullVideoPort();
 }
 
 class NullSinkPrivate
