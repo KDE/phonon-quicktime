@@ -20,8 +20,6 @@
 #ifndef PHONON_XINE_XINESTREAM_H
 #define PHONON_XINE_XINESTREAM_H
 
-#include "audioport.h"
-#include "audiopostlist.h"
 #include "sourcenode.h"
 
 #include <QtCore/QObject>
@@ -77,7 +75,6 @@ class XineStream : public QObject, public SourceNodeXT
         void removeAudioPostList(const AudioPostList &);
         */
 
-        void setVideoPort(VideoWidget *vwi);
         void setTickInterval(qint32 interval);
         void setPrefinishMark(qint32 time);
 
@@ -89,13 +86,13 @@ class XineStream : public QObject, public SourceNodeXT
         void gaplessSwitchTo(const QByteArray &mrl);
         void closeBlocking();
         void aboutToDeleteVideoWidget();
-        VideoWidget *videoWidget() const
+        /*VideoWidget *videoWidget() const
         {
             if (m_newVideoPort) {
                 return m_newVideoPort;
             }
             return m_videoPort;
-        }
+        }*/
 
         void setError(Phonon::ErrorType, const QString &);
         QString errorString() const { return m_errorString; }
@@ -152,6 +149,7 @@ class XineStream : public QObject, public SourceNodeXT
         void angleChanged(int);
         void availableTitlesChanged(int);
         void titleChanged(int);
+        void frameFormatChange(int, int, int, bool);
 
     protected:
         bool event(QEvent *ev);
@@ -166,7 +164,6 @@ class XineStream : public QObject, public SourceNodeXT
         void getStreamInfo();
         bool xineOpen(Phonon::State);
         void updateMetaData();
-        void rewireOutputPorts();
         bool createStream();
         void changeState(Phonon::State newstate);
         void emitAboutToFinishIn(int timeToAboutToFinishSignal);
@@ -178,9 +175,6 @@ class XineStream : public QObject, public SourceNodeXT
 
         xine_stream_t *m_stream;
         xine_event_queue_t *m_event_queue;
-
-        VideoWidget *m_videoPort;
-        VideoWidget *m_newVideoPort;
 
         Phonon::State m_state;
 
@@ -216,7 +210,6 @@ class XineStream : public QObject, public SourceNodeXT
         bool m_streamInfoReady : 1;
         bool m_hasVideo : 1;
         bool m_isSeekable : 1;
-        bool m_rewireEventSent : 1;
         bool m_useGaplessPlayback : 1;
         bool m_prefinishMarkReachedNotEmitted : 1;
         bool m_ticking : 1;

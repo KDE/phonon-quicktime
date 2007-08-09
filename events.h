@@ -38,7 +38,7 @@ namespace Events
     enum {
         GetStreamInfo = 2001,
         UpdateVolume = 2002,
-        RewireStream = 2003,
+        RewireVideoToNull = 2003,
         PlayCommand = 2004,
         PauseCommand = 2005,
         StopCommand = 2006,
