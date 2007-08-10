@@ -53,11 +53,11 @@ AudioPortDeleter::~AudioPortDeleter()
 
 AudioPortData::~AudioPortData()
 {
-    //kDebug(610) << k_funcinfo << this << " port = " << port << endl;
+    //kDebug(610) << k_funcinfo << this << " port = " << port;
     if (port) {
         xine_close_audio_driver(XineEngine::xine(), port);
         port = 0;
-        kDebug(610) << "----------------------------------------------- audio_port destroyed" << endl;
+        kDebug(610) << "----------------------------------------------- audio_port destroyed";
     }
 }
 
@@ -87,7 +87,7 @@ AudioPort::AudioPort(int deviceIndex)
     : d(new AudioPortData)
 {
     QByteArray outputPlugin = XineEngine::audioDriverFor(deviceIndex).toLatin1();
-    //kDebug(610) << k_funcinfo << outputPlugin << alsaDevices << endl;
+    //kDebug(610) << k_funcinfo << outputPlugin << alsaDevices;
 
     if (outputPlugin == "alsa") {
         QStringList alsaDevices = XineEngine::alsaDevicesFor(deviceIndex);
@@ -126,15 +126,15 @@ AudioPort::AudioPort(int deviceIndex)
 
             d->port = xine_open_audio_driver(XineEngine::xine(), outputPlugin.constData(), 0);
             if (d->port) {
-                kDebug(610) << k_funcinfo << "use ALSA device: " << device << endl;
+                kDebug(610) << k_funcinfo << "use ALSA device: " << device;
                 break;
             }
         }
     } else {
-        kDebug(610) << k_funcinfo << "use output plugin: '" << outputPlugin << "'" << endl;
+        kDebug(610) << k_funcinfo << "use output plugin: '" << outputPlugin << "'";
         d->port = xine_open_audio_driver(XineEngine::xine(), outputPlugin.constData(), 0);
     }
-    kDebug(610) << "----------------------------------------------- audio_port created" << endl;
+    kDebug(610) << "----------------------------------------------- audio_port created";
 }
 
 bool AudioPort::isValid() const

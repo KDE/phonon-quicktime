@@ -76,7 +76,7 @@ Backend::Backend( QObject* parent, const QStringList& )
 	xine_config_load( XineEngine::xine(), configfile );
 	xine_init( XineEngine::xine() );
 
-	kDebug( 610 ) << "Using Xine version " << xine_get_version_string() << endl;
+	kDebug( 610 ) << "Using Xine version " << xine_get_version_string();
 
     connect(XineEngine::sender(), SIGNAL(objectDescriptionChanged(ObjectDescriptionType)),
             SIGNAL(objectDescriptionChanged(ObjectDescriptionType)));
@@ -223,7 +223,7 @@ QSet<int> Backend::objectDescriptionIndexes( ObjectDescriptionType type ) const
 
 QHash<QByteArray, QVariant> Backend::objectDescriptionProperties(ObjectDescriptionType type, int index) const
 {
-    //kDebug(610) << k_funcinfo << type << index << endl;
+    //kDebug(610) << k_funcinfo << type << index;
     QHash<QByteArray, QVariant> ret;
     switch (type) {
         case Phonon::AudioOutputDeviceType:
@@ -268,7 +268,7 @@ QHash<QByteArray, QVariant> Backend::objectDescriptionProperties(ObjectDescripti
                     ret.insert("name", QLatin1String("DV"));
                     break;
             }
-            //kDebug(610) << ret["name"] << endl;
+            //kDebug(610) << ret["name"];
             break;
         case Phonon::VideoOutputDeviceType:
             {
