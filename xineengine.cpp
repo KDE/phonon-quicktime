@@ -46,7 +46,7 @@ namespace Xine
 
     void XineEnginePrivate::emitAudioDeviceChange()
     {
-        kDebug(610) << k_funcinfo << endl;
+        kDebug(610) << k_funcinfo;
         emit objectDescriptionChanged(AudioOutputDeviceType);
     }
 
@@ -74,7 +74,7 @@ namespace Xine
             m_thread->wait();
             delete m_thread;
         }
-        //kDebug(610) << k_funcinfo << endl;
+        //kDebug(610) << k_funcinfo;
         if (m_nullPort) {
             xine_close_audio_driver(m_xine, m_nullPort);
         }
@@ -120,7 +120,7 @@ namespace Xine
         if (!p || !xineEvent) {
             return;
         }
-        //kDebug( 610 ) << "Xine event: " << xineEvent->type << QByteArray((char *)xineEvent->data, xineEvent->data_length) << endl;
+        //kDebug( 610 ) << "Xine event: " << xineEvent->type << QByteArray((char *)xineEvent->data, xineEvent->data_length);
 
         XineStream *xs = static_cast<XineStream *>(p);
 
@@ -153,17 +153,17 @@ namespace Xine
                 }
                 break;
             case XINE_EVENT_UI_CHANNELS_CHANGED:    /* inform ui that new channel info is available */
-                kDebug(610) << "XINE_EVENT_UI_CHANNELS_CHANGED" << endl;
+                kDebug(610) << "XINE_EVENT_UI_CHANNELS_CHANGED";
                 {
                     QCoreApplication::postEvent(xs, new QEvent(static_cast<QEvent::Type>(Events::UiChannelsChanged)));
                 }
                 break;
             case XINE_EVENT_UI_MESSAGE:             /* message (dialog) for the ui to display */
                 {
-                    kDebug(610) << "XINE_EVENT_UI_MESSAGE" << endl;
+                    kDebug(610) << "XINE_EVENT_UI_MESSAGE";
                     const xine_ui_message_data_t *message = static_cast<xine_ui_message_data_t *>(xineEvent->data);
                     if (message->type == XINE_MSG_AUDIO_OUT_UNAVAILABLE) {
-                        kDebug(610) << "XINE_MSG_AUDIO_OUT_UNAVAILABLE" << endl;
+                        kDebug(610) << "XINE_MSG_AUDIO_OUT_UNAVAILABLE";
                         // we don't know for sure which AudioOutput failed. but the one without any
                         // capabilities must be the guilty one
                         xs->audioDeviceFailed();
@@ -171,7 +171,7 @@ namespace Xine
                 }
                 break;
             case XINE_EVENT_FRAME_FORMAT_CHANGE:    /* e.g. aspect ratio change during dvd playback */
-                kDebug(610) << "XINE_EVENT_FRAME_FORMAT_CHANGE" << endl;
+                kDebug(610) << "XINE_EVENT_FRAME_FORMAT_CHANGE";
                 {
                     /* FIXME
                     VideoWidget *vw = xs->videoWidget();
@@ -183,16 +183,16 @@ namespace Xine
                 }
                 break;
             case XINE_EVENT_AUDIO_LEVEL:            /* report current audio level (l/r/mute) */
-                kDebug(610) << "XINE_EVENT_AUDIO_LEVEL" << endl;
+                kDebug(610) << "XINE_EVENT_AUDIO_LEVEL";
                 break;
             case XINE_EVENT_QUIT:                   /* last event sent when stream is disposed */
-                kDebug(610) << "XINE_EVENT_QUIT" << endl;
+                kDebug(610) << "XINE_EVENT_QUIT";
                 break;
             case XINE_EVENT_UI_NUM_BUTTONS:         /* number of buttons for interactive menus */
-                kDebug(610) << "XINE_EVENT_UI_NUM_BUTTONS" << endl;
+                kDebug(610) << "XINE_EVENT_UI_NUM_BUTTONS";
                 break;
             case XINE_EVENT_DROPPED_FRAMES:         /* number of dropped frames is too high */
-                kDebug(610) << "XINE_EVENT_DROPPED_FRAMES" << endl;
+                kDebug(610) << "XINE_EVENT_DROPPED_FRAMES";
                 break;
             case XINE_EVENT_MRL_REFERENCE_EXT:      /* demuxer->frontend: MRL reference(s) for the real stream */
                 {
@@ -364,9 +364,9 @@ namespace Xine
 
     void XineEngine::checkAudioOutputs()
     {
-        kDebug(610) << k_funcinfo << endl;
+        kDebug(610) << k_funcinfo;
         if (m_audioOutputInfos.isEmpty()) {
-            kDebug(610) << "isEmpty" << endl;
+            kDebug(610) << "isEmpty";
             QObject::connect(AudioDeviceEnumerator::self(), SIGNAL(devicePlugged(const AudioDevice &)),
                     d, SLOT(devicePlugged(const AudioDevice &)));
             QObject::connect(AudioDeviceEnumerator::self(), SIGNAL(deviceUnplugged(const AudioDevice &)),
@@ -393,7 +393,7 @@ namespace Xine
             // This will list the audio drivers, not the actual devices.
             const char *const *outputPlugins = xine_list_audio_output_plugins(xine());
             for (int i = 0; outputPlugins[i]; ++i) {
-                kDebug(610) << "outputPlugin: " << outputPlugins[i] << endl;
+                kDebug(610) << "outputPlugin: " << outputPlugins[i];
                 if (0 == strcmp(outputPlugins[i], "alsa")) {
                     QList<AudioDevice> alsaDevices = AudioDeviceEnumerator::availablePlaybackDevices();
                     foreach (AudioDevice dev, alsaDevices) {
@@ -435,14 +435,14 @@ namespace Xine
 
             // now m_audioOutputInfos holds all devices this computer has ever seen
             foreach (AudioOutputInfo info, m_audioOutputInfos) {
-                kDebug(610) << info.index << info.name << info.driver << info.devices << endl;
+                kDebug(610) << info.index << info.name << info.driver << info.devices;
             }
         }
     }
 
     void XineEnginePrivate::devicePlugged(const AudioDevice &dev)
     {
-        kDebug(610) << k_funcinfo << dev.cardName() << endl;
+        kDebug(610) << k_funcinfo << dev.cardName();
         if (!dev.isPlaybackDevice()) {
             return;
         }
@@ -473,7 +473,7 @@ namespace Xine
 
     void XineEnginePrivate::deviceUnplugged(const AudioDevice &dev)
     {
-        kDebug(610) << k_funcinfo << dev.cardName() << endl;
+        kDebug(610) << k_funcinfo << dev.cardName();
         if (!dev.isPlaybackDevice()) {
             return;
         }

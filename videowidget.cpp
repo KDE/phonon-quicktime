@@ -332,7 +332,7 @@ void VideoWidget::updateZoom()
             QSize imageSize = m_sizeHint;
             // the image size is in square pixels
             // first transform it to the current aspect ratio
-            kDebug(610) << imageSize << endl;
+            kDebug(610) << imageSize;
             switch (m_aspectRatio) {
                 case Phonon::VideoWidget::AspectRatioAuto:
                     // FIXME: how can we find out the ratio xine decided on? the event?
@@ -350,9 +350,9 @@ void VideoWidget::updateZoom()
                     // correct ratio already
                     break;
             }
-            kDebug(610) << imageSize << endl;
+            kDebug(610) << imageSize;
             imageSize.scale(s, Qt::KeepAspectRatioByExpanding);
-            kDebug(610) << imageSize << s << endl;
+            kDebug(610) << imageSize << s;
             int zoom;
             if (imageSize.width() > s.width()) {
                 zoom = imageSize.width() * 100 / s.width();
@@ -389,7 +389,7 @@ bool VideoWidget::event(QEvent *ev)
             ev->accept();
             {
                 XineFrameFormatChangeEvent *e = static_cast<XineFrameFormatChangeEvent *>(ev);
-                kDebug(610) << k_funcinfo << "XineFrameFormatChangeEvent " << e->size << endl;
+                kDebug(610) << k_funcinfo << "XineFrameFormatChangeEvent " << e->size;
                 m_sizeHint = e->size;
                 updateGeometry();
             }
@@ -485,7 +485,7 @@ void VideoWidgetXT::rewireTo(SourceNodeXT *source)
 
 void VideoWidget::paintEvent(QPaintEvent *event)
 {
-    //kDebug(610) << k_funcinfo << "m_empty = " << m_empty << endl;
+    //kDebug(610) << k_funcinfo << "m_empty = " << m_empty;
     if (m_empty || !source()) {// || m_path->mediaObject()->state() == Phonon::LoadingState) {
         QPainter p(this);
         p.fillRect(rect(), Qt::black);
@@ -526,11 +526,11 @@ void VideoWidget::changeEvent( QEvent* event )
 {
 	if( event->type() == QEvent::ParentAboutToChange )
 	{
-		kDebug( 610 ) << k_funcinfo << "ParentAboutToChange" << endl;
+		kDebug( 610 ) << k_funcinfo << "ParentAboutToChange";
 	}
 	else if( event->type() == QEvent::ParentChange )
 	{
-        kDebug(610) << k_funcinfo << "ParentChange" << winId() << endl;
+        kDebug(610) << k_funcinfo << "ParentChange" << winId();
 #ifndef PHONON_XINE_NO_VIDEOWIDGET
         if (K_XT(VideoWidgetXT)->m_visual.window != winId()) {
             K_XT(VideoWidgetXT)->m_visual.window = winId();
@@ -539,7 +539,7 @@ void VideoWidget::changeEvent( QEvent* event )
                 // X-server yet
                 QApplication::syncX();
                 xine_port_send_gui_data(K_XT(VideoWidgetXT)->m_videoPort, XINE_GUI_SEND_DRAWABLE_CHANGED, reinterpret_cast<void*>(K_XT(VideoWidgetXT)->m_visual.window));
-                kDebug(610) << "XINE_GUI_SEND_DRAWABLE_CHANGED done." << endl;
+                kDebug(610) << "XINE_GUI_SEND_DRAWABLE_CHANGED done.";
             }
         }
 #endif // PHONON_XINE_NO_VIDEOWIDGET

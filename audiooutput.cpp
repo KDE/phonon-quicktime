@@ -25,16 +25,18 @@
 #include <sys/ioctl.h>
 #include <iostream>
 #include <QSet>
-#include "audiopath.h"
 #include "mediaobject.h"
 #include "backend.h"
+#include "events.h"
 
 namespace Phonon
 {
 namespace Xine
 {
+
+#define K_XT(type) (static_cast<type *>(SinkNode::threadSafeObject.data()))
 AudioOutput::AudioOutput(QObject *parent)
-    : AbstractAudioOutput(parent),
+    : AbstractAudioOutput(new AudioOutputXT, parent),
     m_device(1)
 {
 }
@@ -54,7 +56,7 @@ int AudioOutput::outputDevice() const
 	return m_device;
 }
 
-void AudioOutput::updateVolume(MediaObject *mp) const
+void AudioOutput::updateVolume(MediaObject *mo) const
 {
     int xinevolume = static_cast<int>(m_volume * 100);
     if (xinevolume > 200) {
@@ -63,7 +65,7 @@ void AudioOutput::updateVolume(MediaObject *mp) const
         xinevolume = 0;
     }
 
-    mp->stream().setVolume(xinevolume);
+    mo->stream().setVolume(xinevolume);
 }
 
 void AudioOutput::setVolume(qreal newVolume)
@@ -77,21 +79,14 @@ void AudioOutput::setVolume(qreal newVolume)
         xinevolume = 0;
     }
 
-    QSet<XineStream*> streams;
-	foreach( AudioPath* ap, m_paths )
-	{
-        foreach(MediaObject *mp, ap->mediaObjects()) {
-            streams << &mp->stream();
-		}
-	}
-    foreach (XineStream *stream, streams) {
-        stream->setVolume(xinevolume);
-	}
-
-	emit volumeChanged( m_volume );
+    MediaObject *mo = findMediaObject();
+    if (mo) {
+        mo->stream().setVolume(xinevolume);
+    }
+    emit volumeChanged(m_volume);
 }
 
-AudioPort AudioOutput::audioPort() const
+AudioPort AudioOutputXT::audioPort() const
 {
     return m_audioPort;
 }
@@ -99,21 +94,29 @@ AudioPort AudioOutput::audioPort() const
 bool AudioOutput::setOutputDevice(int newDevice)
 {
     m_device = newDevice;
-    m_audioPort.setAudioOutput(0);
-    m_audioPort = AudioPort(m_device);
-    if (!m_audioPort.isValid()) {
+    K_XT(AudioOutputXT)->m_audioPort.setAudioOutput(0);
+    K_XT(AudioOutputXT)->m_audioPort = AudioPort(m_device);
+    if (!K_XT(AudioOutputXT)->m_audioPort.isValid()) {
         kDebug(610) << "new audio port is invalid";
         return false;
     }
-    m_audioPort.setAudioOutput(this);
-    emit audioPortChanged(m_audioPort);
+    K_XT(AudioOutputXT)->m_audioPort.setAudioOutput(this);
+    emit audioPortChanged(K_XT(AudioOutputXT)->m_audioPort);
     return true;
+}
+
+void AudioOutputXT::rewireTo(SourceNodeXT *source)
+{
+    if (!source->audioOutputPort()) {
+        return;
+    }
+    xine_post_wire_audio_port(source->audioOutputPort(), m_audioPort);
 }
 
 bool AudioOutput::event(QEvent *ev)
 {
     switch (ev->type()) {
-        case Xine::AudioDeviceFailedEvent:
+        case Events::AudioDeviceFailed:
             ev->accept();
             emit audioDeviceFailed();
             return true;
@@ -122,6 +125,24 @@ bool AudioOutput::event(QEvent *ev)
     }
 }
 
+MediaObject *AudioOutput::findMediaObject() const
+{
+    SourceNode *s = source();
+    while (s) {
+        MediaObject *mo = s->mediaObjectInterface();
+        if (mo) {
+            return mo;
+        }
+        SinkNode *ss = s->sinkInterface();
+        if (!ss) {
+            return 0;
+        }
+        s = ss->source();
+    }
+    return 0;
+}
+
+#undef K_XT
 }} //namespace Phonon::Xine
 
 #include "audiooutput.moc"
