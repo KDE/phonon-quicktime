@@ -85,8 +85,7 @@ void VideoWidget::xineCallback( int &x, int &y, int &width, int &height, double 
 }
 
 VideoWidgetXT::VideoWidgetXT(QWidget *w)
-    : m_xcbConnection(0),
-    m_videoPort(0)
+    : m_videoPort(0)
 {
 #ifndef PHONON_XINE_NO_VIDEOWIDGET
     // make a new XCB connection for xine
