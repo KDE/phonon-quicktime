@@ -15,6 +15,7 @@ Name[x-test]=xxXinexx
 
 Comment=Phonon Xine backend
 Comment[ca]=Dorsal Phonon Xine
+Comment[de]=Phonon-Xine-Modul
 Comment[el]=Σύστημα υποστήριξης του Phonon Xine
 Comment[es]=Motor Xine para Phonon
 Comment[ja]=Phonon Xine バックエンド
