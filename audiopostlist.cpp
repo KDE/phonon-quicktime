@@ -119,14 +119,14 @@ class AudioPostListData : public QSharedData
 // plugin
 void AudioPostList::wireStream()
 {
-    Q_ASSERT(QThread::currentThread() == XineEngine::thread());
+    Q_ASSERT(QThread::currentThread() == XineThread::instance());
     Q_ASSERT(d->stream);
     wireStream(d->stream->audioSource());
 }
 
 void AudioPostList::wireStream(xine_post_out_t *audioSource)
 {
-    Q_ASSERT(QThread::currentThread() == XineEngine::thread());
+    Q_ASSERT(QThread::currentThread() == XineThread::instance());
     if (d->newOutput.isValid()) {
         int err;
         if (!d->effects.isEmpty()) {

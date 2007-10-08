@@ -23,7 +23,7 @@
 #include <Phonon/Global>
 #include <xine.h>
 #include "audioport.h"
-#include "xineengine.h"
+#include "backend.h"
 
 namespace Phonon
 {
@@ -39,9 +39,12 @@ class SinkNodeXT : virtual public QSharedData
         SinkNodeXT() : deleted(false) {}
         virtual ~SinkNodeXT();
         virtual void rewireTo(SourceNodeXT *) = 0;
-        virtual AudioPort audioPort() const;
+        virtual xine_audio_port_t *audioPort() const;
         virtual xine_video_port_t *videoPort() const;
         void assert() { Q_ASSERT(!deleted); }
+
+        XineEngine m_xine;
+
     private:
         bool deleted;
 };
@@ -62,12 +65,20 @@ class SinkNode
         virtual void upstreamEvent(Event *);
         virtual void downstreamEvent(Event *);
 
+        void findXineEngine();
         QExplicitlySharedDataPointer<SinkNodeXT> threadSafeObject() const { return m_threadSafeObject; }
 
-    private:
+    protected:
+        virtual void xineEngineChanged() {}
+        virtual void aboutToChangeXineEngine() {}
+
         QExplicitlySharedDataPointer<SinkNodeXT> m_threadSafeObject;
+
+    private:
         SourceNode *m_source;
 };
+
+#define K_XT(Class) Class##XT *xt = static_cast<Class##XT *>(SinkNode::m_threadSafeObject.data())
 
 } // namespace Xine
 } // namespace Phonon

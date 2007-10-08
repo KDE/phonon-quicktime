@@ -20,11 +20,17 @@
 #include "sourcenode.h"
 #include "sinknode.h"
 #include "events.h"
+#include "keepreference.h"
 
 namespace Phonon
 {
 namespace Xine
 {
+
+SourceNodeXT::SourceNodeXT()
+    : deleted(false)
+{
+}
 
 SourceNodeXT::~SourceNodeXT()
 {
@@ -54,6 +60,7 @@ SourceNode::~SourceNode()
             s->unsetSource(this);
         }
     }
+    (new KeepReference<0>)->addObject(m_threadSafeObject);
 }
 
 void SourceNode::addSink(SinkNode *s)
@@ -83,7 +90,7 @@ void SourceNode::upstreamEvent(Event *e)
     Q_ASSERT(e);
     SinkNode *iface = sinkInterface();
     if (iface) {
-        iface->upstreamEvent(e);
+        iface->SinkNode::upstreamEvent(e);
     } else {
         if (!--e->ref) {
             delete e;

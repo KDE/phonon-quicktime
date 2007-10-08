@@ -28,6 +28,7 @@
 #include <QMutex>
 #include "sinknode.h"
 #include "sourcenode.h"
+#include "xinestream.h"
 
 namespace Phonon
 {
@@ -39,16 +40,22 @@ class EffectXT : public SourceNodeXT, public SinkNodeXT
 {
     friend class Effect;
     public:
-        EffectXT(const char *name) : m_plugin(0), m_pluginApi(0), m_pluginName(name), m_pluginParams(0) {}
+        EffectXT(const char *name);
         ~EffectXT();
         xine_post_out_t *audioOutputPort() const;
         void rewireTo(SourceNodeXT *source);
-        void ensureInstance();
         virtual void createInstance();
     protected:
+        xine_audio_port_t *fakeAudioPort();
+
         xine_post_t *m_plugin;
         xine_post_api_t *m_pluginApi;
+
     private:
+        void ensureInstance();
+
+        xine_audio_port_t *m_fakeAudioPort;
+        bool m_realInstance;
         mutable QMutex m_mutex;
         const char *m_pluginName;
         char *m_pluginParams;
@@ -75,6 +82,8 @@ class Effect : public QObject, public EffectInterface, public SinkNode, public S
         void setParameterValue(const EffectParameter &p, const QVariant &newValue);
 
     protected:
+        void aboutToChangeXineEngine();
+        void xineEngineChanged();
         virtual void ensureParametersReady();
         Effect(EffectXT *, QObject *parent);
         void addParameter(const EffectParameter &p);
