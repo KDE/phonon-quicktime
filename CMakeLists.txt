@@ -12,7 +12,6 @@ set(phonon_xine_PART_SRCS
    nullsink.cpp
     xineengine.cpp
     xinestream.cpp
-    audioport.cpp
     abstractaudiooutput.cpp
     audiodataoutput.cpp
     effect.cpp
@@ -48,7 +47,7 @@ macro(dbusadaptor _sources _header _parentClass)
    qt4_add_dbus_adaptor(${_sources} ${CMAKE_CURRENT_BINARY_DIR}/${_basename}.xml ${_header} ${_parentClass})
 endmacro(dbusadaptor)
 
-dbusadaptor(phonon_xine_PART_SRCS xineengine_p.h Phonon::Xine::XineEnginePrivate)
+dbusadaptor(phonon_xine_PART_SRCS backend.h Phonon::Xine::Backend)
 kde4_add_plugin(phonon_xine ${phonon_xine_PART_SRCS})
 target_link_libraries(phonon_xine ${QT_QTGUI_LIBRARY} ${KDE4_KDECORE_LIBS} ${KDE4_PHONON_LIBS} ${XINE_LIBRARY} ${KDE4_KAUDIODEVICELIST_LIBS})
 if(XCB_FOUND AND XINE_XCB_FOUND)

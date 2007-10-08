@@ -26,7 +26,6 @@
 #include "xineengine.h"
 #include <xine.h>
 #include "xinestream.h"
-#include "audioport.h"
 #include <phonon/audiooutputinterface.h>
 #include "connectnotificationinterface.h"
 
@@ -39,11 +38,13 @@ class AudioOutputXT : public SinkNodeXT
 {
     friend class AudioOutput;
     public:
+        AudioOutputXT() : m_audioPort(0) {}
+        ~AudioOutputXT();
         void rewireTo(SourceNodeXT *);
-        AudioPort audioPort() const;
+        xine_audio_port_t *audioPort() const;
 
     private:
-        AudioPort m_audioPort;
+        xine_audio_port_t *m_audioPort;
 };
 
 class AudioOutput : public AbstractAudioOutput, public AudioOutputInterface, public ConnectNotificationInterface
@@ -68,6 +69,8 @@ class AudioOutput : public AbstractAudioOutput, public AudioOutputInterface, pub
 
     protected:
         bool event(QEvent *);
+        void xineEngineChanged();
+        void aboutToChangeXineEngine();
 
     Q_SIGNALS:
         // for the Frontend
@@ -75,6 +78,8 @@ class AudioOutput : public AbstractAudioOutput, public AudioOutputInterface, pub
         void audioDeviceFailed();
 
     private:
+        xine_audio_port_t *createPortFromIndex(int deviceIndex);
+
         qreal m_volume;
         int m_device;
 };

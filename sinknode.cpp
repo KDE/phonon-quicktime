@@ -20,6 +20,7 @@
 #include "sinknode.h"
 #include "sourcenode.h"
 #include "events.h"
+#include "keepreference.h"
 
 namespace Phonon
 {
@@ -31,9 +32,9 @@ SinkNodeXT::~SinkNodeXT()
     deleted = true;
 }
 
-AudioPort SinkNodeXT::audioPort() const
+xine_audio_port_t *SinkNodeXT::audioPort() const
 {
-    return AudioPort();
+    return 0;
 }
 
 xine_video_port_t *SinkNodeXT::videoPort() const
@@ -52,6 +53,7 @@ SinkNode::~SinkNode()
     if (m_source) {
         m_source->removeSink(this);
     }
+    (new KeepReference<0>)->addObject(m_threadSafeObject);
 }
 
 void SinkNode::setSource(SourceNode *s)
@@ -82,22 +84,55 @@ void SinkNode::upstreamEvent(Event *e)
     if (m_source) {
         m_source->upstreamEvent(e);
     } else {
+        if (e->type() == Event::IsThereAXineEngineForMe) {
+            downstreamEvent(new Event(Event::NoThereIsNoXineEngineForYou));
+        }
         if (!--e->ref) {
             delete e;
         }
     }
 }
 
+void SinkNode::findXineEngine()
+{
+    upstreamEvent(new Event(Event::IsThereAXineEngineForMe));
+}
+
 void SinkNode::downstreamEvent(Event *e)
 {
     Q_ASSERT(e);
+    bool emitXineEngineChanged = false;
+    switch (e->type()) {
+    case Event::HeresYourXineStream:
+        {
+            XineEngine xine = static_cast<HeresYourXineStreamEvent *>(e)->stream->xine();
+            if (m_threadSafeObject->m_xine != xine) {
+                aboutToChangeXineEngine();
+                m_threadSafeObject->m_xine = xine;
+                emitXineEngineChanged = true;
+            }
+        }
+        break;
+    case Event::NoThereIsNoXineEngineForYou:
+        if (m_threadSafeObject->m_xine) {
+            aboutToChangeXineEngine();
+            m_threadSafeObject->m_xine = XineEngine();
+            emitXineEngineChanged = true;
+        }
+        break;
+    default:
+        break;
+    }
     SourceNode *iface = sourceInterface();
     if (iface) {
-        iface->downstreamEvent(e);
+        iface->SourceNode::downstreamEvent(e);
     } else {
         if (!--e->ref) {
             delete e;
         }
+    }
+    if (emitXineEngineChanged) {
+        xineEngineChanged();
     }
 }
 

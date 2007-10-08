@@ -35,6 +35,7 @@
 
 #include <sys/time.h>
 #include <time.h>
+#include "xineengine.h"
 
 class KUrl;
 
@@ -59,6 +60,8 @@ class XineStream : public QObject, public SourceNodeXT
 {
     Q_OBJECT
     public:
+        static void xineEventListener(void *, const xine_event_t *);
+
         XineStream();
         ~XineStream();
 
@@ -114,6 +117,10 @@ class XineStream : public QObject, public SourceNodeXT
 
         xine_post_out_t *audioOutputPort() const;
         xine_post_out_t *videoOutputPort() const;
+
+        xine_audio_port_t *nullAudioPort() const;
+        xine_video_port_t *nullVideoPort() const;
+        XineEngine xine() const;
 
         void setMediaObject(MediaObject *m) { m_mediaObject = m; }
         void handleDownstreamEvent(Event *e);
@@ -178,6 +185,9 @@ class XineStream : public QObject, public SourceNodeXT
         xine_stream_t *m_stream;
         xine_event_queue_t *m_event_queue;
         xine_post_t *m_deinterlacer;
+        mutable XineEngine m_xine;
+        mutable xine_audio_port_t *m_nullAudioPort;
+        mutable xine_video_port_t *m_nullVideoPort;
 
         Phonon::State m_state;
 

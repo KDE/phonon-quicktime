@@ -97,7 +97,7 @@ XineOptions::XineOptions(QWidget *parent, const QVariantList &args)
 void XineOptions::ossCheckboxToggled(bool b)
 {
     const QString x = QDBusConnection::sessionBus().baseService();
-    QDBusInterface iface(x, "/internal/PhononXine", "org.kde.phonon.XineEnginePrivate");
+    QDBusInterface iface(x, "/internal/PhononXine", "org.kde.phonon.XineBackendInternal");
     if (iface.isValid()) {
         iface.call(QDBus::NoBlock, "ossSettingChanged", b);
     }
