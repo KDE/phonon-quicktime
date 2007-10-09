@@ -95,8 +95,11 @@ bool XineThread::event(QEvent *e)
     switch (e->type()) {
     case Event::Cleanup:
         e->accept();
-        foreach (QObject *o, static_cast<CleanupEvent *>(e)->objects) {
-            delete o;
+        {
+            const QList<QObject *> cleanupObjects = Backend::cleanupObjects();
+            foreach (QObject *o, cleanupObjects) {
+                delete o;
+            }
         }
         return true;
     case Event::NewStream:

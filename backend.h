@@ -101,6 +101,7 @@ class Backend : public QObject, public Phonon::BackendInterface
     // phonon-xine internal:
         static void addCleanupObject(QObject *o) { instance()->m_cleanupObjects << o; }
         static void removeCleanupObject(QObject *o) { instance()->m_cleanupObjects.removeAll(o); }
+        static const QList<QObject *> &cleanupObjects() { return instance()->m_cleanupObjects; }
 
         static bool deinterlaceDVD();
         static bool deinterlaceVCD();

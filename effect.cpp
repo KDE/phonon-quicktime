@@ -279,7 +279,17 @@ void Effect::setParameterValue(const EffectParameter &p, const QVariant &newValu
         xine_post_api_parameter_t &p = desc->parameter[i];
         switch (p.type) {
         case POST_PARAM_TYPE_INT:          /* integer (or vector of integers)    */
-            {
+            if (p.enum_values && newValue.type() == QVariant::String) {
+                // need to convert to index
+                int *value = reinterpret_cast<int *>(xt->m_pluginParams + p.offset);
+                const QString string = newValue.toString();
+                for (int j = 0; p.enum_values[j]; ++j) {
+                    if (string == QString::fromUtf8(p.enum_values[j])) {
+                        *value = j;
+                        break;
+                    }
+                }
+            } else {
                 int *value = reinterpret_cast<int *>(xt->m_pluginParams + p.offset);
                 *value = newValue.toInt();
             }
@@ -331,7 +341,9 @@ void Effect::aboutToChangeXineEngine()
         xt->m_plugin = 0;
         xt->m_pluginApi = 0;
         xt->m_fakeAudioPort = 0;
-        (new KeepReference<>)->addObject(static_cast<SinkNodeXT *>(xt2));
+        KeepReference<> *keep = new KeepReference<>;
+        keep->addObject(static_cast<SinkNodeXT *>(xt2));
+        keep->ready();
     }
 }
 

@@ -107,7 +107,7 @@ Backend::~Backend()
 {
     if (!m_cleanupObjects.isEmpty()) {
         Q_ASSERT(m_thread);
-        QCoreApplication::postEvent(m_thread, new CleanupEvent(m_cleanupObjects));
+        QCoreApplication::postEvent(m_thread, new Event(Event::Cleanup));
         while (!m_cleanupObjects.isEmpty()) {
             XineThread::msleep(200); // static QThread::msleep, but that one is protected and XineThread is our friend
         }
@@ -515,6 +515,7 @@ bool Backend::endConnectionChange(QSet<QObject *> nodes)
     }
     QCoreApplication::postEvent(XineThread::instance(), new RewireEvent(wireCalls, m_disconnections));
     m_disconnections.clear();
+    keep->ready();
     return true;
 }
 

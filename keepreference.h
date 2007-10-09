@@ -42,9 +42,6 @@ class KeepReference : public QObject
             //moveToThread(QApplication::instance()->thread());
             moveToThread(XineThread::instance());
             Backend::addCleanupObject(this);
-
-            // do this so that startTimer is called from the correct thread
-            QCoreApplication::postEvent(this, new QEvent(static_cast<QEvent::Type>(2345)));
         }
 
         inline ~KeepReference() { Backend::removeCleanupObject(this); }
@@ -53,6 +50,10 @@ class KeepReference : public QObject
         inline void addObject(const QExplicitlySharedDataPointer<SourceNodeXT> &source) { sources << source; }
         inline void addObject(SinkNodeXT *sink) { sinks << QExplicitlySharedDataPointer<SinkNodeXT>(sink); }
         inline void addObject(SourceNodeXT *source) { sources << QExplicitlySharedDataPointer<SourceNodeXT>(source); }
+        inline void ready() {
+            // do this so that startTimer is called from the correct thread
+            QCoreApplication::postEvent(this, new QEvent(static_cast<QEvent::Type>(2345)));
+        }
 
     protected:
         bool event(QEvent *e)
