@@ -38,7 +38,7 @@ class AudioOutputXT : public SinkNodeXT
 {
     friend class AudioOutput;
     public:
-        AudioOutputXT() : m_audioPort(0) {}
+        AudioOutputXT() : SinkNodeXT("AudioOutput"), m_audioPort(0) {}
         ~AudioOutputXT();
         void rewireTo(SourceNodeXT *);
         xine_audio_port_t *audioPort() const;

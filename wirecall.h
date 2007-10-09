@@ -35,12 +35,15 @@ class WireCall
         WireCall() : src(0), snk(0) {}
         WireCall(SourceNode *a, SinkNode *b) : source(a->threadSafeObject()), sink(b->threadSafeObject()), src(a), snk(b) {}
         WireCall(SourceNode *a, const QExplicitlySharedDataPointer<SinkNodeXT> &b) : source(a->threadSafeObject()), sink(b), src(a), snk(0) {}
+
         /**
-         * If the two WireCalls are in separate graphs returns false
+         * If the two WireCalls are in separate graphs treat them as equal (returns false)
+         *
+         * If the two WireCalls have the same source treat them as equal (returns false)
          *
          * If the two WireCalls are in the same graph:
-         * returns true if this wire is a source for \p rhs
-         * returns false if \p rhs is a source for this wire
+         * returns false if this wire is a source for \p rhs
+         * returns true if \p rhs is a source for this wire
          */
         bool operator<(const WireCall &rhs) const {
             if (src == rhs.src) {

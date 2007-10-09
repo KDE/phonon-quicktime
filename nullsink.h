@@ -32,7 +32,7 @@ class XineStream;
 class NullSinkXT : public SinkNodeXT
 {
     public:
-        NullSinkXT() : m_stream(0) {}
+        NullSinkXT() : SinkNodeXT("NullSink"), m_stream(0) {}
         virtual void rewireTo(SourceNodeXT *);
         virtual xine_audio_port_t *audioPort() const;
         virtual xine_video_port_t *videoPort() const;

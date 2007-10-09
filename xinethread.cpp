@@ -22,7 +22,6 @@
 #include <QtCore/QCoreApplication>
 #include "xineengine.h"
 #include "xinestream.h"
-#include "audiopostlist.h"
 #include "events.h"
 #include "backend.h"
 #include <kdebug.h>

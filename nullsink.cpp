@@ -21,7 +21,6 @@
 
 #include "nullsink.h"
 #include "xineengine.h"
-#include "audioport.h"
 #include "sourcenode.h"
 #include "xinestream.h"
 #include "events.h"
