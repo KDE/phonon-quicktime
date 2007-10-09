@@ -512,9 +512,9 @@ bool Backend::endConnectionChange(QSet<QObject *> nodes)
     }
     if (!wireCalls.isEmpty()) {
         qSort(wireCalls);
-        QCoreApplication::postEvent(XineThread::instance(), new RewireEvent(wireCalls, m_disconnections));
-        m_disconnections.clear();
     }
+    QCoreApplication::postEvent(XineThread::instance(), new RewireEvent(wireCalls, m_disconnections));
+    m_disconnections.clear();
     return true;
 }
 
