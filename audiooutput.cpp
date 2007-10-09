@@ -162,7 +162,9 @@ bool AudioOutput::setOutputDevice(int newDevice)
     }
 
     QExplicitlySharedDataPointer<SinkNodeXT> oldXT = m_threadSafeObject;
-    (new KeepReference<>)->addObject(m_threadSafeObject);
+    KeepReference<> *keep = new KeepReference<>;
+    keep->addObject(m_threadSafeObject);
+    keep->ready();
 
     AudioOutputXT *xt = new AudioOutputXT;
     xt->m_audioPort = port;
@@ -205,7 +207,9 @@ void AudioOutput::aboutToChangeXineEngine()
         xt2->m_xine = xt->m_xine;
         xt2->m_audioPort = xt->m_audioPort;
         xt->m_audioPort = 0;
-        (new KeepReference<>)->addObject(xt2);
+        KeepReference<> *keep = new KeepReference<>;
+        keep->addObject(xt2);
+        keep->ready();
     }
 }
 
