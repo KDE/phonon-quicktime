@@ -20,7 +20,6 @@
 
 #include "mediaobject.h"
 
-#include "audioport.h"
 #include "bytestream.h"
 
 #include <QEvent>

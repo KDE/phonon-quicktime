@@ -27,8 +27,8 @@ namespace Phonon
 namespace Xine
 {
 
-SourceNodeXT::SourceNodeXT()
-    : deleted(false)
+SourceNodeXT::SourceNodeXT(const char *name)
+    : className(name), deleted(false)
 {
 }
 

@@ -24,7 +24,6 @@
 #include <QCoreApplication>
 #include <QTimer>
 #include <kurl.h>
-#include "audioport.h"
 #include "videowidget.h"
 #include "mediaobject.h"
 #include "xinethread.h"
@@ -135,6 +134,7 @@ void XineStream::xineEventListener(void *p, const xine_event_t *xineEvent)
 // called from main thread
 XineStream::XineStream()
     : QObject(0), // XineStream is ref-counted
+    SourceNodeXT("MediaObject"),
     m_stream(0),
     m_event_queue(0),
     m_deinterlacer(0),
@@ -747,8 +747,6 @@ const char *nameForEvent(int e)
     case Event::ChangeAudioPostList:
         return "ChangeAudioPostList";
         */
-//X case Event::AudioRewire:
-//X     return "AudioRewire";
     default:
         return 0;
     }
@@ -867,44 +865,6 @@ bool XineStream::event(QEvent *ev)
            streamClock(m_stream)->set_option (streamClock(m_stream), CLOCK_SCR_ADJUSTABLE, 1);
         }
         return true;
-        /*
-    case Event::ChangeAudioPostList:
-            ev->accept();
-            {
-                ChangeAudioPostListEvent *e = static_cast<ChangeAudioPostListEvent *>(ev);
-                if (e->what == ChangeAudioPostListEvent::Add) {
-                    Q_ASSERT(!m_audioPostLists.contains(e->postList));
-                    m_audioPostLists << e->postList;
-                    if (m_stream) {
-                        if (m_audioPostLists.size() > 1) {
-                            kWarning(610) << "attaching multiple AudioPaths to one MediaObject is not supported yet.";
-                        }
-                        e->postList.wireStream();
-                    }
-                    e->postList.setXineStream(this);
-                } else { // Remove
-                    e->postList.unsetXineStream(this);
-                    const int r = m_audioPostLists.removeAll(e->postList);
-                    Q_ASSERT(1 == r);
-                    if (m_stream) {
-                        if (m_audioPostLists.size() > 0) {
-                            m_audioPostLists.last().wireStream();
-                        } else {
-                            xine_post_wire_audio_port(xine_get_audio_source(m_stream), nullAudioPort());
-                        }
-                    }
-                }
-            }
-            return true;
-            */
-//X     case Event::AudioRewire:
-//X         ev->accept();
-//X         if (m_stream) {
-//X             AudioRewireEvent *e = static_cast<AudioRewireEvent *>(ev);
-//X             e->postList->wireStream();
-//X             xine_set_param(m_stream, XINE_PARAM_AUDIO_AMP_LEVEL, m_volume);
-//X         }
-//X             return true;
     case Event::EventSend:
         ev->accept();
         {

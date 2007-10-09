@@ -42,6 +42,7 @@ class EffectXT : public SourceNodeXT, public SinkNodeXT
     public:
         EffectXT(const char *name);
         ~EffectXT();
+        xine_audio_port_t *audioPort() const;
         xine_post_out_t *audioOutputPort() const;
         void rewireTo(SourceNodeXT *source);
         virtual void createInstance();
