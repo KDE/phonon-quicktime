@@ -85,8 +85,8 @@ class MediaObject : public QObject, public MediaObjectInterface, public AddonInt
         QString errorString() const;
         Phonon::ErrorType errorType() const;
 
-        QExplicitlySharedDataPointer<XineStream> stream() { return m_stream; }
-        const QExplicitlySharedDataPointer<XineStream> stream() const { return m_stream; }
+        QExplicitlySharedDataPointer<XineStream> stream() { return QExplicitlySharedDataPointer<XineStream>(m_stream); }
+        const QExplicitlySharedDataPointer<XineStream> stream() const { return QExplicitlySharedDataPointer<XineStream>(m_stream); }
 
         bool hasInterface(AddonInterface::Interface i) const;
         QVariant interfaceCall(AddonInterface::Interface, int, const QList<QVariant> &);
@@ -148,7 +148,7 @@ class MediaObject : public QObject, public MediaObjectInterface, public AddonInt
         QByteArray autoplayMrlsToTitles(const char *plugin, const char *defaultMrl);
 
         Phonon::State m_state;
-        QExplicitlySharedDataPointer<XineStream> m_stream;
+        XineStream *m_stream;
         qint32 m_tickInterval;
         QPointer<ByteStream> m_bytestream;
 

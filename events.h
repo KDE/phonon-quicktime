@@ -115,7 +115,7 @@ inline T *copyEvent(T *)
 }
 
 EVENT_CLASS1(Cleanup, const QList<QObject *> &co, objects(co), QList<QObject *>, objects)
-EVENT_CLASS1(HeresYourXineStream, QExplicitlySharedDataPointer<XineStream> s, stream(s), QExplicitlySharedDataPointer<XineStream>, stream)
+EVENT_CLASS1(HeresYourXineStream, XineStream *s, stream(s), QExplicitlySharedDataPointer<XineStream>, stream)
 EVENT_CLASS1(HasVideo, bool v, hasVideo(v), const bool, hasVideo)
 EVENT_CLASS1(UpdateVolume, int v, volume(v), const int, volume)
 EVENT_CLASS1(EventSend, const xine_event_t *const e, event(e), const xine_event_t *const, event)
