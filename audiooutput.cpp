@@ -148,11 +148,9 @@ xine_audio_port_t *AudioOutput::createPortFromIndex(int deviceIndex)
 bool AudioOutput::setOutputDevice(int newDevice)
 {
     m_device = newDevice;
-    {
-        K_XT(AudioOutput);
-        if (!xt->m_xine) {
-            return true;
-        }
+    K_XT(AudioOutput);
+    if (!xt->m_xine) {
+        return true;
     }
 
     xine_audio_port_t *port = createPortFromIndex(m_device);
@@ -161,21 +159,21 @@ bool AudioOutput::setOutputDevice(int newDevice)
         return false;
     }
 
-    QExplicitlySharedDataPointer<SinkNodeXT> oldXT = m_threadSafeObject;
     KeepReference<> *keep = new KeepReference<>;
-    keep->addObject(m_threadSafeObject);
+    keep->addObject(xt);
     keep->ready();
 
-    AudioOutputXT *xt = new AudioOutputXT;
-    xt->m_audioPort = port;
-    m_threadSafeObject = xt;
+    AudioOutputXT *newXt = new AudioOutputXT;
+    newXt->m_audioPort = port;
+    newXt->m_xine = xt->m_xine;
+    m_threadSafeObject = newXt;
 
     SourceNode *src = source();
     if (src) {
         QList<WireCall> wireCall;
         QList<WireCall> unwireCall;
         wireCall << WireCall(src, this);
-        unwireCall << WireCall(src, oldXT);
+        unwireCall << WireCall(src, QExplicitlySharedDataPointer<SinkNodeXT>(xt));
         QCoreApplication::postEvent(XineThread::instance(), new RewireEvent(wireCall, unwireCall));
     }
     return true;
