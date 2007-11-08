@@ -1427,7 +1427,7 @@ bool XineStream::updateTime()
 void XineStream::emitAboutToFinishIn(int timeToAboutToFinishSignal)
 {
     Q_ASSERT(QThread::currentThread() == XineThread::instance());
-    kDebug(610) << timeToAboutToFinishSignal;
+    //kDebug(610) << timeToAboutToFinishSignal;
     Q_ASSERT(m_prefinishMark > 0);
     if (!m_prefinishMarkTimer) {
         m_prefinishMarkTimer = new QTimer(this);
@@ -1441,7 +1441,7 @@ void XineStream::emitAboutToFinishIn(int timeToAboutToFinishSignal)
     if (timeToAboutToFinishSignal < 0) {
         timeToAboutToFinishSignal = 0;
     }
-    kDebug(610) << timeToAboutToFinishSignal;
+    //kDebug(610) << timeToAboutToFinishSignal;
     m_prefinishMarkTimer->start(timeToAboutToFinishSignal);
 }
 
@@ -1449,12 +1449,12 @@ void XineStream::emitAboutToFinishIn(int timeToAboutToFinishSignal)
 void XineStream::emitAboutToFinish()
 {
     Q_ASSERT(QThread::currentThread() == XineThread::instance());
-    kDebug(610) << m_prefinishMarkReachedNotEmitted << ", " << m_prefinishMark;
+    //kDebug(610) << m_prefinishMarkReachedNotEmitted << ", " << m_prefinishMark;
     if (m_prefinishMarkReachedNotEmitted && m_prefinishMark > 0) {
         updateTime();
         const int remainingTime = m_totalTime - m_currentTime;
 
-        kDebug(610) << remainingTime;
+        //kDebug(610) << remainingTime;
         if (remainingTime <= m_prefinishMark + 150) {
             m_prefinishMarkReachedNotEmitted = false;
             kDebug(610) << "emitting prefinishMarkReached(" << remainingTime << ")";
