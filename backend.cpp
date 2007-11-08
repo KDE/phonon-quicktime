@@ -52,8 +52,6 @@
 #include <phonon/audiodevice.h>
 #include <phonon/audiodeviceenumerator.h>
 
-#include <backendadaptor.h>
-
 K_PLUGIN_FACTORY(XineBackendFactory, registerPlugin<Phonon::Xine::Backend>();)
 K_EXPORT_PLUGIN(XineBackendFactory("xinebackend"))
 
@@ -97,8 +95,7 @@ Backend::Backend(QObject *parent, const QVariantList &)
 
     signalTimer.setSingleShot(true);
     connect(&signalTimer, SIGNAL(timeout()), SLOT(emitAudioDeviceChange()));
-    new XineBackendInternalAdaptor(this);
-    QDBusConnection::sessionBus().registerObject("/internal/PhononXine", this);
+    QDBusConnection::sessionBus().registerObject("/internal/PhononXine", this, QDBusConnection::ExportScriptableSlots);
 
     kDebug(610) << "Using Xine version " << xine_get_version_string();
 }
@@ -237,9 +234,9 @@ QStringList Backend::availableMimeTypes() const
     return m_supportedMimeTypes;
 }
 
-QSet<int> Backend::objectDescriptionIndexes(ObjectDescriptionType type) const
+QList<int> Backend::objectDescriptionIndexes(ObjectDescriptionType type) const
 {
-    QSet<int> set;
+    QList<int> list;
     switch(type)
     {
     case Phonon::AudioOutputDeviceType:
@@ -249,7 +246,7 @@ QSet<int> Backend::objectDescriptionIndexes(ObjectDescriptionType type) const
         {
             QList<AudioDevice> devlist = AudioDeviceEnumerator::availableCaptureDevices();
             foreach (AudioDevice dev, devlist) {
-                set << dev.index();
+                list << dev.index();
             }
         }
         break;
@@ -257,11 +254,11 @@ QSet<int> Backend::objectDescriptionIndexes(ObjectDescriptionType type) const
         {
             const char *const *outputPlugins = xine_list_video_output_plugins(m_xine);
             for (int i = 0; outputPlugins[i]; ++i)
-                set << 40000 + i;
+                list << 40000 + i;
             break;
         }
     case Phonon::VideoCaptureDeviceType:
-        set << 30000 << 30001;
+        list << 30000 << 30001;
         break;
     case Phonon::VisualizationType:
         break;
@@ -276,14 +273,14 @@ QSet<int> Backend::objectDescriptionIndexes(ObjectDescriptionType type) const
         {
             const char *const *postPlugins = xine_list_post_plugins_typed(m_xine, XINE_POST_TYPE_AUDIO_FILTER);
             for (int i = 0; postPlugins[i]; ++i)
-                set << 0x7F000000 + i;
+                list << 0x7F000000 + i;
             /*const char *const *postVPlugins = xine_list_post_plugins_typed(m_xine, XINE_POST_TYPE_VIDEO_FILTER);
             for (int i = 0; postVPlugins[i]; ++i) {
-                set << 0x7E000000 + i;
+                list << 0x7E000000 + i;
             } */
         }
     }
-    return set;
+    return list;
 }
 
 QHash<QByteArray, QVariant> Backend::objectDescriptionProperties(ObjectDescriptionType type, int index) const
@@ -564,15 +561,15 @@ int Backend::deinterlaceMethod()
     return s_instance->m_deinterlaceMethod;
 }
 
-QSet<int> Backend::audioOutputIndexes()
+QList<int> Backend::audioOutputIndexes()
 {
     Backend *that = instance();
     that->checkAudioOutputs();
-    QSet<int> set;
+    QList<int> list;
     for (int i = 0; i < that->m_audioOutputInfos.size(); ++i) {
-        set << that->m_audioOutputInfos[i].index;
+        list << that->m_audioOutputInfos[i].index;
     }
-    return set;
+    return list;
 }
 
 QString Backend::audioOutputName(int audioDevice)
@@ -711,8 +708,7 @@ void Backend::ossSettingChanged(bool useOss)
         }
     } else {
         // remove all OSS devices
-        typedef QList<Backend::AudioOutputInfo>::iterator Iterator;
-        Iterator it = s_instance->m_audioOutputInfos.begin();
+        QList<Backend::AudioOutputInfo>::iterator it = s_instance->m_audioOutputInfos.begin();
         while (it != s_instance->m_audioOutputInfos.end()) {
             if (it->driver == "oss") {
                 it = s_instance->m_audioOutputInfos.erase(it);
@@ -829,10 +825,8 @@ void Backend::checkAudioOutputs()
                     m_useOss = KConfigGroup(m_config, "Settings").readEntry("showOssDevices", false) ? Backend::True : Backend::False;
                     if (m_useOss == Backend::False) {
                         // remove all OSS devices
-                        typedef QList<AudioOutputInfo>::iterator Iterator;
-                        const Iterator end = m_audioOutputInfos.end();
-                        Iterator it = m_audioOutputInfos.begin();
-                        while (it != end) {
+                        QList<AudioOutputInfo>::iterator it = m_audioOutputInfos.begin();
+                        while (it != m_audioOutputInfos.end()) {
                             if (it->driver == "oss") {
                                 it = m_audioOutputInfos.erase(it);
                             } else {
@@ -890,6 +884,8 @@ void Backend::checkAudioOutputs()
             }
         }
 
+        qSort(m_audioOutputInfos);
+
         // now m_audioOutputInfos holds all devices this computer has ever seen
         foreach (const AudioOutputInfo &info, m_audioOutputInfos) {
             kDebug(610) << info.index << info.name << info.driver << info.devices;
@@ -912,6 +908,7 @@ void Backend::devicePlugged(const AudioDevice &dev)
                 signalTimer.start();
             }
         }
+        qSort(s_instance->m_audioOutputInfos);
         break;
     case Solid::AudioInterface::OpenSoundSystem:
         if (s_instance->m_useOss) {
@@ -922,6 +919,7 @@ void Backend::devicePlugged(const AudioDevice &dev)
                 }
             }
         }
+        qSort(s_instance->m_audioOutputInfos);
         break;
     case Solid::AudioInterface::UnknownAudioDriver:
         break;
@@ -935,6 +933,16 @@ void Backend::deviceUnplugged(const AudioDevice &dev)
         return;
     }
     QByteArray driver;
+    switch (dev.driver()) {
+    case Solid::AudioInterface::Alsa:
+        driver = "alsa";
+        break;
+    case Solid::AudioInterface::OpenSoundSystem:
+        driver = "oss";
+        break;
+    case Solid::AudioInterface::UnknownAudioDriver:
+        break;
+    }
     Backend::AudioOutputInfo info(dev.index(), 0, dev.cardName(), QString(), dev.iconName(),
             driver, dev.deviceIds(), QString());
     const int indexOfInfo = s_instance->m_audioOutputInfos.indexOf(info);
@@ -947,6 +955,7 @@ void Backend::deviceUnplugged(const AudioDevice &dev)
     Q_ASSERT(!s_instance->m_audioOutputInfos.contains(info));
     info.initialPreference = oldInfo.initialPreference;
     s_instance->m_audioOutputInfos << info; // now the device is listed as not available
+    qSort(s_instance->m_audioOutputInfos);
     signalTimer.start();
 }
 

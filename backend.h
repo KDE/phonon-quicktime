@@ -88,7 +88,7 @@ class Backend : public QObject, public Phonon::BackendInterface
 
         Q_INVOKABLE void freeSoundcardDevices();
 
-        QSet<int> objectDescriptionIndexes(ObjectDescriptionType) const;
+        QList<int> objectDescriptionIndexes(ObjectDescriptionType) const;
         QHash<QByteArray, QVariant> objectDescriptionProperties(ObjectDescriptionType, int) const;
 
         bool startConnectionChange(QSet<QObject *>);
@@ -108,7 +108,7 @@ class Backend : public QObject, public Phonon::BackendInterface
         static bool deinterlaceFile();
         static int deinterlaceMethod();
 
-        static QSet<int> audioOutputIndexes();
+        static QList<int> audioOutputIndexes();
         static QString audioOutputName(int audioDevice);
         static QString audioOutputDescription(int audioDevice);
         static QString audioOutputIcon(int audioDevice);
@@ -157,7 +157,8 @@ class Backend : public QObject, public Phonon::BackendInterface
             QByteArray driver;
             QStringList devices;
             QString mixerDevice;
-            bool operator==(const AudioOutputInfo &rhs) { return name == rhs.name && driver == rhs.driver; }
+            inline bool operator==(const AudioOutputInfo &rhs) const { return name == rhs.name && driver == rhs.driver; }
+            inline bool operator<(const AudioOutputInfo &rhs) const { return initialPreference < rhs.initialPreference; }
         };
         QList<AudioOutputInfo> m_audioOutputInfos;
         QList<QObject *> m_cleanupObjects;
