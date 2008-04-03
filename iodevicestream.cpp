@@ -26,8 +26,10 @@ namespace Phonon
 {
 
 IODeviceStream::IODeviceStream(QIODevice *ioDevice, QObject *parent)
-    : AbstractMediaStream(*new IODeviceStreamPrivate(ioDevice), parent)
+    : AbstractMediaStream2(*new IODeviceStreamPrivate(ioDevice), parent)
 {
+    Q_D(IODeviceStream);
+    d->ioDevice->reset();
 }
 
 IODeviceStream::~IODeviceStream()
@@ -38,12 +40,13 @@ void IODeviceStream::reset()
 {
     Q_D(IODeviceStream);
     d->ioDevice->reset();
+    resetDone();
 }
 
-void IODeviceStream::needData()
+void IODeviceStream::needData(quint32 size)
 {
     Q_D(IODeviceStream);
-    const QByteArray data = d->ioDevice->read(4096);
+    const QByteArray data = d->ioDevice->read(size);
     if (data.isEmpty() && !d->ioDevice->atEnd()) {
         error(Phonon::NormalError, d->ioDevice->errorString());
     }
@@ -57,6 +60,7 @@ void IODeviceStream::seekStream(qint64 offset)
 {
     Q_D(IODeviceStream);
     d->ioDevice->seek(offset);
+    seekStreamDone();
 }
 
 } // namespace Phonon

@@ -48,6 +48,12 @@ PHONON_EXECUTABLE_TESTS(
 PHONON_UNIT_TESTS(
 	audiodevicelisttest
 	)
+kde4_add_unit_test(streameventqueuetest streameventqueuetest.cpp ../streameventqueue.cpp ../lockfreequeue.cpp)
+target_link_libraries(streameventqueuetest ${QT_QTCORE_LIBRARY} ${QT_QTTEST_LIBRARY})
+kde4_add_unit_test(lockfreequeuetest lockfreequeuetest.cpp ../lockfreequeue.cpp)
+target_link_libraries(lockfreequeuetest ${QT_QTCORE_LIBRARY} ${QT_QTTEST_LIBRARY})
+kde4_add_unit_test(lockfreequeuetest2 lockfreequeuetest2.cpp ../lockfreequeue.cpp)
+target_link_libraries(lockfreequeuetest2 ${QT_QTCORE_LIBRARY} ${QT_QTTEST_LIBRARY})
 
 PHONON_UNIT_TESTS_FAKE(
 	mediaobjecttest
@@ -67,7 +73,7 @@ target_link_libraries(audiodevicelisttest ${KDE4_KAUDIODEVICELIST_LIBS})
 target_link_libraries(mediaplayer ${KDE4_KIO_LIBS})
 target_link_libraries(backendcapabilitiestest_fake ${KDE4_KDECORE_LIBS})
 #methodtest does not link against libphonon
-kde4_add_executable(methodtest TEST methodtest.cpp ../factory.cpp ../phononnamespace.cpp)
+kde4_add_executable(methodtest TEST methodtest.cpp ../factory.cpp ../phononnamespace.cpp ../streameventqueue.cpp ../lockfreequeue.cpp)
 target_link_libraries(methodtest ${QT_QTDBUS_LIBRARY} ${QT_QTCORE_LIBRARY}  ${QT_QTGUI_LIBRARY} ${QT_QTTEST_LIBRARY} ${KDE4_PHONON_LIBS})
 SET_TARGET_PROPERTIES(methodtest PROPERTIES COMPILE_FLAGS "-DPHONON_METHODTEST -DPHONON_EXPORT=")
 kde4_add_unit_test(methodtest_fake methodtest.cpp ../factory.cpp ../phononnamespace.cpp)

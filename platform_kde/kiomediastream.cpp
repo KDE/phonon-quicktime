@@ -166,9 +166,7 @@ void KioMediaStreamPrivate::_k_bytestreamData(KIO::Job *, const QByteArray &data
     //kDebug(600) << "calling writeData on the Backend ByteStream " << data.size();
     q->writeData(data);
     if (reading) {
-        KIO::FileJob *filejob = qobject_cast<KIO::FileJob *>(kiojob);
-        Q_ASSERT(filejob);
-        //filejob->read(32768);
+        Q_ASSERT(qobject_cast<KIO::FileJob *>(kiojob));
         QMetaObject::invokeMethod(q, "_k_read", Qt::QueuedConnection);
     }
 }
@@ -237,9 +235,7 @@ void KioMediaStreamPrivate::_k_bytestreamSeekDone(KIO::Job *, KIO::filesize_t of
     endOfDataSent = false;
     if (reading) {
         Q_Q(KioMediaStream);
-        KIO::FileJob *filejob = qobject_cast<KIO::FileJob *>(kiojob);
-        Q_ASSERT(filejob);
-        //filejob->read(32768);
+        Q_ASSERT(qobject_cast<KIO::FileJob *>(kiojob));
         QMetaObject::invokeMethod(q, "_k_read", Qt::QueuedConnection);
     }
 }

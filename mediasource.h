@@ -57,6 +57,7 @@ class AbstractMediaStream;
  */
 class PHONON_EXPORT MediaSource
 {
+    friend class StreamInterface;
     public:
         /**
          * Identifies the type of media described by the MediaSource object.
