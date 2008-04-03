@@ -32,6 +32,7 @@ set(phonon_LIB_SRCS
    phononnamespace.cpp
    mediasource.cpp
    abstractmediastream.cpp
+   abstractmediastream2.cpp
    streaminterface.cpp
    mediaobject.cpp
    medianode.cpp
@@ -56,6 +57,9 @@ set(phonon_LIB_SRCS
    volumeslider.cpp
    effectwidget.cpp
    iodevicestream.cpp
+   lockfreequeue.cpp
+   streameventqueue.cpp
+   ringbuffer.cpp
    )
 
 kde4_add_library(phonon SHARED ${phonon_LIB_SRCS})
@@ -73,6 +77,7 @@ install( FILES
    phononnamespace.h
    mediasource.h
    abstractmediastream.h
+   abstractmediastream2.h
    streaminterface.h
    mediaobject.h
    audiooutput.h

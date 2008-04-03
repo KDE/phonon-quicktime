@@ -17,59 +17,48 @@
 
 */
 
-#ifndef ABSTRACTMEDIASTREAM_P_H
-#define ABSTRACTMEDIASTREAM_P_H
+#ifndef ABSTRACTMEDIASTREAM2_P_H
+#define ABSTRACTMEDIASTREAM2_P_H
 
 #include "phonon_export.h"
-#include "abstractmediastream.h"
+#include "abstractmediastream2.h"
+#include "abstractmediastream_p.h"
 #include "mediaobject_p.h"
-#include "streaminterface.h"
 
 #include "medianodedestructionhandler.h"
+#include "streameventqueue_p.h"
 
 QT_BEGIN_NAMESPACE
 
 class MediaObjectPrivate;
+class QAbstractEventDispatcher;
 
 namespace Phonon
 {
-class PHONON_EXPORT AbstractMediaStreamPrivate : private MediaNodeDestructionHandler
+class PHONON_EXPORT AbstractMediaStream2Private : public AbstractMediaStreamPrivate, private LockFreeQueueBase::DataReadyHandler
 {
     friend class MediaObject;
-    Q_DECLARE_PUBLIC(AbstractMediaStream)
-    public:
-        void setStreamInterface(StreamInterface *);
-        void setMediaObjectPrivate(MediaObjectPrivate *);
-
+    friend class MediaSourcePrivate;
+    Q_DECLARE_PUBLIC(AbstractMediaStream2)
     protected:
-        AbstractMediaStreamPrivate()
-            : streamSize(0),
-            streamSeekable(false),
-            ignoreWrites(false),
-            streamInterface(0),
-            mediaObjectPrivate(0)
-        {
-        }
-        ~AbstractMediaStreamPrivate();
+        AbstractMediaStream2Private();
+        ~AbstractMediaStream2Private();
 
         virtual void setStreamSize(qint64 newSize);
         virtual void setStreamSeekable(bool s);
         virtual void writeData(const QByteArray &data);
         virtual void endOfData();
-        void phononObjectDestroyed(MediaNodePrivate *);
+        virtual void dataReady();
+        void _k_handleStreamEvent();
 
-        AbstractMediaStream *q_ptr;
-        qint64 streamSize;
-        bool streamSeekable;
-        bool ignoreWrites;
-        StreamInterface *streamInterface;
-        MediaObjectPrivate *mediaObjectPrivate;
-        Phonon::ErrorType errorType;
-        QString errorText;
+        StreamEventQueue *streamEventQueue;
+        QAbstractEventDispatcher *eventDispatcher;
+        int connectReset;
+        bool firstConnect;
 };
 } // namespace Phonon
 
 QT_END_NAMESPACE
 
-#endif // ABSTRACTMEDIASTREAM_P_H
+#endif // ABSTRACTMEDIASTREAM2_P_H
 // vim: sw=4 sts=4 et tw=100

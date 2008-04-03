@@ -95,7 +95,7 @@ void MyGraphicsScene::mousePressEvent(QGraphicsSceneMouseEvent *mouseEvent)
                     new EffectItem(d, pathItem, m_view);
                 } else {
                     // disconnect
-                    Q_ASSERT(triggeredAction == disconnectAction);
+                    Q_ASSERT(triggeredAction == disconnectAction); Q_UNUSED(disconnectAction);
                     pathItem->path().disconnect();
                     delete pathItem;
                 }

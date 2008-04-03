@@ -419,8 +419,7 @@ void OutputDeviceChoice::save()
         const QList<int> noCategoryOrder = m_outputModel.value(Phonon::NoCategory)->tupleIndexOrder();
         globalGroup.setValue(QLatin1String("Category") + QString::number(Phonon::NoCategory), noCategoryOrder);
         for (int i = 0; i <= Phonon::LastCategory; ++i) {
-            Phonon::AudioOutputDeviceModel *model = m_outputModel.value(i);
-            Q_ASSERT(model);
+            Q_ASSERT(m_outputModel.value(i));
             const QList<int> order = m_outputModel.value(i)->tupleIndexOrder();
             if (order == noCategoryOrder) {
                 globalGroup.removeEntry(QLatin1String("Category") + QString::number(i));

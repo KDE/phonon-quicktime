@@ -29,10 +29,9 @@ namespace Fake
 {
 class MediaObject;
 
-class Stream : public QObject, public StreamInterface
+class Stream : public StreamInterface2
 {
     Q_OBJECT
-    Q_INTERFACES(Phonon::StreamInterface)
     public:
         Stream(const MediaSource &mediaSource, MediaObject *parent);
         void writeData(const QByteArray &data);

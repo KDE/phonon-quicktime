@@ -20,7 +20,7 @@
 #include "mediasource.h"
 #include "mediasource_p.h"
 #include "iodevicestream.h"
-#include "abstractmediastream_p.h"
+#include "abstractmediastream2_p.h"
 
 #include <QtCore/QFileInfo>
 #include <QtCore/QFile>
@@ -53,7 +53,7 @@ MediaSource::MediaSource(const QString &filename)
             // it's a Qt resource -> use QFile
             d->type = Stream;
             d->ioDevice = new QFile(filename);
-            d->stream = new IODeviceStream(d->ioDevice, d->ioDevice);
+            d->setStream(new IODeviceStream(d->ioDevice, d->ioDevice));
         }
     } else {
         d->url = filename;
@@ -90,7 +90,7 @@ MediaSource::MediaSource(AbstractMediaStream *stream)
     : d(new MediaSourcePrivate(Stream))
 {
     if (stream) {
-        d->stream = stream;
+        d->setStream(stream);
     } else {
         d->type = Invalid;
     }
@@ -100,7 +100,7 @@ MediaSource::MediaSource(QIODevice *ioDevice)
     : d(new MediaSourcePrivate(Stream))
 {
     if (ioDevice) {
-        d->stream = new IODeviceStream(ioDevice, ioDevice);
+        d->setStream(new IODeviceStream(ioDevice, ioDevice));
         d->ioDevice = ioDevice;
     } else {
         d->type = Invalid;
@@ -125,6 +125,17 @@ QList<MediaSource> MediaSource::substreams() const
 
 MediaSource::~MediaSource()
 {
+}
+
+MediaSourcePrivate::~MediaSourcePrivate()
+{
+    if (autoDelete) {
+        delete stream;
+        delete ioDevice;
+    }
+    if (streamEventQueue) {
+        streamEventQueue->deref();
+    }
 }
 
 MediaSource::MediaSource(const MediaSource &rhs)
@@ -184,6 +195,17 @@ QString MediaSource::deviceName() const
 AbstractMediaStream *MediaSource::stream() const
 {
     return d->stream;
+}
+
+void MediaSourcePrivate::setStream(AbstractMediaStream *s)
+{
+    stream = s;
+    AbstractMediaStream2 *s2 = qobject_cast<AbstractMediaStream2 *>(s);
+    if (s2) {
+        streamEventQueue = s2->d_func()->streamEventQueue;
+        Q_ASSERT(streamEventQueue);
+        streamEventQueue->ref();
+    }
 }
 
 //X AudioCaptureDevice MediaSource::audioCaptureDevice() const

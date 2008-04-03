@@ -21,7 +21,7 @@
 #define IODEVICESTREAM_P_H
 
 #include "iodevicestream.h"
-#include "abstractmediastream_p.h"
+#include "abstractmediastream2_p.h"
 
 #include <QtCore/QIODevice>
 
@@ -29,7 +29,7 @@ QT_BEGIN_NAMESPACE
 
 namespace Phonon
 {
-class IODeviceStreamPrivate : public AbstractMediaStreamPrivate
+class IODeviceStreamPrivate : public AbstractMediaStream2Private
 {
     Q_DECLARE_PUBLIC(IODeviceStream)
     protected:
