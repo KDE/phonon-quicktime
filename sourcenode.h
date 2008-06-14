@@ -25,6 +25,7 @@
 #include <QtCore/QSet>
 #include <xine.h>
 #include "backend.h"
+#include "shareddata.h"
 
 namespace Phonon
 {
@@ -34,7 +35,7 @@ class SinkNode;
 class Event;
 class SinkNodeXT;
 
-class SourceNodeXT : virtual public QSharedData
+class SourceNodeXT : virtual public SharedData
 {
     public:
         SourceNodeXT(const char *name = "SourceNode");

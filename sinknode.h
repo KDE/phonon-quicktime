@@ -23,6 +23,7 @@
 #include <Phonon/Global>
 #include <xine.h>
 #include "backend.h"
+#include "shareddata.h"
 
 namespace Phonon
 {
@@ -32,7 +33,7 @@ class SourceNode;
 class SourceNodeXT;
 class Event;
 
-class SinkNodeXT : virtual public QSharedData
+class SinkNodeXT : virtual public SharedData
 {
     public:
         SinkNodeXT(const char *name = "SinkNode") : className(name), deleted(false) {}

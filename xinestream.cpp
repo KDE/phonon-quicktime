@@ -1,5 +1,6 @@
 /*  This file is part of the KDE project
     Copyright (C) 2006-2007 Matthias Kretz <kretz@kde.org>
+    Copyright (C) 2008      Ian Monroe <imonroe@kde.org>
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
@@ -18,18 +19,22 @@
 */
 
 #include "xinestream.h"
-#include "xineengine.h"
+
 #include <QMutexLocker>
 #include <QEvent>
 #include <QCoreApplication>
 #include <QTimer>
-#include <kurl.h>
-#include "videowidget.h"
-#include "mediaobject.h"
-#include "xinethread.h"
+
 #include <klocale.h>
-#include "events.h"
+#include <kurl.h>
+
+#include "backend.h"
 #include "bytestream.h"
+#include "events.h"
+#include "mediaobject.h"
+#include "videowidget.h"
+#include "xineengine.h"
+#include "xinethread.h"
 
 extern "C" {
 #define this _this_xine_
@@ -149,6 +154,8 @@ XineStream::XineStream()
 //    m_startTime(-1),
     m_totalTime(-1),
     m_currentTime(-1),
+    m_availableSubtitles(-1),
+    m_availableAudioChannels(-1),
     m_availableTitles(-1),
     m_availableChapters(-1),
     m_availableAngles(-1),
@@ -251,13 +258,13 @@ bool XineStream::xineOpen(Phonon::State newstate)
             // hmm?
             abort();
         case XINE_ERROR_NO_INPUT_PLUGIN:
-            error(Phonon::NormalError, i18n("cannot find input plugin for MRL [%1]", m_mrl.constData()));
+            error(Phonon::NormalError, i18n("Cannot find input plugin for MRL [%1]", m_mrl.constData()));
             break;
         case XINE_ERROR_NO_DEMUX_PLUGIN:
             if (m_mrl.startsWith("kbytestream:/")) {
-                error(Phonon::FatalError, i18n("cannot find demultiplexer plugin for the given media data"));
+                error(Phonon::FatalError, i18n("Cannot find demultiplexer plugin for the given media data"));
             } else {
-                error(Phonon::FatalError, i18n("cannot find demultiplexer plugin for MRL [%1]", m_mrl.constData()));
+                error(Phonon::FatalError, i18n("Cannot find demultiplexer plugin for MRL [%1]", m_mrl.constData()));
             }
             break;
         default:
@@ -292,33 +299,33 @@ bool XineStream::xineOpen(Phonon::State newstate)
             videoPort = nullVideoPort();
         }
         m_deinterlacer = xine_post_init(xine(), "tvtime", 1, 0, &videoPort);
-        Q_ASSERT(m_deinterlacer);
-
-        // set method
-        xine_post_in_t *paraInput = xine_post_input(m_deinterlacer, "parameters");
-        Q_ASSERT(paraInput);
-        Q_ASSERT(paraInput->data);
-        xine_post_api_t *api = reinterpret_cast<xine_post_api_t *>(paraInput->data);
-        xine_post_api_descr_t *desc = api->get_param_descr();
-        char *pluginParams = static_cast<char *>(malloc(desc->struct_size));
-        api->get_parameters(m_deinterlacer, pluginParams);
-        for (int i = 0; desc->parameter[i].type != POST_PARAM_TYPE_LAST; ++i) {
-            xine_post_api_parameter_t &p = desc->parameter[i];
-            if (p.type == POST_PARAM_TYPE_INT && 0 == strcmp(p.name, "method")) {
-                int *value = reinterpret_cast<int *>(pluginParams + p.offset);
-                *value = Backend::deinterlaceMethod();
-                break;
+        if (m_deinterlacer) {
+            // set method
+            xine_post_in_t *paraInput = xine_post_input(m_deinterlacer, "parameters");
+            Q_ASSERT(paraInput);
+            Q_ASSERT(paraInput->data);
+            xine_post_api_t *api = reinterpret_cast<xine_post_api_t *>(paraInput->data);
+            xine_post_api_descr_t *desc = api->get_param_descr();
+            char *pluginParams = static_cast<char *>(malloc(desc->struct_size));
+            api->get_parameters(m_deinterlacer, pluginParams);
+            for (int i = 0; desc->parameter[i].type != POST_PARAM_TYPE_LAST; ++i) {
+                xine_post_api_parameter_t &p = desc->parameter[i];
+                if (p.type == POST_PARAM_TYPE_INT && 0 == strcmp(p.name, "method")) {
+                    int *value = reinterpret_cast<int *>(pluginParams + p.offset);
+                    *value = Backend::deinterlaceMethod();
+                    break;
+                }
             }
-        }
-        api->set_parameters(m_deinterlacer, pluginParams);
-        free(pluginParams);
+            api->set_parameters(m_deinterlacer, pluginParams);
+            free(pluginParams);
 
-        // connect to xine_stream_t
-        xine_post_in_t *x = xine_post_input(m_deinterlacer, "video");
-        Q_ASSERT(x);
-        xine_post_out_t *videoOutputPort = xine_get_video_source(m_stream);
-        Q_ASSERT(videoOutputPort);
-        xine_post_wire(videoOutputPort, x);
+            // connect to xine_stream_t
+            xine_post_in_t *x = xine_post_input(m_deinterlacer, "video");
+            Q_ASSERT(x);
+            xine_post_out_t *videoOutputPort = xine_get_video_source(m_stream);
+            Q_ASSERT(videoOutputPort);
+            xine_post_wire(videoOutputPort, x);
+        }
     } else if (m_deinterlacer) {
         xine_post_dispose(xine(), m_deinterlacer);
         m_deinterlacer = 0;
@@ -497,6 +504,7 @@ bool XineStream::createStream()
         videoPort = nullVideoPort();
     }
     m_stream = xine_stream_new(xine(), audioPort, videoPort);
+    hackSetProperty("xine_stream_t", QVariant::fromValue(static_cast<void *>(m_stream)));
     /*
     if (m_audioPostLists.size() == 1) {
         m_audioPostLists.first().wireStream();
@@ -642,6 +650,7 @@ void XineStream::changeState(Phonon::State newstate)
         if (m_stream) {
             xine_dispose(m_stream);
             m_stream = 0;
+            hackSetProperty("xine_stream_t", QVariant());
         }
     }
     emit stateChanged(newstate, oldstate);
@@ -666,6 +675,8 @@ void XineStream::updateMetaData()
             QString::fromUtf8(xine_get_meta_info(m_stream, XINE_META_INFO_TRACK_NUMBER)));
     metaDataMap.insert(QLatin1String("DESCRIPTION"),
             QString::fromUtf8(xine_get_meta_info(m_stream, XINE_META_INFO_COMMENT)));
+    metaDataMap.insert(QLatin1String("MUSICBRAINZ_DISCID"),
+            QString::fromUtf8(xine_get_meta_info(m_stream, XINE_META_INFO_CDINDEX_DISCID)));
     if(metaDataMap == m_metaDataMap)
         return;
     m_metaDataMap = metaDataMap;
@@ -693,6 +704,7 @@ void XineStream::playbackFinished()
 // xine thread
 inline void XineStream::error(Phonon::ErrorType type, const QString &string)
 {
+    kDebug(610) << type << string;
     m_errorLock.lockForWrite();
     m_errorType = type;
     m_errorString = string;
@@ -820,6 +832,25 @@ bool XineStream::event(QEvent *ev)
                 kDebug(610) << "available angles changed: " << availableAngles;
                 m_availableAngles = availableAngles;
                 emit availableAnglesChanged(m_availableAngles);
+            }
+
+            {
+                int availableSubtitles = subtitlesSize();
+                if(availableSubtitles != m_availableSubtitles)
+                {
+                    kDebug(610) << "available subtitles changed: " << availableSubtitles;
+                    m_availableSubtitles = availableSubtitles;
+                    emit availableSubtitlesChanged();
+                }
+            }
+            {
+                int availableAudioChannels = audioChannelsSize();
+                if(availableAudioChannels != m_availableAudioChannels)
+                {
+                    kDebug(610) << "available audio channels changed: " << availableAudioChannels;
+                    m_availableAudioChannels = availableAudioChannels;
+                    emit availableAudioChannelsChanged();
+                }
             }
 
             int currentTitle   = xine_get_stream_info(m_stream, XINE_STREAM_INFO_DVD_TITLE_NUMBER);
@@ -1318,6 +1349,85 @@ Phonon::ErrorType XineStream::errorType() const
     return m_errorType;
 }
 
+QList<SubtitleDescription> XineStream::availableSubtitles() const
+{
+    uint hash = streamHash();
+    QList<SubtitleDescription> subtitles;
+    if( !m_stream )
+        return subtitles;
+    const int channels = subtitlesSize();
+    for( int index = 0; index < channels; index++ )
+    {
+        subtitles << streamDescription<SubtitleDescription>( index, hash, SubtitleType, xine_get_spu_lang );
+    }
+    return subtitles;
+}
+
+QList<AudioChannelDescription> XineStream::availableAudioChannels() const
+{
+    const uint hash = streamHash();
+    QList<AudioChannelDescription> audios;
+    if( !m_stream )
+        return audios;
+    const int channels = audioChannelsSize();
+    for( int index = 0; index < channels; index++ )
+    {
+        audios << streamDescription<AudioChannelDescription>( index, hash, AudioChannelType, xine_get_audio_lang );
+    }
+    return audios;
+}
+
+int XineStream::subtitlesSize() const
+{
+    return xine_get_stream_info( m_stream, XINE_STREAM_INFO_MAX_SPU_CHANNEL );
+}
+
+int XineStream::audioChannelsSize() const
+{
+    return xine_get_stream_info( m_stream, XINE_STREAM_INFO_MAX_AUDIO_CHANNEL );
+}
+
+void XineStream::setCurrentAudioChannel(const AudioChannelDescription& streamDesc)
+{
+    xine_set_param( m_stream, XINE_PARAM_AUDIO_CHANNEL_LOGICAL, streamDesc.index() - streamHash() );
+}
+
+void XineStream::setCurrentSubtitle(const SubtitleDescription& streamDesc)
+{
+    kDebug() << "setting the subtitle to: " << streamDesc.index();
+    xine_set_param( m_stream, XINE_PARAM_SPU_CHANNEL, streamDesc.index() - streamHash() );
+}
+
+uint XineStream::streamHash() const
+{
+    return qHash( m_mrl );
+}
+
+template<class S>
+S XineStream::streamDescription(int index, uint hash, ObjectDescriptionType type, int(*get_xine_stream_text)(xine_stream_t *stream, int channel, char *lang)) const
+{
+    QByteArray lang;
+    lang.resize( 150 );
+    get_xine_stream_text( m_stream, index, lang.data() );
+    QHash<QByteArray, QVariant> properities;
+    properities.insert( "name", QString( lang ) );
+    Backend::setObjectDescriptionProperities( type, index + hash, properities );
+    return S( index + hash, properities );
+}
+
+AudioChannelDescription XineStream::currentAudioChannel() const
+{
+    const int index = xine_get_param( m_stream, XINE_PARAM_AUDIO_CHANNEL_LOGICAL );
+    return streamDescription<AudioChannelDescription>( index, streamHash(), AudioChannelType, xine_get_audio_lang );
+}
+
+SubtitleDescription XineStream::currentSubtitle() const
+{
+    int index = xine_get_param( m_stream, XINE_PARAM_SPU_CHANNEL );
+    return streamDescription<SubtitleDescription>( index, streamHash(), SubtitleType, xine_get_spu_lang );
+}
+
+
 xine_post_out_t *XineStream::audioOutputPort() const
 {
     if (!m_stream) {
@@ -1485,8 +1595,8 @@ void XineStream::timerEvent(QTimerEvent *event)
                 changeState(Phonon::StoppedState);
                 killTimer(m_waitForPlayingTimerId);
                 m_waitForPlayingTimerId = -1;
-            } else {
-                kDebug(610) << "waiting";
+            //} else {
+                //kDebug(610) << "waiting";
             }
         }
     } else {

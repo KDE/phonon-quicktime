@@ -17,7 +17,7 @@ set(phonon_xine_PART_SRCS
     effect.cpp
     audiooutput.cpp
     mediaobject.cpp
-    videodataoutput.cpp
+    #videodataoutput.cpp
     visualization.cpp
     backend.cpp
     volumefadereffect.cpp
@@ -42,7 +42,7 @@ endif(XCB_FOUND AND XINE_XCB_FOUND)
 macro_log_feature(XCB_VIDEO "XCB" "XCB is needed for the video widget, libxine needs to be compiled with XCB" "http://xcb.freedesktop.org/")
 
 kde4_add_plugin(phonon_xine2 ${phonon_xine_PART_SRCS})
-target_link_libraries(phonon_xine2 ${QT_QTGUI_LIBRARY} ${KDE4_KDECORE_LIBS} ${KDE4_PHONON_LIBS} ${XINE_LIBRARY} ${KDE4_KAUDIODEVICELIST_LIBS})
+target_link_libraries(phonon_xine2 ${QT_QTGUI_LIBRARY} ${KDE4_KDECORE_LIBS} ${KDE4_KDEUI_LIBS} ${KDE4_PHONON_LIBS} ${XINE_LIBRARY})
 if(XCB_FOUND AND XINE_XCB_FOUND)
   target_link_libraries(phonon_xine2 ${LIBXCB_LIBRARIES})
 endif(XCB_FOUND AND XINE_XCB_FOUND)
