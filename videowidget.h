@@ -144,9 +144,7 @@ class VideoWidget : public QWidget, public Phonon::VideoWidgetInterface, public 
         Phonon::VideoWidget::ScaleMode m_scaleMode;
 
         QSize m_sizeHint;
-        int m_videoWidth;
-        int m_videoHeight;
-        bool m_fullScreen;
+
         /**
          * No video should be shown, all paint events should draw black
          */

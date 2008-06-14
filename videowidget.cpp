@@ -195,7 +195,8 @@ void VideoWidgetXT::createVideoPort()
 VideoWidget::VideoWidget(QWidget *parent)
     : QWidget(parent),
     SinkNode(new VideoWidgetXT(this)),
-    m_fullScreen(false),
+    m_aspectRatio(Phonon::VideoWidget::AspectRatioAuto),
+    m_scaleMode(Phonon::VideoWidget::FitInView),
     m_empty(true),
     m_brightness(0.0),
     m_contrast(0.0),
