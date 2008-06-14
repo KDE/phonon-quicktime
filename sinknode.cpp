@@ -54,7 +54,7 @@ SinkNode::~SinkNode()
         m_source->removeSink(this);
     }
     KeepReference<0> *keep = new KeepReference<0>;
-    keep->addObject(m_threadSafeObject);
+    keep->addObject(m_threadSafeObject.data());
     m_threadSafeObject = 0;
     keep->ready();
 }

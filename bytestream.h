@@ -25,7 +25,7 @@
 #include <xine.h>
 
 #include "xineengine.h"
-#include <phonon/streaminterface.h>
+#include <Phonon/StreamInterface>
 #include <QByteArray>
 #include <QSharedData>
 #include <QQueue>
@@ -45,7 +45,6 @@ class MediaObject;
 class ByteStream : public QObject, public StreamInterface, public QSharedData
 {
     Q_OBJECT
-    Q_INTERFACES(Phonon::StreamInterface)
     public:
         static ByteStream *fromMrl(const QByteArray &mrl);
         ByteStream(const MediaSource &, MediaObject *parent);

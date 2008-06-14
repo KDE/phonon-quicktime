@@ -30,6 +30,7 @@
 #include <QtCore/QTimer>
 
 #include <Phonon/Global>
+#include <Phonon/ObjectDescription>
 
 #include <xine.h>
 
@@ -107,6 +108,18 @@ class XineStream : public QObject, public SourceNodeXT
         int currentAngle()      const { return m_currentAngle;      }
         int currentTitle()      const { return m_currentTitle;      }
 
+        QList<AudioChannelDescription> availableAudioChannels() const;
+        QList<SubtitleDescription> availableSubtitles() const;
+
+        AudioChannelDescription currentAudioChannel() const;
+        SubtitleDescription currentSubtitle() const;
+
+        void setCurrentAudioChannel(const AudioChannelDescription& streamDesc);
+        void setCurrentSubtitle(const SubtitleDescription& streamDesc);
+
+        int subtitlesSize() const;
+        int audioChannelsSize() const;
+
         enum StateForNewMrl {
             // no use: Loading, Error, Buffering
             StoppedState = Phonon::StoppedState,
@@ -149,6 +162,8 @@ class XineStream : public QObject, public SourceNodeXT
         void hasVideoChanged(bool);
         void bufferStatus(int);
 
+        void availableSubtitlesChanged();
+        void availableAudioChannelsChanged();
         void availableChaptersChanged(int);
         void chapterChanged(int);
         void availableAnglesChanged(int);
@@ -156,6 +171,8 @@ class XineStream : public QObject, public SourceNodeXT
         void availableTitlesChanged(int);
         void titleChanged(int);
         void downstreamEvent(Event *e);
+
+        void hackSetProperty(const char *name, const QVariant &val);
 
     protected:
         bool event(QEvent *ev);
@@ -181,6 +198,9 @@ class XineStream : public QObject, public SourceNodeXT
         void internalPause();
         void internalPlay();
         void setMrlInternal(const QByteArray &newMrl);
+        template<class S>
+        S streamDescription(int index, uint hash, ObjectDescriptionType type, int(*get_xine_stream_text)(xine_stream_t *stream, int channel, char *lang)) const;
+        uint streamHash() const;
 
         xine_stream_t *m_stream;
         xine_event_queue_t *m_event_queue;
@@ -216,6 +236,8 @@ class XineStream : public QObject, public SourceNodeXT
         int m_totalTime;
         int m_currentTime;
         int m_waitForPlayingTimerId;
+        int m_availableSubtitles;
+        int m_availableAudioChannels;
         int m_availableTitles;
         int m_availableChapters;
         int m_availableAngles;

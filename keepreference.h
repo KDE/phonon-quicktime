@@ -23,9 +23,7 @@
 #include <QtCore/QExplicitlySharedDataPointer>
 #include <QtCore/QObject>
 #include <QtGui/QApplication>
-#include "xineengine.h"
-#include "sinknode.h"
-#include "sourcenode.h"
+#include "shareddata.h"
 #include "xinethread.h"
 
 namespace Phonon
@@ -46,10 +44,7 @@ class KeepReference : public QObject
 
         inline ~KeepReference() { Backend::removeCleanupObject(this); }
 
-        inline void addObject(const QExplicitlySharedDataPointer<SinkNodeXT> &sink) { sinks << sink; }
-        inline void addObject(const QExplicitlySharedDataPointer<SourceNodeXT> &source) { sources << source; }
-        inline void addObject(SinkNodeXT *sink) { sinks << QExplicitlySharedDataPointer<SinkNodeXT>(sink); }
-        inline void addObject(SourceNodeXT *source) { sources << QExplicitlySharedDataPointer<SourceNodeXT>(source); }
+        inline void addObject(SharedData *o) { objects << QExplicitlySharedDataPointer<SharedData>(o); }
         inline void ready() {
             // do this so that startTimer is called from the correct thread
             QCoreApplication::postEvent(this, new QEvent(static_cast<QEvent::Type>(2345)));
@@ -73,8 +68,7 @@ class KeepReference : public QObject
         }
 
     private:
-        QList<QExplicitlySharedDataPointer<SinkNodeXT> > sinks;
-        QList<QExplicitlySharedDataPointer<SourceNodeXT> > sources;
+        QList<QExplicitlySharedDataPointer<SharedData> > objects;
 };
 
 

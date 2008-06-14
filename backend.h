@@ -22,21 +22,20 @@
 
 #include <QtCore/QList>
 #include <QtCore/QList>
-#include <QtCore/QTimer>
+#include <QtCore/QObject>
 #include <QtCore/QPair>
 #include <QtCore/QPointer>
 #include <QtCore/QStringList>
+#include <QtCore/QTimer>
+#include <QtCore/QVariant>
 
 #include <xine.h>
 #include <xine/xineutils.h>
 
 #include "xineengine.h"
-#include <QObject>
 #include <phonon/objectdescription.h>
-#ifndef Q_MOC_RUN
 #include <phonon/backendinterface.h>
-#endif
-#include <KSharedConfig>
+#include <KDE/KSharedConfig>
 
 namespace Phonon
 {
@@ -56,19 +55,16 @@ Q_DECLARE_OPERATORS_FOR_FLAGS(Phonon::Xine::MediaStreamTypes)
 
 namespace Phonon
 {
-#ifdef Q_MOC_RUN
-class BackendInterface { enum Class; };
-}
-Q_DECLARE_INTERFACE(Phonon::BackendInterface, "BackendInterface3.phonon.kde.org")
-namespace Phonon
-{
-#endif
 class AudioDevice;
 namespace Xine
 {
 
 class WireCall;
 class XineThread;
+
+typedef QHash< int, QHash<QByteArray, QVariant> > ChannelIndexHash;
+typedef QHash<ObjectDescriptionType, ChannelIndexHash> ObjectDescriptionHash;
+
 class Backend : public QObject, public Phonon::BackendInterface
 {
     Q_OBJECT
@@ -108,71 +104,62 @@ class Backend : public QObject, public Phonon::BackendInterface
         static bool deinterlaceFile();
         static int deinterlaceMethod();
 
+        static bool inShutdown() { return instance()->m_inShutdown; }
+
+        static void setObjectDescriptionProperities(ObjectDescriptionType type, int index, const QHash<QByteArray, QVariant> &properities);
+        static ObjectDescriptionHash objectDescriptions() { return instance()->m_objectDescriptions; }
+
         static QList<int> audioOutputIndexes();
-        static QString audioOutputName(int audioDevice);
-        static QString audioOutputDescription(int audioDevice);
-        static QString audioOutputIcon(int audioDevice);
-        static bool audioOutputAvailable(int audioDevice);
-        static QVariant audioOutputMixerDevice(int audioDevice);
-        static int audioOutputInitialPreference(int audioDevice);
+        static QHash<QByteArray, QVariant> audioOutputProperties(int audioDevice);
+
         static QByteArray audioDriverFor(int audioDevice);
-        static QStringList alsaDevicesFor(int audioDevice);
 
         static XineEngine xine() { return instance()->m_xine; }
         static void returnXineEngine(const XineEngine &);
         static XineEngine xineEngineForStream();
 
-    public slots:
-        Q_SCRIPTABLE void ossSettingChanged(bool);
-
     signals:
         void objectDescriptionChanged(ObjectDescriptionType);
 
     private slots:
-        void devicePlugged(const AudioDevice &);
-        void deviceUnplugged(const AudioDevice &);
         void emitAudioDeviceChange();
 
     private:
         void checkAudioOutputs();
-        void addAudioOutput(AudioDevice dev, const QByteArray &driver);
         void addAudioOutput(int idx, int initialPreference, const QString &n,
                 const QString &desc, const QString &ic, const QByteArray &dr,
-                const QStringList &dev, const QString &mixerDevice);
+                bool isAdvanced = false);
 
         mutable QStringList m_supportedMimeTypes;
+
+        QHash<ObjectDescriptionType, QHash<int, QHash<QByteArray, QVariant> > > m_objectDescriptions;
+
         struct AudioOutputInfo
         {
             AudioOutputInfo(int idx, int ip, const QString &n, const QString &desc, const QString &ic,
-                    const QByteArray &dr, const QStringList &dev, const QString &mdev)
-                : available(false), index(idx), initialPreference(ip), name(n),
-                description(desc), icon(ic), driver(dr), devices(dev), mixerDevice(mdev) {}
+                    const QByteArray &dr)
+                : name(n), description(desc), icon(ic), driver(dr),
+                index(idx), initialPreference(ip), available(false), isAdvanced(false) {}
 
-            bool available;
-            int index;
-            int initialPreference;
             QString name;
             QString description;
             QString icon;
             QByteArray driver;
-            QStringList devices;
-            QString mixerDevice;
+            int index;
+            int initialPreference;
+            bool available : 1;
+            bool isAdvanced : 1;
             inline bool operator==(const AudioOutputInfo &rhs) const { return name == rhs.name && driver == rhs.driver; }
-            inline bool operator<(const AudioOutputInfo &rhs) const { return initialPreference < rhs.initialPreference; }
+            inline bool operator<(const AudioOutputInfo &rhs) const { return initialPreference > rhs.initialPreference; }
         };
         QList<AudioOutputInfo> m_audioOutputInfos;
         QList<QObject *> m_cleanupObjects;
         KSharedConfigPtr m_config;
         int m_deinterlaceMethod : 8;
-        enum UseOss {
-            False = 0,
-            True = 1,
-            Unknown = 2
-        };
-        UseOss m_useOss : 2;
         bool m_deinterlaceDVD : 1;
         bool m_deinterlaceVCD : 1;
         bool m_deinterlaceFile : 1;
+        bool m_inShutdown : 1;
         XineThread *m_thread;
         XineEngine m_xine;
         QTimer signalTimer;

@@ -58,7 +58,7 @@ void NullSink::downstreamEvent(Event *e)
 {
     if (e->type() == Event::HeresYourXineStream) {
         K_XT(NullSink);
-        xt->m_stream = static_cast<HeresYourXineStreamEvent *>(e)->stream;
+        xt->m_stream = static_cast<HeresYourXineStreamEvent *>(e)->stream.data();
     }
     SinkNode::downstreamEvent(e);
 }
