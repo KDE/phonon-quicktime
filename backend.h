@@ -77,13 +77,6 @@ class Backend : public QObject, public Phonon::BackendInterface
 
         QObject *createObject(BackendInterface::Class, QObject *parent, const QList<QVariant> &args);
 
-        Q_INVOKABLE bool supportsVideo() const;
-        Q_INVOKABLE bool supportsOSD() const;
-        Q_INVOKABLE bool supportsFourcc(quint32 fourcc) const;
-        Q_INVOKABLE bool supportsSubtitles() const;
-
-        Q_INVOKABLE void freeSoundcardDevices();
-
         QList<int> objectDescriptionIndexes(ObjectDescriptionType) const;
         QHash<QByteArray, QVariant> objectDescriptionProperties(ObjectDescriptionType, int) const;
 
