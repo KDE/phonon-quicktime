@@ -184,32 +184,6 @@ QObject *Backend::createObject(BackendInterface::Class c, QObject *parent, const
     return 0;
 }
 
-bool Backend::supportsVideo() const
-{
-    return true;
-}
-
-bool Backend::supportsOSD() const
-{
-    return true;
-}
-
-bool Backend::supportsFourcc(quint32 fourcc) const
-{
-    switch(fourcc)
-    {
-    case 0x00000000:
-        return true;
-    default:
-        return false;
-    }
-}
-
-bool Backend::supportsSubtitles() const
-{
-    return true;
-}
-
 QStringList Backend::availableMimeTypes() const
 {
     if (m_supportedMimeTypes.isEmpty())
@@ -510,10 +484,6 @@ bool Backend::endConnectionChange(QSet<QObject *> nodes)
     m_disconnections.clear();
     keep->ready();
     return true;
-}
-
-void Backend::freeSoundcardDevices()
-{
 }
 
 void Backend::emitAudioDeviceChange()
