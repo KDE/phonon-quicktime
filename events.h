@@ -148,8 +148,7 @@ template <> inline FrameFormatChangeEvent *copyEvent<FrameFormatChangeEvent>(Fra
 class SeekCommandEvent : public Event
 {
     public:
-        SeekCommandEvent(qint64 t) : QEVENT(SeekCommand), valid(true), time(t) {}
-        bool valid;
+        SeekCommandEvent(qint64 t) : QEVENT(SeekCommand), time(t) {}
         const qint64 time;
 };
 template <> inline SeekCommandEvent *copyEvent<SeekCommandEvent>(SeekCommandEvent *e)
