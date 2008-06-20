@@ -1,0 +1,22 @@
+you need the kdelibs development package installed (at least 4.1 Beta1)
+you need cmake version 2.4.5 or later
+you need the libxine development package installed (> 1.1.9 but not the 1.2
+versions)
+
+to compile the backend do
+% cmake -DCMAKE_INSTALL_PREFIX=/path/to/kde4
+% make
+
+install it with
+% make install
+
+to make sure KDE4 picks up the new backend run
+% kbuildsycoca4
+
+Now all newly started applications should be using phonon-xine-tng already. You
+can make sure in
+% kcmshell4 kcm_phonon
+in the Backend tab.
+
+
+Please report problems to the Phonon module on http://bugs.kde.org/.
