@@ -288,10 +288,16 @@ bool XineStream::xineOpen(Phonon::State newstate)
         return false;
     }
     kDebug(610) << "xine_open succeeded for m_mrl =" << m_mrl.constData();
-    if ((m_mrl.startsWith("dvd:/") && Backend::deinterlaceDVD()) ||
+    const bool needDeinterlacer =
+        (m_mrl.startsWith("dvd:/") && Backend::deinterlaceDVD()) ||
         (m_mrl.startsWith("vcd:/") && Backend::deinterlaceVCD()) ||
-        (m_mrl.startsWith("file:/") && Backend::deinterlaceFile())) {
-        // for DVDs we add an interlacer by default
+        (m_mrl.startsWith("file:/") && Backend::deinterlaceFile());
+    if (m_deinterlacer) {
+        if (!needDeinterlacer) {
+            xine_post_dispose(m_xine, m_deinterlacer);
+            m_deinterlacer = 0;
+        }
+    } else if (needDeinterlacer) {
         xine_video_port_t *videoPort = 0;
         Q_ASSERT(m_mediaObject);
         QSet<SinkNode *> sinks = m_mediaObject->sinks();
@@ -334,9 +340,6 @@ bool XineStream::xineOpen(Phonon::State newstate)
             Q_ASSERT(videoOutputPort);
             xine_post_wire(videoOutputPort, x);
         }
-    } else if (m_deinterlacer) {
-        xine_post_dispose(m_xine, m_deinterlacer);
-        m_deinterlacer = 0;
     }
 
     m_lastTimeUpdate.tv_sec = 0;
