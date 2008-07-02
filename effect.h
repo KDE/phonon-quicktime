@@ -56,7 +56,6 @@ class EffectXT : public SourceNodeXT, public SinkNodeXT
         void ensureInstance();
 
         xine_audio_port_t *m_fakeAudioPort;
-        bool m_realInstance;
         mutable QMutex m_mutex;
         const char *m_pluginName;
         char *m_pluginParams;
