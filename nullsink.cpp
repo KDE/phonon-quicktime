@@ -44,13 +44,17 @@ void NullSinkXT::rewireTo(SourceNodeXT *source)
 
 xine_audio_port_t *NullSinkXT::audioPort() const
 {
-    Q_ASSERT(m_stream);
+    if (!m_stream) {
+        return 0;
+    }
     return m_stream->nullAudioPort();
 }
 
 xine_video_port_t *NullSinkXT::videoPort() const
 {
-    Q_ASSERT(m_stream);
+    if (!m_stream) {
+        return 0;
+    }
     return m_stream->nullVideoPort();
 }
 
