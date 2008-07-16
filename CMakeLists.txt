@@ -30,9 +30,6 @@ endif(XINE_MINOR_VERSION LESS 2 AND XINE_BUGFIX_VERSION LESS 90)
 
 add_subdirectory(kcm)
 
-# xine expects off_t to be 64bits
-ADD_DEFINITIONS(-D_FILE_OFFSET_BITS=64)
-
 set(phonon_xine_PART_SRCS
    sinknode.cpp
    sourcenode.cpp
