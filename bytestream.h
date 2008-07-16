@@ -2,9 +2,10 @@
     Copyright (C) 2006 Tim Beaulen <tbscope@gmail.com>
     Copyright (C) 2006-2007 Matthias Kretz <kretz@kde.org>
 
-    This library is free software; you can redistribute it and/or
+    This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU Library General Public
-    License version 2 as published by the Free Software Foundation.
+    License as published by the Free Software Foundation; either
+    version 2 of the License, or (at your option) any later version.
 
     This library is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -36,6 +37,8 @@
 #include <pthread.h>
 #include <cstdlib>
 #include <QObject>
+
+extern const char Error__off_t_needs_to_have_64_bits[sizeof(off_t) == 8 ? 1 : -1];
 
 namespace Phonon
 {
