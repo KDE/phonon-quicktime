@@ -35,9 +35,6 @@ XineOptions::XineOptions(QWidget *parent, const QVariantList &args)
 
     m_config = KSharedConfig::openConfig("xinebackendrc");
 
-    // TODO m_ossCheckbox is useless for systems without ALSA - should be disabled
-    connect(m_ossCheckbox, SIGNAL(toggled(bool)), SLOT(changed()));
-    connect(m_ossCheckbox, SIGNAL(toggled(bool)), SLOT(ossCheckboxToggled(bool)));
     connect(deinterlaceMediaList, SIGNAL(clicked(const QModelIndex &)), SLOT(changed()));
     connect(deinterlaceMethodBox, SIGNAL(currentIndexChanged(int)), SLOT(changed()));
 
@@ -98,19 +95,9 @@ XineOptions::XineOptions(QWidget *parent, const QVariantList &args)
     load();
 }
 
-void XineOptions::ossCheckboxToggled(bool b)
-{
-    const QString x = QDBusConnection::sessionBus().baseService();
-    QDBusInterface iface(x, "/internal/PhononXine", "org.kde.phonon.XineBackendInternal");
-    if (iface.isValid()) {
-        iface.call(QDBus::NoBlock, "ossSettingChanged", b);
-    }
-}
-
 void XineOptions::load()
 {
     KConfigGroup cg(m_config, "Settings");
-    m_ossCheckbox->setChecked(cg.readEntry("showOssDevices", false));
     if (!m_noDeinterlace) {
         deinterlaceMediaList->item(0)->setCheckState(cg.readEntry("deinterlaceDVD", true) ? Qt::Checked : Qt::Unchecked);
         deinterlaceMediaList->item(1)->setCheckState(cg.readEntry("deinterlaceVCD", false) ? Qt::Checked : Qt::Unchecked);
@@ -122,7 +109,6 @@ void XineOptions::load()
 void XineOptions::save()
 {
     KConfigGroup cg(m_config, "Settings");
-    cg.writeEntry("showOssDevices", m_ossCheckbox->isChecked());
     if (!m_noDeinterlace) {
         cg.writeEntry("deinterlaceDVD", deinterlaceMediaList->item(0)->checkState() == Qt::Checked);
         cg.writeEntry("deinterlaceVCD", deinterlaceMediaList->item(1)->checkState() == Qt::Checked);
@@ -133,7 +119,6 @@ void XineOptions::save()
 
 void XineOptions::defaults()
 {
-    m_ossCheckbox->setChecked(false);
     if (!m_noDeinterlace) {
         deinterlaceMediaList->item(0)->setCheckState(Qt::Checked);
         deinterlaceMediaList->item(1)->setCheckState(Qt::Unchecked);
