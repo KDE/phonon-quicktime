@@ -36,9 +36,6 @@ class XineOptions : public KCModule, private Ui::XineOptions
         void save();
         void defaults();
 
-    private slots:
-        void ossCheckboxToggled(bool b);
-
     private:
         KSharedConfigPtr m_config;
         bool m_noDeinterlace;
